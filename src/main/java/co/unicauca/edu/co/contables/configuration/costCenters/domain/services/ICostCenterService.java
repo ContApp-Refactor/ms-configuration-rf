@@ -11,9 +11,13 @@ public interface ICostCenterService {
 
 	CostCenter update(CostCenterUpdateReq request);
 
-	Page<CostCenter> findAllByEnterprise(String idEnterprise, int page, int size);
-
 	Page<CostCenter> findAllByEnterpriseAndStatus(String idEnterprise, Boolean status, int page, int size);
+
+	/**
+	 * Obtiene centros de costo con paginación jerárquica
+	 * Mantiene las familias completas juntas
+	 */
+	Page<CostCenter> findAllByEnterpriseHierarchical(String idEnterprise, int page, int size);
 
 	CostCenter findById(Long id, String idEnterprise);
 

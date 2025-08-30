@@ -19,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.ArrayList;
+import org.springframework.data.domain.PageImpl;
 
 @Service
 @RequiredArgsConstructor
@@ -98,12 +100,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		return dataMapper.toDomain(repository.save(current));
 	}
 
-    @Transactional(readOnly = true)
-    public Page<CostCenter> findAllByEnterprise(String idEnterprise, int page, int size) {
-		Pageable pageable = PageRequest.of(page, size);
-		return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable)
-				.map(dataMapper::toDomain);
-	}
+
 
     @Transactional(readOnly = true)
     public Page<CostCenter> findAllByEnterpriseAndStatus(String idEnterprise, Boolean status, int page, int size) {
@@ -111,6 +108,41 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		return repository.findAllByIdEnterpriseAndStatusAndIsDeletedFalse(idEnterprise, status, pageable)
 				.map(dataMapper::toDomain);
 	}
+
+	@Transactional(readOnly = true)
+	public Page<CostCenter> findAllByEnterpriseHierarchical(String idEnterprise, int page, int size) {
+		// Obtener solo los centros de costo raíz (padres)
+		List<CostCenterEntity> rootCostCenters = repository.findByIdEnterpriseAndIsDeletedFalseAndParentIsNullOrderByCode(idEnterprise);
+		
+		// Calcular el total de elementos una sola vez
+		long totalElements = countAllNodesInRoots(rootCostCenters);
+		
+		// Calcular paginación sobre las familias raíz
+		int totalRoots = rootCostCenters.size();
+		int startIndex = page * size;
+		
+		// Si el índice de inicio es mayor que el total, devolver página vacía
+		if (startIndex >= totalRoots) {
+			return new PageImpl<>(new ArrayList<>(), PageRequest.of(page, size), totalElements);
+		}
+		
+		// Obtener las familias raíz para esta página
+		int endIndex = Math.min(startIndex + size, totalRoots);
+		List<CostCenterEntity> pageRoots = rootCostCenters.subList(startIndex, endIndex);
+		
+		// Construir lista con todas las familias completas (padres + hijos + nietos)
+		List<CostCenter> result = new ArrayList<>();
+		for (CostCenterEntity root : pageRoots) {
+			// Agregar el padre
+			result.add(dataMapper.toDomain(root));
+			
+			// Agregar todos sus descendientes recursivamente
+			addChildrenRecursively(root, result);
+		}
+		
+		return new PageImpl<>(result, PageRequest.of(page, size), totalElements);
+	}
+	
 
     @Transactional(readOnly = true)
     public CostCenter findById(Long id, String idEnterprise) {
@@ -166,6 +198,41 @@ public class CostCenterServiceImpl implements ICostCenterService {
 			// Procesar recursivamente los hijos de este hijo
 			changeChildrenStateRecursively(child.getId(), status);
 		}
+	}
+
+	/**
+	 * Agrega recursivamente todos los hijos de un centro de costo a la lista resultado
+	 */
+	private void addChildrenRecursively(CostCenterEntity parent, List<CostCenter> result) {
+		List<CostCenterEntity> children = repository.findByParentIdAndIsDeletedFalse(parent.getId());
+		for (CostCenterEntity child : children) {
+			result.add(dataMapper.toDomain(child));
+			// Recursivamente agregar los hijos de este hijo
+			addChildrenRecursively(child, result);
+		}
+	}
+	
+	/**
+	 * Cuenta el total de nodos en todas las familias raíz
+	 */
+	private long countAllNodesInRoots(List<CostCenterEntity> rootCostCenters) {
+		long count = 0;
+		for (CostCenterEntity root : rootCostCenters) {
+			count += 1 + countChildrenRecursively(root); // 1 para el padre + hijos
+		}
+		return count;
+	}
+	
+	/**
+	 * Cuenta recursivamente todos los hijos de un centro de costo
+	 */
+	private long countChildrenRecursively(CostCenterEntity parent) {
+		List<CostCenterEntity> children = repository.findByParentIdAndIsDeletedFalse(parent.getId());
+		long count = children.size();
+		for (CostCenterEntity child : children) {
+			count += countChildrenRecursively(child);
+		}
+		return count;
 	}
 
 }
