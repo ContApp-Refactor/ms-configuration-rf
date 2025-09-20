@@ -28,6 +28,9 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
 
     // Método para obtener todos los hijos activos (no eliminados) de un centro de costo
     List<CostCenterEntity> findByParentIdAndIsDeletedFalse(Long parentId);
+
+    // Método para obtener solo los centros de costo raíz (sin padre) ordenados
+    List<CostCenterEntity> findByIdEnterpriseAndIsDeletedFalseAndParentIsNullOrderByCode(String idEnterprise);
 }
 
 

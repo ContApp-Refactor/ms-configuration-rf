@@ -39,12 +39,14 @@ public class CostCenterController {
         return ResponseEntity.ok(mapper.toRes(service.findById(id, enterpriseId)));
     }
 
+
+
     @GetMapping("/findAll/{enterpriseId}")
-    public ResponseEntity<Page<CostCenterRes>> list(
+    public ResponseEntity<Page<CostCenterRes>> listHierarchical(
             @PathVariable String enterpriseId,
             @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
-        Page<CostCenter> pageResult = service.findAllByEnterprise(enterpriseId, page, size);
+            @RequestParam(defaultValue = "30") Integer size) {
+        Page<CostCenter> pageResult = service.findAllByEnterpriseHierarchical(enterpriseId, page, size);
         Page<CostCenterRes> mapped = pageResult.map(mapper::toRes);
         return ResponseEntity.ok(mapped);
     }
@@ -54,7 +56,7 @@ public class CostCenterController {
             @PathVariable String enterpriseId,
             @RequestParam Boolean status,
             @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
+            @RequestParam(defaultValue = "30") Integer size) {
         Page<CostCenter> pageResult = service.findAllByEnterpriseAndStatus(enterpriseId, status, page, size);
         Page<CostCenterRes> mapped = pageResult.map(mapper::toRes);
         return ResponseEntity.ok(mapped);
