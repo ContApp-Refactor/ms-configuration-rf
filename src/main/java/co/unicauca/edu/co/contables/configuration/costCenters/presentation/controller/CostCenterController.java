@@ -41,7 +41,7 @@ public class CostCenterController {
 
 
 
-    @GetMapping("/findAllHierarchical/{enterpriseId}")
+    @GetMapping("/findAll/{enterpriseId}")
     public ResponseEntity<Page<CostCenterRes>> listHierarchical(
             @PathVariable String enterpriseId,
             @RequestParam(defaultValue = "0") Integer page,
