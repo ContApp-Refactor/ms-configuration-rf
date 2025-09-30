@@ -113,10 +113,10 @@ public class CostCenterController {
     }
 
     @DeleteMapping("/delete/{id}/{enterpriseId}")
-    public ResponseEntity<CostCenterRes> softDelete(
+    public ResponseEntity<CostCenterRes> delete(
             @PathVariable Long id,
             @PathVariable String enterpriseId) {
-        CostCenter deleted = service.softDelete(id, enterpriseId);
+        CostCenter deleted = service.delete(id, enterpriseId);
         return ResponseEntity.ok(mapper.toRes(deleted));
     }
 

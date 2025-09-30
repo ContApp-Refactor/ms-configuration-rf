@@ -34,23 +34,23 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	@Override
 	@Transactional
 	public CostCenter create(CostCenterCreateReq request) {
-		// Validación de unicidad por código y nombre dentro de la empresa (solo registros no eliminados)
-		if (repository.existsByCodeAndIdEnterpriseAndIsDeletedFalse(request.getCode(), request.getIdEnterprise())) {
+		// Validación de unicidad por código y nombre dentro de la empresa
+		if (repository.existsByCodeAndIdEnterprise(request.getCode(), request.getIdEnterprise())) {
 			throw new CostCentersAlreadyExistsException(request.getCode(), request.getIdEnterprise());
 		}
 		// Estandarizar nombre: primera letra mayúscula, resto minúsculas, colapsar espacios
 		String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
 		request.setName(standardizedName);
 
-		// Validación de nombre exacto (tras estandarización, solo registros no eliminados)
-		if (repository.existsByNameAndIdEnterpriseAndIsDeletedFalse(standardizedName, request.getIdEnterprise())) {
+		// Validación de nombre exacto (tras estandarización)
+		if (repository.existsByNameAndIdEnterprise(standardizedName, request.getIdEnterprise())) {
 			throw new CostCentersAlreadyExistsException(request.getName(), request.getIdEnterprise(), true);
 		}
 
 		CostCenter costCenter = domainMapper.toDomain(request);
 		CostCenterEntity entity = dataMapper.toEntity(costCenter);
 		if (request.getParentId() != null) {
-			CostCenterEntity parent = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getParentId(), request.getIdEnterprise())
+			CostCenterEntity parent = repository.findByIdAndIdEnterprise(request.getParentId(), request.getIdEnterprise())
 					.orElseThrow(CostCentersNotFoundException::new);
 			entity.setParent(parent);
 		}
@@ -62,14 +62,14 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	@Override
 	@Transactional
 	public CostCenter update(CostCenterUpdateReq request) {
-		CostCenterEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getId(), request.getIdEnterprise())
+		CostCenterEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
 				.orElseThrow(CostCentersNotFoundException::new);
 
 		// Estandarizar nombre antes de validar
 		String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
 		request.setName(standardizedName);
 
-		// Si cambian code o name, validar que no exista otro con esos datos en la misma empresa (solo registros no eliminados)
+		// Si cambian code o name, validar que no exista otro con esos datos en la misma empresa
         boolean codeChanged = request.getCode() != null && !request.getCode().equals(current.getCode());
 		boolean nameChanged = request.getName() != null && !request.getName().equals(current.getName());
 		boolean enterpriseChanged = request.getIdEnterprise() != null && !request.getIdEnterprise().equals(current.getIdEnterprise());
@@ -77,13 +77,13 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		String targetEnterprise = enterpriseChanged ? request.getIdEnterprise() : current.getIdEnterprise();
 
         if (codeChanged || enterpriseChanged) {
-            boolean existsCode = repository.existsByCodeAndIdEnterpriseAndIsDeletedFalse(request.getCode(), targetEnterprise);
+            boolean existsCode = repository.existsByCodeAndIdEnterprise(request.getCode(), targetEnterprise);
 			if (existsCode) {
 				throw new CostCentersAlreadyExistsException(request.getCode(), targetEnterprise);
 			}
 		}
 		if (nameChanged || enterpriseChanged) {
-			boolean existsName = repository.existsByNameAndIdEnterpriseAndIdNotAndIsDeletedFalse(request.getName(), targetEnterprise, current.getId());
+			boolean existsName = repository.existsByNameAndIdEnterpriseAndIdNot(request.getName(), targetEnterprise, current.getId());
 			if (existsName) {
 				throw new CostCentersAlreadyExistsException(request.getName(), targetEnterprise, true);
 			}
@@ -93,23 +93,22 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		current.setCode(request.getCode());
 		current.setName(request.getName());
 		if (request.getParentId() != null) {
-			CostCenterEntity parent = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getParentId(), targetEnterprise)
+			CostCenterEntity parent = repository.findByIdAndIdEnterprise(request.getParentId(), targetEnterprise)
 					.orElseThrow(CostCentersNotFoundException::new);
 			current.setParent(parent);
 		} else {
 			current.setParent(null);
 		}
-
 		return dataMapper.toDomain(repository.save(current));
 	}
 
 
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<CostCenter> findAllByEnterpriseAndStatus(String idEnterprise, Boolean status, int page, int size) {
+    	@Override
+	@Transactional(readOnly = true)
+	public Page<CostCenter> findAllByEnterpriseAndStatus(String idEnterprise, Boolean status, int page, int size) {
 		Pageable pageable = PageRequest.of(page, size);
-		return repository.findAllByIdEnterpriseAndStatusAndIsDeletedFalse(idEnterprise, status, pageable)
+		return repository.findAllByIdEnterpriseAndStatus(idEnterprise, status, pageable)
 				.map(dataMapper::toDomain);
 	}
 
@@ -117,7 +116,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	@Transactional(readOnly = true)
 	public Page<CostCenter> findAllByEnterpriseHierarchical(String idEnterprise, int page, int size) {
 		// Obtener solo los centros de costo raíz (padres)
-		List<CostCenterEntity> rootCostCenters = repository.findByIdEnterpriseAndIsDeletedFalseAndParentIsNullOrderByCode(idEnterprise);
+		List<CostCenterEntity> rootCostCenters = repository.findByIdEnterpriseAndParentIsNullOrderByCode(idEnterprise);
 		
 		// Calcular el total de elementos una sola vez
 		long totalElements = countAllNodesInRoots(rootCostCenters);
@@ -152,14 +151,14 @@ public class CostCenterServiceImpl implements ICostCenterService {
     @Override
     @Transactional(readOnly = true)
     public CostCenter findById(Long id, String idEnterprise) {
-		return dataMapper.toDomain(repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+		return dataMapper.toDomain(repository.findByIdAndIdEnterprise(id, idEnterprise)
 				.orElseThrow(CostCentersNotFoundException::new));
 	}
 
 	@Override
 	@Transactional
 	public CostCenter changeState(Long id, String idEnterprise, Boolean status) {
-		CostCenterEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+		CostCenterEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
 				.orElseThrow(CostCentersNotFoundException::new);
 
 		// Cambiar el estado del centro de costo actual
@@ -174,28 +173,27 @@ public class CostCenterServiceImpl implements ICostCenterService {
 
 	@Override
 	@Transactional
-	public CostCenter softDelete(Long id, String idEnterprise) {
-		CostCenterEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+	public CostCenter delete(Long id, String idEnterprise) {
+		CostCenterEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
 				.orElseThrow(CostCentersNotFoundException::new);
 
-		// Validar que el centro de costo no tenga hijos activos (no eliminados)
-		if (repository.existsByParentIdAndIsDeletedFalse(id)) {
-			throw new CostCenterHasChildrenException(current.getName(), current.getCode());
+		// Validar que no tenga centros de costo hijos
+		if (repository.existsByParentId(id)) {
+			throw new CostCenterHasChildrenException(id, current.getCode());
 		}
 
-		current.setIsDeleted(true);
-		CostCenterEntity saved = repository.save(current);
-		return dataMapper.toDomain(saved);
+		// Eliminación física del centro de costo
+		repository.delete(current);
+		return dataMapper.toDomain(current);
 	}
 
 	/**
 	 * Cambia recursivamente el estado de todos los centros de costo hijos (y descendientes) de un centro de costo padre.
 	 * @param parentId ID del centro de costo padre
-	 * @param status nuevo estado a aplicar
 	 */
 	private void changeChildrenStateRecursively(Long parentId, Boolean status) {
-		// Obtener todos los hijos activos (no eliminados) del centro de costo padre
-		List<CostCenterEntity> children = repository.findByParentIdAndIsDeletedFalse(parentId);
+		// Obtener todos los hijos del centro de costo padre
+		List<CostCenterEntity> children = repository.findByParentId(parentId);
 		
 		// Cambiar el estado de cada hijo y procesar recursivamente sus descendientes
 		for (CostCenterEntity child : children) {
@@ -212,7 +210,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	 * Agrega recursivamente todos los hijos de un centro de costo a la lista resultado
 	 */
 	private void addChildrenRecursively(CostCenterEntity parent, List<CostCenter> result) {
-		List<CostCenterEntity> children = repository.findByParentIdAndIsDeletedFalse(parent.getId());
+		List<CostCenterEntity> children = repository.findByParentId(parent.getId());
 		for (CostCenterEntity child : children) {
 			result.add(dataMapper.toDomain(child));
 			// Recursivamente agregar los hijos de este hijo
@@ -235,7 +233,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	 * Cuenta recursivamente todos los hijos de un centro de costo
 	 */
 	private long countChildrenRecursively(CostCenterEntity parent) {
-		List<CostCenterEntity> children = repository.findByParentIdAndIsDeletedFalse(parent.getId());
+		List<CostCenterEntity> children = repository.findByParentId(parent.getId());
 		long count = children.size();
 		for (CostCenterEntity child : children) {
 			count += countChildrenRecursively(child);
@@ -261,13 +259,13 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	@Override
 	@Transactional(readOnly = true)
 	public long countAllByEnterprise(String idEnterprise) {
-		return repository.countByIdEnterpriseAndIsDeletedFalse(idEnterprise);
+		return repository.countByIdEnterprise(idEnterprise);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public long countAllByEnterpriseAndStatus(String idEnterprise, Boolean status) {
-		return repository.countByIdEnterpriseAndStatusAndIsDeletedFalse(idEnterprise, status);
+		return repository.countByIdEnterpriseAndStatus(idEnterprise, status);
 	}
 
 }

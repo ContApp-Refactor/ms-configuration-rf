@@ -25,7 +25,16 @@ public interface ICostCenterService {
 
 	CostCenter changeState(Long id, String idEnterprise, Boolean status);
 
-	CostCenter softDelete(Long id, String idEnterprise);
+	/**
+	 * Elimina físicamente un centro de costo del sistema
+	 * Valida que no tenga centros de costo hijos antes de eliminar
+	 * @param id ID del centro de costo
+	 * @param idEnterprise ID de la empresa
+	 * @return Centro de costo eliminado
+	 * @throws CostCentersNotFoundException si el centro de costo no existe
+	 * @throws CostCenterHasChildrenException si el centro de costo tiene hijos
+	 */
+	CostCenter delete(Long id, String idEnterprise);
 
 	/**
 	 * Obtiene los centros de costo activos de último nivel (código con 5 o más caracteres)

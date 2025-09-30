@@ -12,50 +12,62 @@ import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.
 
 public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Long>, JpaSpecificationExecutor<CostCenterEntity> {
 
-    boolean existsByCodeAndIdEnterpriseAndIsDeletedFalse(String code, String idEnterprise);
+    boolean existsByCodeAndIdEnterprise(String code, String idEnterprise);
 
-    boolean existsByNameAndIdEnterpriseAndIsDeletedFalse(String name, String idEnterprise);
+    boolean existsByNameAndIdEnterprise(String name, String idEnterprise);
 
-    boolean existsByNameAndIdEnterpriseAndIdNotAndIsDeletedFalse(String name, String idEnterprise, Long id);
+    boolean existsByNameAndIdEnterpriseAndIdNot(String name, String idEnterprise, Long id);
 
-    Page<CostCenterEntity> findAllByIdEnterpriseAndIsDeletedFalse(String idEnterprise, Pageable pageable);
+    Page<CostCenterEntity> findAllByIdEnterprise(String idEnterprise, Pageable pageable);
 
-    Page<CostCenterEntity> findAllByIdEnterpriseAndStatusAndIsDeletedFalse(String idEnterprise, Boolean status, Pageable pageable);
+    Page<CostCenterEntity> findAllByIdEnterpriseAndStatus(String idEnterprise, Boolean status, Pageable pageable);
 
-    Optional<CostCenterEntity> findByIdAndIdEnterpriseAndIsDeletedFalse(Long id, String idEnterprise);
+    Optional<CostCenterEntity> findByIdAndIdEnterprise(Long id, String idEnterprise);
 
-    // Método para verificar si tiene hijos activos (no eliminados)
-    boolean existsByParentIdAndIsDeletedFalse(Long parentId);
+    /**
+     * Verifica si un centro de costo tiene centros de costo hijos
+     * @param parentId ID del centro de costo padre
+     * @return true si tiene hijos, false en caso contrario
+     */
+    boolean existsByParentId(Long parentId);
 
-    // Método para obtener todos los hijos activos (no eliminados) de un centro de costo
-    List<CostCenterEntity> findByParentIdAndIsDeletedFalse(Long parentId);
+    /**
+     * Obtiene todos los centros de costo hijos de un centro de costo padre
+     * @param parentId ID del centro de costo padre
+     * @return Lista de centros de costo hijos
+     */
+    List<CostCenterEntity> findByParentId(Long parentId);
 
-    // Método para obtener solo los centros de costo raíz (sin padre) ordenados
-    List<CostCenterEntity> findByIdEnterpriseAndIsDeletedFalseAndParentIsNullOrderByCode(String idEnterprise);
+    /**
+     * Obtiene solo los centros de costo raíz (sin padre) ordenados por código
+     * @param idEnterprise ID de la empresa
+     * @return Lista de centros de costo raíz ordenados por código
+     */
+    List<CostCenterEntity> findByIdEnterpriseAndParentIsNullOrderByCode(String idEnterprise);
 
     /**
      * Obtiene los centros de costo activos de último nivel (código >= 5 caracteres)
-     * Filtra por empresa, estado activo, no eliminados y longitud de código
+     * Filtra por empresa, estado activo y longitud de código
      * @param idEnterprise ID de la empresa
      * @param status Estado del centro de costo (true para activos)
      * @return Lista de centros de costo de último nivel ordenados por código
      */
-    List<CostCenterEntity> findByIdEnterpriseAndStatusAndIsDeletedFalseOrderByCode(String idEnterprise, Boolean status);
+    List<CostCenterEntity> findByIdEnterpriseAndStatusOrderByCode(String idEnterprise, Boolean status);
 
     /**
-     * Cuenta el total de centros de costo por empresa (no eliminados)
+     * Cuenta el total de centros de costo por empresa
      * @param idEnterprise ID de la empresa
      * @return Número total de centros de costo
      */
-    long countByIdEnterpriseAndIsDeletedFalse(String idEnterprise);
+    long countByIdEnterprise(String idEnterprise);
 
     /**
-     * Cuenta el total de centros de costo filtrados por estado (no eliminados)
+     * Cuenta el total de centros de costo filtrados por estado
      * @param idEnterprise ID de la empresa
      * @param status Estado del centro de costo
      * @return Número total de centros de costo con el estado especificado
      */
-    long countByIdEnterpriseAndStatusAndIsDeletedFalse(String idEnterprise, Boolean status);
+    long countByIdEnterpriseAndStatus(String idEnterprise, Boolean status);
 }
 
 

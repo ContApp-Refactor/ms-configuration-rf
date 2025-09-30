@@ -15,7 +15,7 @@ public class CostCenterSpecifications {
 
     /**
      * Especificación para obtener centros de costo auxiliares (último nivel)
-     * Filtra por: empresa, estado activo, no eliminados y código con longitud >= 5
+     * Filtra por: empresa, estado activo y código con longitud >= 5
      * 
      * @param idEnterprise ID de la empresa
      * @return Specification para centros de costo auxiliares
@@ -29,9 +29,6 @@ public class CostCenterSpecifications {
             
             // Filtro por estado activo
             predicates.add(criteriaBuilder.equal(root.get("status"), true));
-            
-            // Filtro por no eliminados
-            predicates.add(criteriaBuilder.equal(root.get("isDeleted"), false));
             
             // Filtro por longitud de código >= 5 (centros de costo auxiliares/último nivel)
             // LENGTH(code) >= 5
