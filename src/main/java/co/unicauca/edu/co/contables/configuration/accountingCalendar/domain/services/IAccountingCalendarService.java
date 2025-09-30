@@ -2,7 +2,6 @@ package co.unicauca.edu.co.contables.configuration.accountingCalendar.domain.ser
 
 import co.unicauca.edu.co.contables.configuration.accountingCalendar.domain.models.AccountingCalendar;
 import co.unicauca.edu.co.contables.configuration.accountingCalendar.presentation.DTO.request.*;
-import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -21,8 +20,6 @@ public interface IAccountingCalendarService {
 	List<AccountingCalendar> openYearBatch(AccountingCalendarCreateYearReq request);
 
 	long deleteByYear(AccountingCalendarDeleteYearReq request);
-
-	Page<AccountingCalendar> findActiveByEnterpriseAndYear(String idEnterprise, int year, int page, int size);
 
 }
 

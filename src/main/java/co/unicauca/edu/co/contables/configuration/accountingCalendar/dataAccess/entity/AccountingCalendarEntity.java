@@ -31,9 +31,6 @@ public class AccountingCalendarEntity {
     @Column(nullable = false)
     private LocalDate date;
 
-    @Column(nullable = false)
-    private boolean status; // true: OPEN, false: CLOSED
-
     @TenantId
     @Column(name = "tenant_id")
     private String tenantId;

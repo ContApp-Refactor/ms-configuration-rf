@@ -13,9 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -49,9 +46,6 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
             throw new AccountingCalendarDateExistsException();
         }
         AccountingCalendar domain = domainMapper.toDomain(request);
-        if (request.getStatus() == null) {
-            domain.setStatus(false);
-        }
 		AccountingCalendarEntity saved = repository.save(dataMapper.toEntity(domain));
 		return dataMapper.toDomain(saved);
 	}
@@ -93,7 +87,7 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
         
         // 4. Crear entidades en batch
         List<AccountingCalendarEntity> entities = newDates.stream()
-                .map(date -> createEntity(request.getIdEnterprise(), date, request.getStatus()))
+                .map(date -> createEntity(request.getIdEnterprise(), date))
                 .collect(Collectors.toList());
         
         // 5. Insertar en batch
@@ -136,7 +130,7 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
         
         // 4. Crear entidades en batch
         List<AccountingCalendarEntity> entities = newDates.stream()
-                .map(date -> createEntity(request.getIdEnterprise(), date, request.getStatus()))
+                .map(date -> createEntity(request.getIdEnterprise(), date))
                 .collect(Collectors.toList());
         
         // 5. Insertar en batch
@@ -155,26 +149,16 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
                 request.getIdEnterprise(), start, end);
     }
 
-    @Transactional(readOnly = true)
-    public Page<AccountingCalendar> findActiveByEnterpriseAndYear(String idEnterprise, int year, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        LocalDate startOfYear = LocalDate.of(year, 1, 1);
-        LocalDate endOfYear = LocalDate.of(year, 12, 31);
-        return repository.findAllByIdEnterpriseAndStatusAndDateBetweenOrderByDateAsc(
-                idEnterprise, true, startOfYear, endOfYear, pageable).map(dataMapper::toDomain);
-    }
-
     // Métodos auxiliares privados
     private List<LocalDate> generateDateRange(LocalDate start, LocalDate end) {
         return start.datesUntil(end.plusDays(1))
                 .collect(Collectors.toList());
     }
 
-    private AccountingCalendarEntity createEntity(String idEnterprise, LocalDate date, boolean status) {
+    private AccountingCalendarEntity createEntity(String idEnterprise, LocalDate date) {
         return AccountingCalendarEntity.builder()
                 .idEnterprise(idEnterprise)
                 .date(date)
-                .status(status)
                 .build();
     }
 

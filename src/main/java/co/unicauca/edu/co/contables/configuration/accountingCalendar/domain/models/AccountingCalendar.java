@@ -13,7 +13,6 @@ public class AccountingCalendar {
     private Long id;
     private String idEnterprise;    
     private LocalDate date;
-    private boolean status;
     private String tenantId;
 }
 

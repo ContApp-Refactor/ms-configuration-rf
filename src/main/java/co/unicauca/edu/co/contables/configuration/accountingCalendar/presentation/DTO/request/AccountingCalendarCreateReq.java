@@ -19,8 +19,6 @@ public class AccountingCalendarCreateReq {
     @NotNull
     private LocalDate date;
 
-    private Boolean status; // true: OPEN, false: CLOSED (default false)
-
     // Validación personalizada para fecha mínima
     public boolean isValidDate() {
         return date != null && date.getYear() >= 2000;

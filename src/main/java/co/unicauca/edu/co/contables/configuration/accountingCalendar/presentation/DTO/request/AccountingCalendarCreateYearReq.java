@@ -2,7 +2,6 @@ package co.unicauca.edu.co.contables.configuration.accountingCalendar.presentati
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Getter
@@ -17,9 +16,6 @@ public class AccountingCalendarCreateYearReq {
 
     @Min(2000)
     private int year;
-
-    @NotNull
-    private Boolean status; // true: OPEN, false: CLOSED
 }
 
 
