@@ -59,11 +59,11 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
         String standardizedPrefix = StringStandardizationUtils.standardizePrefix(request.getPrefix());
 
-        // Unicidad por empresa: prefijo y nombre (solo registros no eliminados)
-        if (repository.existsByPrefixAndIdEnterpriseAndIsDeletedFalse(standardizedPrefix, request.getIdEnterprise())) {
+        // Unicidad por empresa: prefijo y nombre
+        if (repository.existsByPrefixAndIdEnterprise(standardizedPrefix, request.getIdEnterprise())) {
             throw new DocumentTypesAlreadyExistsException("prefijo", standardizedPrefix, request.getIdEnterprise());
         }
-        if (repository.existsByNameAndIdEnterpriseAndIsDeletedFalse(standardizedName, request.getIdEnterprise())) {
+        if (repository.existsByNameAndIdEnterprise(standardizedName, request.getIdEnterprise())) {
             throw new DocumentTypesAlreadyExistsException("nombre", standardizedName, request.getIdEnterprise());
         }
 
@@ -95,7 +95,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
             throw new IllegalArgumentException("Módulo inválido");
         }
 
-        DocumentTypeEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getId(), request.getIdEnterprise())
+        DocumentTypeEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
                 .orElseThrow(DocumentTypesNotFoundException::new);
 
         String targetEnterprise = request.getIdEnterprise() != null ? request.getIdEnterprise() : current.getIdEnterprise();
@@ -106,15 +106,15 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         boolean nameChanged = standardizedName != null && !standardizedName.equals(current.getName());
         boolean enterpriseChanged = targetEnterprise != null && !targetEnterprise.equals(current.getIdEnterprise());
 
-        // Validar unicidad del prefijo si cambió (solo entre registros no eliminados)
+        // Validar unicidad del prefijo si cambió
         if (prefixChanged || enterpriseChanged) {
-            if (repository.existsByPrefixAndIdEnterpriseAndIdNotAndIsDeletedFalse(standardizedPrefix, targetEnterprise, current.getId())) {
+            if (repository.existsByPrefixAndIdEnterpriseAndIdNot(standardizedPrefix, targetEnterprise, current.getId())) {
                 throw new DocumentTypesAlreadyExistsException("prefijo", standardizedPrefix, targetEnterprise);
             }
         }
-        // Validar unicidad del nombre si cambió (solo entre registros no eliminados)
+        // Validar unicidad del nombre si cambió
         if (nameChanged || enterpriseChanged) {
-            if (repository.existsByNameAndIdEnterpriseAndIdNotAndIsDeletedFalse(standardizedName, targetEnterprise, current.getId())) {
+            if (repository.existsByNameAndIdEnterpriseAndIdNot(standardizedName, targetEnterprise, current.getId())) {
                 throw new DocumentTypesAlreadyExistsException("nombre", standardizedName, targetEnterprise);
             }
         }
@@ -141,14 +141,14 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     @Override
     @Transactional(readOnly = true)
     public DocumentType findById(Long id, String idEnterprise) {
-        return dataMapper.toDomain(repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise).orElseThrow(DocumentTypesNotFoundException::new));
+        return dataMapper.toDomain(repository.findByIdAndIdEnterprise(id, idEnterprise).orElseThrow(DocumentTypesNotFoundException::new));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<DocumentType> findAllByEnterprise(String idEnterprise, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable).map(dataMapper::toDomain);
+        return repository.findAllByIdEnterprise(idEnterprise, pageable).map(dataMapper::toDomain);
     }
 
     @Override
@@ -158,7 +158,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
             Sort.by(sortField).descending() : 
             Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable).map(dataMapper::toDomain);
+        return repository.findAllByIdEnterprise(idEnterprise, pageable).map(dataMapper::toDomain);
     }
 
     @Override
@@ -173,14 +173,14 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         String standardizedModule = StringStandardizationUtils.standardizeName(module);
         
         Pageable pageable = PageRequest.of(page, size);
-        return repository.findAllByModuleAndIdEnterpriseAndIsDeletedFalse(standardizedModule, idEnterprise, pageable)
+        return repository.findAllByModuleAndIdEnterprise(standardizedModule, idEnterprise, pageable)
                 .map(dataMapper::toDomain);
     }
 
     @Override
     @Transactional
     public DocumentType changeState(Long id, String idEnterprise, Boolean status) {
-        DocumentTypeEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+        DocumentTypeEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentTypesNotFoundException::new);
 
         current.setStatus(status);
@@ -190,13 +190,13 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
     @Override
     @Transactional
-    public DocumentType softDelete(Long id, String idEnterprise) {
-        DocumentTypeEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+    public DocumentType Delete(Long id, String idEnterprise) {
+        DocumentTypeEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentTypesNotFoundException::new);
 
-        current.setIsDeleted(true);
-        DocumentTypeEntity saved = repository.save(current);
-        return dataMapper.toDomain(saved);
+
+        repository.delete(current);
+        return dataMapper.toDomain(current);
     }
 
     /**
@@ -217,13 +217,13 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     @Override
     @Transactional(readOnly = true)
     public long countAllByEnterprise(String idEnterprise) {
-        return repository.countByIdEnterpriseAndIsDeletedFalse(idEnterprise);
+        return repository.countByIdEnterprise(idEnterprise);
     }
 
     @Override
     @Transactional(readOnly = true)
     public long countAllByModuleAndEnterprise(String module, String idEnterprise) {
-        return repository.countByModuleAndIdEnterpriseAndIsDeletedFalse(module, idEnterprise);
+        return repository.countByModuleAndIdEnterprise(module, idEnterprise);
     }
 
 }

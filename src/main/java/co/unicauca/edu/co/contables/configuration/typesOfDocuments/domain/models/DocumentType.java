@@ -16,8 +16,4 @@ public class DocumentType {
     private String idEnterprise;
     @Builder.Default
     private Boolean status = true;
-    @Builder.Default
-    private Boolean isDeleted = false;
 }
-
-

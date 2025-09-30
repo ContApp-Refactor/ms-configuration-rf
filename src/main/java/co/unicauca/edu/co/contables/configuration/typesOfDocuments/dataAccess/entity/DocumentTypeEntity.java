@@ -46,10 +46,6 @@ public class DocumentTypeEntity {
     @Column(name = "status", nullable = false)
     private Boolean status = true;
 
-    @Builder.Default
-    @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted = false;
-
     @TenantId
     @Column(name = "tenant_id")
     private String tenantId;

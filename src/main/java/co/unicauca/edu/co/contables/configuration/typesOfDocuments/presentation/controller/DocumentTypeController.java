@@ -115,7 +115,7 @@ public class DocumentTypeController {
     public ResponseEntity<DocumentTypeRes> softDelete(
             @PathVariable Long id,
             @PathVariable String enterpriseId) {
-        DocumentType deleted = service.softDelete(id, enterpriseId);
+        DocumentType deleted = service.Delete(id, enterpriseId);
         return ResponseEntity.ok(mapper.toRes(deleted));
     }
 }

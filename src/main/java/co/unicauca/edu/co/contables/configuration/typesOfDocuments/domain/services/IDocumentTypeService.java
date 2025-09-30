@@ -22,7 +22,7 @@ public interface IDocumentTypeService {
 
 	DocumentType changeState(Long id, String idEnterprise, Boolean status);
 
-	DocumentType softDelete(Long id, String idEnterprise);
+	DocumentType Delete(Long id, String idEnterprise);
 
 	/**
 	 * Cuenta el total de tipos de documento por empresa

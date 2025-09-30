@@ -120,7 +120,7 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
                 .orElseThrow(DocumentClassesNotFoundException::new);
 
         // Validar que la clase de documento no esté siendo utilizada por tipos de documentos
-        if (documentTypeRepository.existsByDocumentClassIdAndIsDeletedFalse(id)) {
+        if (documentTypeRepository.existsByDocumentClassId(id)) {
             throw new DocumentClassInUseException(current.getName());
         }
 

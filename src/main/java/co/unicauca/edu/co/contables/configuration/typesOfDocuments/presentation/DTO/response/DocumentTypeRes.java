@@ -15,7 +15,6 @@ public class DocumentTypeRes {
     private Long documentClassId;
     private String module;
     private Boolean status;
-    private Boolean isDeleted;
 }
 
 

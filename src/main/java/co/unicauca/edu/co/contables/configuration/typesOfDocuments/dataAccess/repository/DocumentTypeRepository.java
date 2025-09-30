@@ -8,38 +8,37 @@ import java.util.Optional;
 
 public interface DocumentTypeRepository extends JpaRepository<DocumentTypeEntity, Long> {
 
-    // Métodos con soft delete
-    boolean existsByPrefixAndIdEnterpriseAndIsDeletedFalse(String prefix, String idEnterprise);
+    boolean existsByPrefixAndIdEnterprise(String prefix, String idEnterprise);
 
-    boolean existsByPrefixAndIdEnterpriseAndIdNotAndIsDeletedFalse(String prefix, String idEnterprise, Long id);
+    boolean existsByPrefixAndIdEnterpriseAndIdNot(String prefix, String idEnterprise, Long id);
 
-    boolean existsByNameAndIdEnterpriseAndIsDeletedFalse(String name, String idEnterprise);
+    boolean existsByNameAndIdEnterprise(String name, String idEnterprise);
 
-    boolean existsByNameAndIdEnterpriseAndIdNotAndIsDeletedFalse(String name, String idEnterprise, Long id);
+    boolean existsByNameAndIdEnterpriseAndIdNot(String name, String idEnterprise, Long id);
 
-    Page<DocumentTypeEntity> findAllByIdEnterpriseAndIsDeletedFalse(String idEnterprise, Pageable pageable);
+    Page<DocumentTypeEntity> findAllByIdEnterprise(String idEnterprise, Pageable pageable);
 
-    Optional<DocumentTypeEntity> findByIdAndIdEnterpriseAndIsDeletedFalse(Long id, String idEnterprise);
+    Optional<DocumentTypeEntity> findByIdAndIdEnterprise(Long id, String idEnterprise);
     
-    Page<DocumentTypeEntity> findAllByModuleAndIdEnterpriseAndIsDeletedFalse(String module, String idEnterprise, Pageable pageable);
+    Page<DocumentTypeEntity> findAllByModuleAndIdEnterprise(String module, String idEnterprise, Pageable pageable);
 
-    // Método para verificar si una clase de documento está siendo usada por tipos activos
-    boolean existsByDocumentClassIdAndIsDeletedFalse(Long documentClassId);
+    // Método para verificar si una clase de documento está siendo usada por tipos
+    boolean existsByDocumentClassId(Long documentClassId);
 
     /**
-     * Cuenta el total de tipos de documento por empresa (no eliminados)
+     * Cuenta el total de tipos de documento por empresa
      * @param idEnterprise ID de la empresa
      * @return Número total de tipos de documento
      */
-    long countByIdEnterpriseAndIsDeletedFalse(String idEnterprise);
+    long countByIdEnterprise(String idEnterprise);
 
     /**
-     * Cuenta el total de tipos de documento filtrados por módulo (no eliminados)
+     * Cuenta el total de tipos de documento filtrados por módulo
      * @param module Módulo del tipo de documento
      * @param idEnterprise ID de la empresa
      * @return Número total de tipos de documento del módulo especificado
      */
-    long countByModuleAndIdEnterpriseAndIsDeletedFalse(String module, String idEnterprise);
+    long countByModuleAndIdEnterprise(String module, String idEnterprise);
 }
 
 
