@@ -23,4 +23,19 @@ public interface IDocumentTypeService {
 	DocumentType changeState(Long id, String idEnterprise, Boolean status);
 
 	DocumentType softDelete(Long id, String idEnterprise);
+
+	/**
+	 * Cuenta el total de tipos de documento por empresa
+	 * @param idEnterprise ID de la empresa
+	 * @return Número total de tipos de documento
+	 */
+	long countAllByEnterprise(String idEnterprise);
+
+	/**
+	 * Cuenta el total de tipos de documento filtrados por módulo
+	 * @param module Módulo del tipo de documento
+	 * @param idEnterprise ID de la empresa
+	 * @return Número total de tipos de documento del módulo especificado
+	 */
+	long countAllByModuleAndEnterprise(String module, String idEnterprise);
 }

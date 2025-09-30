@@ -1,5 +1,6 @@
 package co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.controller;
 
+import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentType;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.services.IDocumentTypeService;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.mapper.DocumentTypeDomainMapper;
@@ -8,8 +9,12 @@ import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.response.DocumentTypeRes;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/config/document-types")
@@ -18,6 +23,7 @@ public class DocumentTypeController {
 
     private final IDocumentTypeService service;
     private final DocumentTypeDomainMapper mapper;
+    private final PaginationHelper paginationHelper;
 
     @PostMapping("/create")
     public ResponseEntity<DocumentTypeRes> create(@Valid @RequestBody DocumentTypeCreateReq request) {
@@ -36,25 +42,64 @@ public class DocumentTypeController {
         return ResponseEntity.ok(mapper.toRes(service.findById(id, enterpriseId)));
     }
 
+    /**
+     * Obtiene tipos de documento con paginación flexible.
+     * Si no se especifican parámetros de paginación, retorna todos los tipos de documento.
+     * 
+     * @param enterpriseId ID de la empresa
+     * @param page         Número de página (opcional)
+     * @param size         Tamaño de página (opcional)
+     * @param sortField    Campo de ordenamiento (opcional)
+     * @param sortOrder    Orden (asc/desc) (opcional)
+     * @return Página de tipos de documento
+     */
     @GetMapping("/findAll/{enterpriseId}")
-    public ResponseEntity<?> list(
+    public ResponseEntity<Page<DocumentTypeRes>> list(
             @PathVariable("enterpriseId") String enterpriseId,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) Optional<Integer> page,
+            @RequestParam(required = false) Optional<Integer> size,
             @RequestParam(defaultValue = "name") String sortField,
             @RequestParam(defaultValue = "asc") String sortOrder) {
-        return ResponseEntity.ok(service.findAllByEnterprise(enterpriseId, page, size, sortField, sortOrder)
-                .map(mapper::toRes));
+
+        // Contar total de registros
+        long totalRecords = service.countAllByEnterprise(enterpriseId);
+
+        // Crear Pageable flexible
+        Pageable pageable = paginationHelper.createFlexiblePageable(page, size, totalRecords);
+
+        // Obtener página de datos
+        Page<DocumentType> pageResult = service.findAllByEnterprise(enterpriseId, pageable.getPageNumber(),
+                pageable.getPageSize(), sortField, sortOrder);
+        return ResponseEntity.ok(pageResult.map(mapper::toRes));
     }
 
+    /**
+     * Obtiene tipos de documento filtrados por módulo con paginación flexible.
+     * Si no se especifican parámetros de paginación, retorna todos los tipos de documento del módulo.
+     * 
+     * @param enterpriseId ID de la empresa
+     * @param module       Módulo del tipo de documento
+     * @param page         Número de página (opcional)
+     * @param size         Tamaño de página (opcional)
+     * @return Página de tipos de documento filtrados por módulo
+     */
     @GetMapping("/findAllByModule/{enterpriseId}")
-    public ResponseEntity<?> listByModule(
+    public ResponseEntity<Page<DocumentTypeRes>> listByModule(
             @PathVariable("enterpriseId") String enterpriseId,
             @RequestParam String module,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
-        return ResponseEntity.ok(service.findAllByModuleAndEnterprise(module, enterpriseId, page, size)
-                .map(mapper::toRes));
+            @RequestParam(required = false) Optional<Integer> page,
+            @RequestParam(required = false) Optional<Integer> size) {
+
+        // Contar total de registros con el filtro de módulo
+        long totalRecords = service.countAllByModuleAndEnterprise(module, enterpriseId);
+
+        // Crear Pageable flexible
+        Pageable pageable = paginationHelper.createFlexiblePageable(page, size, totalRecords);
+
+        // Obtener página de datos
+        Page<DocumentType> pageResult = service.findAllByModuleAndEnterprise(module, enterpriseId,
+                pageable.getPageNumber(), pageable.getPageSize());
+        return ResponseEntity.ok(pageResult.map(mapper::toRes));
     }
 
     @PatchMapping("/changeState/{id}/{enterpriseId}")

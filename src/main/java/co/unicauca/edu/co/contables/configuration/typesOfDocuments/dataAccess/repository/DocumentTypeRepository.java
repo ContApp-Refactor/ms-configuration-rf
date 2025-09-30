@@ -25,6 +25,21 @@ public interface DocumentTypeRepository extends JpaRepository<DocumentTypeEntity
 
     // Método para verificar si una clase de documento está siendo usada por tipos activos
     boolean existsByDocumentClassIdAndIsDeletedFalse(Long documentClassId);
+
+    /**
+     * Cuenta el total de tipos de documento por empresa (no eliminados)
+     * @param idEnterprise ID de la empresa
+     * @return Número total de tipos de documento
+     */
+    long countByIdEnterpriseAndIsDeletedFalse(String idEnterprise);
+
+    /**
+     * Cuenta el total de tipos de documento filtrados por módulo (no eliminados)
+     * @param module Módulo del tipo de documento
+     * @param idEnterprise ID de la empresa
+     * @return Número total de tipos de documento del módulo especificado
+     */
+    long countByModuleAndIdEnterpriseAndIsDeletedFalse(String module, String idEnterprise);
 }
 
 

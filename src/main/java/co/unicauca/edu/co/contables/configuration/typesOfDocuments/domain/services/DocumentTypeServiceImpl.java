@@ -206,4 +206,16 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
                 .anyMatch(allowed -> allowed.equals(normalizedModule));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long countAllByEnterprise(String idEnterprise) {
+        return repository.countByIdEnterpriseAndIsDeletedFalse(idEnterprise);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countAllByModuleAndEnterprise(String module, String idEnterprise) {
+        return repository.countByModuleAndIdEnterpriseAndIsDeletedFalse(module, idEnterprise);
+    }
+
 }
