@@ -10,8 +10,6 @@ import co.unicauca.edu.co.contables.configuration.commons.exceptions.accountingC
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.accountingCalendar.AccountingCalendarNotFoundException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.accountingCalendar.AccountingCalendarInvalidDateException;
 import org.springframework.transaction.annotation.Transactional;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,9 +26,6 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
         private final AccountingCalendarRepository repository;
         private final AccountingCalendarDataMapper dataMapper;
         private final AccountingCalendarDomainMapper domainMapper;
-
-        @PersistenceContext
-        private EntityManager entityManager;
 
         @Override
         @Transactional
@@ -171,13 +166,7 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
         @Override
         @Transactional(readOnly = true)
         public List<Integer> findExistingYearsByEnterprise(String idEnterprise) {
-                List<AccountingCalendarEntity> allDates = repository
-                                .findDistinctByIdEnterpriseOrderByDateAsc(idEnterprise);
-                return allDates.stream()
-                                .map(entity -> entity.getDate().getYear())
-                                .distinct()
-                                .sorted()
-                                .collect(Collectors.toList());
+                return repository.findDistinctYearsByIdEnterprise(idEnterprise);
         }
 
         // Métodos auxiliares privados
