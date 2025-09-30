@@ -30,6 +30,7 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
     private final DocumentClassDomainMapper domainMapper;
     private final DocumentTypeRepository documentTypeRepository;
 
+    @Override
     @Transactional
     public DocumentClass create(DocumentClassCreateReq request) {
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
@@ -44,6 +45,7 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional
     public DocumentClass update(DocumentClassUpdateReq request) {
         DocumentClassEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getId(), request.getIdEnterprise())
@@ -70,18 +72,21 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public DocumentClass findById(Long id, String idEnterprise) {
         return dataMapper.toDomain(repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
                 .orElseThrow(DocumentClassesNotFoundException::new));
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Page<DocumentClass> findAllByEnterprise(String idEnterprise, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable).map(dataMapper::toDomain);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Page<DocumentClass> findAllByEnterprise(String idEnterprise, int page, int size, String sortField, String sortOrder) {
         Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
@@ -91,11 +96,13 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable).map(dataMapper::toDomain);
     }
 
+    @Override
     public Page<DocumentClass> findAllByEnterpriseAndStatus(String idEnterprise, Boolean status, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return repository.findAllByIdEnterpriseAndStatusAndIsDeletedFalse(idEnterprise, status, pageable).map(dataMapper::toDomain);
     }
 
+    @Override
     @Transactional
     public DocumentClass changeState(Long id, String idEnterprise, Boolean status) {
         DocumentClassEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
@@ -106,6 +113,7 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional
     public DocumentClass softDelete(Long id, String idEnterprise) {
         DocumentClassEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
