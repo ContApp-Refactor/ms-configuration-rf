@@ -67,11 +67,11 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
             throw new DocumentTypesAlreadyExistsException("nombre", standardizedName, request.getIdEnterprise());
         }
 
-        // Validar que la clase exista, esté activa y no eliminada
-        DocumentClassEntity docClass = documentClassRepository.findByIdAndIdEnterpriseAndStatusAndIsDeletedFalse(request.getDocumentClassId(), request.getIdEnterprise(), true)
+        // Validar que la clase exista y esté activa
+        DocumentClassEntity docClass = documentClassRepository.findByIdAndIdEnterpriseAndStatus(request.getDocumentClassId(), request.getIdEnterprise(), true)
                 .orElseGet(() -> {
                     // Verificar si existe pero está inactiva
-                    DocumentClassEntity inactiveClass = documentClassRepository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getDocumentClassId(), request.getIdEnterprise())
+                    DocumentClassEntity inactiveClass = documentClassRepository.findByIdAndIdEnterprise(request.getDocumentClassId(), request.getIdEnterprise())
                             .orElseThrow(DocumentClassesNotFoundException::new);
                     throw new DocumentClassInactiveException(inactiveClass.getName());
                 });
@@ -119,11 +119,11 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
             }
         }
 
-        // Validar que la clase exista, esté activa y no eliminada
-        DocumentClassEntity docClass = documentClassRepository.findByIdAndIdEnterpriseAndStatusAndIsDeletedFalse(request.getDocumentClassId(), targetEnterprise, true)
+        // Validar que la clase exista y esté activa
+        DocumentClassEntity docClass = documentClassRepository.findByIdAndIdEnterpriseAndStatus(request.getDocumentClassId(), targetEnterprise, true)
                 .orElseGet(() -> {
                     // Verificar si existe pero está inactiva
-                    DocumentClassEntity inactiveClass = documentClassRepository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getDocumentClassId(), targetEnterprise)
+                    DocumentClassEntity inactiveClass = documentClassRepository.findByIdAndIdEnterprise(request.getDocumentClassId(), targetEnterprise)
                             .orElseThrow(DocumentClassesNotFoundException::new);
                     throw new DocumentClassInactiveException(inactiveClass.getName());
                 });
