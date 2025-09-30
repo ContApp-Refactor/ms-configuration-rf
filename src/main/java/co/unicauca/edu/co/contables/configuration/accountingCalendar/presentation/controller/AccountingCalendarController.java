@@ -62,4 +62,12 @@ public class AccountingCalendarController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/year/{enterpriseId}")
+    public ResponseEntity<List<AccountingCalendarRes>> findAllByYear(
+            @PathVariable String enterpriseId,
+            @RequestParam int year) {
+        List<AccountingCalendar> calendars = service.findAllByEnterpriseAndYear(enterpriseId, year);
+        return ResponseEntity.ok(calendars.stream().map(mapper::toRes).collect(Collectors.toList()));
+    }
+
 }

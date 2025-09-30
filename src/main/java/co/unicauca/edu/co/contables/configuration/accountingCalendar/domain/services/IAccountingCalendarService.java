@@ -21,6 +21,8 @@ public interface IAccountingCalendarService {
 
 	long deleteByYear(AccountingCalendarDeleteYearReq request);
 
+	List<AccountingCalendar> findAllByEnterpriseAndYear(String idEnterprise, int year);
+
 }
 
 

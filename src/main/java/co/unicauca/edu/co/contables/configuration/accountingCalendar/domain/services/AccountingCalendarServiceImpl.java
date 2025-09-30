@@ -149,6 +149,17 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
                 request.getIdEnterprise(), start, end);
     }
 
+    @Transactional(readOnly = true)
+    public List<AccountingCalendar> findAllByEnterpriseAndYear(String idEnterprise, int year) {
+        LocalDate startOfYear = LocalDate.of(year, 1, 1);
+        LocalDate endOfYear = LocalDate.of(year, 12, 31);
+        List<AccountingCalendarEntity> entities = repository.findAllByIdEnterpriseAndDateBetweenOrderByDateAsc(
+                idEnterprise, startOfYear, endOfYear);
+        return entities.stream()
+                .map(dataMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
     // Métodos auxiliares privados
     private List<LocalDate> generateDateRange(LocalDate start, LocalDate end) {
         return start.datesUntil(end.plusDays(1))
