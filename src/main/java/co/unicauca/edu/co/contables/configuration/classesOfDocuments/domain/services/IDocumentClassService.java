@@ -22,7 +22,7 @@ public interface IDocumentClassService {
 
 	DocumentClass changeState(Long id, String idEnterprise, Boolean status);
 
-	DocumentClass softDelete(Long id, String idEnterprise);
+	DocumentClass Delete(Long id, String idEnterprise);
 
 	/**
 	 * Cuenta el total de clases de documento por empresa

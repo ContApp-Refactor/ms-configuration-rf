@@ -56,7 +56,7 @@ public class DocumentClassController {
      */
     @GetMapping("/findAll/{enterpriseId}")
     public ResponseEntity<Page<DocumentClassRes>> list(
-            @PathVariable("enterpriseId") String enterpriseId,
+            @PathVariable String enterpriseId,
             @RequestParam(required = false) Optional<Integer> page,
             @RequestParam(required = false) Optional<Integer> size,
             @RequestParam(defaultValue = "name") String sortField,
@@ -85,7 +85,7 @@ public class DocumentClassController {
      */
     @GetMapping("/findAllActive/{enterpriseId}")
     public ResponseEntity<Page<DocumentClassRes>> listActive(
-            @PathVariable("enterpriseId") String enterpriseId,
+            @PathVariable String enterpriseId,
             @RequestParam(required = false) Optional<Integer> page,
             @RequestParam(required = false) Optional<Integer> size) {
 
@@ -114,7 +114,7 @@ public class DocumentClassController {
     public ResponseEntity<DocumentClassRes> softDelete(
             @PathVariable Long id,
             @PathVariable String enterpriseId) {
-        DocumentClass deleted = service.softDelete(id, enterpriseId);
+        DocumentClass deleted = service.Delete(id, enterpriseId);
         return ResponseEntity.ok(mapper.toRes(deleted));
     }
 }

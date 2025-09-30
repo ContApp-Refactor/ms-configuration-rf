@@ -115,7 +115,7 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
 
     @Override
     @Transactional
-    public DocumentClass softDelete(Long id, String idEnterprise) {
+    public DocumentClass Delete(Long id, String idEnterprise) {
         DocumentClassEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentClassesNotFoundException::new);
 
