@@ -121,6 +121,18 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long countAllByEnterprise(String idEnterprise) {
+        return repository.countByIdEnterpriseAndIsDeletedFalse(idEnterprise);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countAllByEnterpriseAndStatus(String idEnterprise, Boolean status) {
+        return repository.countByIdEnterpriseAndStatusAndIsDeletedFalse(idEnterprise, status);
+    }
+
 }
 
 

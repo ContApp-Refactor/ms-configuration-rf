@@ -23,4 +23,19 @@ public interface IDocumentClassService {
 	DocumentClass changeState(Long id, String idEnterprise, Boolean status);
 
 	DocumentClass softDelete(Long id, String idEnterprise);
+
+	/**
+	 * Cuenta el total de clases de documento por empresa
+	 * @param idEnterprise ID de la empresa
+	 * @return Número total de clases de documento
+	 */
+	long countAllByEnterprise(String idEnterprise);
+
+	/**
+	 * Cuenta el total de clases de documento filtradas por estado
+	 * @param idEnterprise ID de la empresa
+	 * @param status Estado de la clase de documento
+	 * @return Número total de clases de documento con el estado especificado
+	 */
+	long countAllByEnterpriseAndStatus(String idEnterprise, Boolean status);
 }

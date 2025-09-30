@@ -20,6 +20,21 @@ public interface DocumentClassRepository extends JpaRepository<DocumentClassEnti
     Optional<DocumentClassEntity> findByIdAndIdEnterpriseAndIsDeletedFalse(Long id, String idEnterprise);
 
     Optional<DocumentClassEntity> findByIdAndIdEnterpriseAndStatusAndIsDeletedFalse(Long id, String idEnterprise, Boolean status);
+
+    /**
+     * Cuenta el total de clases de documento por empresa (no eliminadas)
+     * @param idEnterprise ID de la empresa
+     * @return Número total de clases de documento
+     */
+    long countByIdEnterpriseAndIsDeletedFalse(String idEnterprise);
+
+    /**
+     * Cuenta el total de clases de documento filtradas por estado (no eliminadas)
+     * @param idEnterprise ID de la empresa
+     * @param status Estado de la clase de documento
+     * @return Número total de clases de documento con el estado especificado
+     */
+    long countByIdEnterpriseAndStatusAndIsDeletedFalse(String idEnterprise, Boolean status);
 }
 
 
