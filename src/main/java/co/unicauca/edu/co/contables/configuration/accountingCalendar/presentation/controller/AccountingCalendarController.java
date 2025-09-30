@@ -70,4 +70,10 @@ public class AccountingCalendarController {
         return ResponseEntity.ok(calendars.stream().map(mapper::toRes).collect(Collectors.toList()));
     }
 
+    @GetMapping("/years/{enterpriseId}")
+    public ResponseEntity<List<Integer>> findExistingYears(@PathVariable String enterpriseId) {
+        List<Integer> years = service.findExistingYearsByEnterprise(enterpriseId);
+        return ResponseEntity.ok(years);
+    }
+
 }

@@ -160,6 +160,16 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<Integer> findExistingYearsByEnterprise(String idEnterprise) {
+        List<AccountingCalendarEntity> allDates = repository.findDistinctByIdEnterpriseOrderByDateAsc(idEnterprise);
+        return allDates.stream()
+                .map(entity -> entity.getDate().getYear())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
     // Métodos auxiliares privados
     private List<LocalDate> generateDateRange(LocalDate start, LocalDate end) {
         return start.datesUntil(end.plusDays(1))

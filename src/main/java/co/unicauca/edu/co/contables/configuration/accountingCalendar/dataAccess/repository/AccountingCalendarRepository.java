@@ -19,6 +19,8 @@ public interface AccountingCalendarRepository extends JpaRepository<AccountingCa
     List<AccountingCalendarEntity> findAllByIdEnterpriseAndDateBetweenOrderByDateAsc(
             String idEnterprise, LocalDate startDate, LocalDate endDate);
 
+    List<AccountingCalendarEntity> findDistinctByIdEnterpriseOrderByDateAsc(String idEnterprise);
+
     long deleteByIdEnterpriseAndDateBetween(
             String idEnterprise, LocalDate startDate, LocalDate endDate);
 

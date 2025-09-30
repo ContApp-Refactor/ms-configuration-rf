@@ -23,6 +23,8 @@ public interface IAccountingCalendarService {
 
 	List<AccountingCalendar> findAllByEnterpriseAndYear(String idEnterprise, int year);
 
+	List<Integer> findExistingYearsByEnterprise(String idEnterprise);
+
 }
 
 
