@@ -47,6 +47,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     private final DocumentTypeDomainMapper domainMapper;
     private final DocumentClassRepository documentClassRepository;
 
+    @Override
     @Transactional
     public DocumentType create(DocumentTypeCreateReq request) {
         // Validación de módulo permitido (insensible a mayúsculas/minúsculas)
@@ -86,6 +87,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional
     public DocumentType update(DocumentTypeUpdateReq request) {
         // Validación de módulo permitido (insensible a mayúsculas/minúsculas)
@@ -136,17 +138,20 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public DocumentType findById(Long id, String idEnterprise) {
         return dataMapper.toDomain(repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise).orElseThrow(DocumentTypesNotFoundException::new));
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Page<DocumentType> findAllByEnterprise(String idEnterprise, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable).map(dataMapper::toDomain);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Page<DocumentType> findAllByEnterprise(String idEnterprise, int page, int size, String sortField, String sortOrder) {
         Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
@@ -156,6 +161,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable).map(dataMapper::toDomain);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Page<DocumentType> findAllByModuleAndEnterprise(String module, String idEnterprise, int page, int size) {
         // Validar que el módulo esté permitido
@@ -171,6 +177,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
                 .map(dataMapper::toDomain);
     }
 
+    @Override
     @Transactional
     public DocumentType changeState(Long id, String idEnterprise, Boolean status) {
         DocumentTypeEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
@@ -181,6 +188,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional
     public DocumentType softDelete(Long id, String idEnterprise) {
         DocumentTypeEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
