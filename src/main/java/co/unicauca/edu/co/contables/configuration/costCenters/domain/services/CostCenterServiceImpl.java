@@ -7,6 +7,7 @@ import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardiz
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.CostCenterEntity;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.mapper.CostCenterDataMapper;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.repository.CostCenterRepository;
+import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.repository.CostCenterSpecifications;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.mapper.CostCenterDomainMapper;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.models.CostCenter;
 import co.unicauca.edu.co.contables.configuration.costCenters.presentation.DTO.request.CostCenterCreateReq;
@@ -30,6 +31,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	private final CostCenterDataMapper dataMapper;
 	private final CostCenterDomainMapper domainMapper;
 
+	@Override
 	@Transactional
 	public CostCenter create(CostCenterCreateReq request) {
 		// Validación de unicidad por código y nombre dentro de la empresa (solo registros no eliminados)
@@ -57,6 +59,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		return dataMapper.toDomain(saved);
 	}
 
+	@Override
 	@Transactional
 	public CostCenter update(CostCenterUpdateReq request) {
 		CostCenterEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getId(), request.getIdEnterprise())
@@ -102,6 +105,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 
 
 
+    @Override
     @Transactional(readOnly = true)
     public Page<CostCenter> findAllByEnterpriseAndStatus(String idEnterprise, Boolean status, int page, int size) {
 		Pageable pageable = PageRequest.of(page, size);
@@ -109,6 +113,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 				.map(dataMapper::toDomain);
 	}
 
+	@Override
 	@Transactional(readOnly = true)
 	public Page<CostCenter> findAllByEnterpriseHierarchical(String idEnterprise, int page, int size) {
 		// Obtener solo los centros de costo raíz (padres)
@@ -144,12 +149,14 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	}
 	
 
+    @Override
     @Transactional(readOnly = true)
     public CostCenter findById(Long id, String idEnterprise) {
 		return dataMapper.toDomain(repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
 				.orElseThrow(CostCentersNotFoundException::new));
 	}
 
+	@Override
 	@Transactional
 	public CostCenter changeState(Long id, String idEnterprise, Boolean status) {
 		CostCenterEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
@@ -165,6 +172,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		return dataMapper.toDomain(saved);
 	}
 
+	@Override
 	@Transactional
 	public CostCenter softDelete(Long id, String idEnterprise) {
 		CostCenterEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
@@ -233,6 +241,21 @@ public class CostCenterServiceImpl implements ICostCenterService {
 			count += countChildrenRecursively(child);
 		}
 		return count;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<CostCenter> findActiveLastLevelCostCenters(String idEnterprise) {
+		// Usar Specification para filtrar directamente en la base de datos
+		// Esto es más eficiente que traer todos los registros y filtrar en memoria
+		List<CostCenterEntity> auxiliaryCostCenters = repository.findAll(
+			CostCenterSpecifications.isAuxiliaryCostCenter(idEnterprise)
+		);
+		
+		// Mapear entidades a modelos de dominio
+		return auxiliaryCostCenters.stream()
+				.map(dataMapper::toDomain)
+				.toList();
 	}
 
 }
