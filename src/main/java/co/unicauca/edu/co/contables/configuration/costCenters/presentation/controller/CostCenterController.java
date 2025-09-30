@@ -12,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
  
 
 @RestController
@@ -77,5 +79,20 @@ public class CostCenterController {
             @PathVariable String enterpriseId) {
         CostCenter deleted = service.softDelete(id, enterpriseId);
         return ResponseEntity.ok(mapper.toRes(deleted));
+    }
+
+    /**
+     * Obtiene los centros de costo activos de último nivel (código con 5 o más caracteres)
+     * @param enterpriseId ID de la empresa
+     * @return Lista de centros de costo de último nivel activos
+     */
+    @GetMapping("/findAuxiliary/{enterpriseId}")
+    public ResponseEntity<List<CostCenterRes>> findActiveLastLevelCostCenters(
+            @PathVariable String enterpriseId) {
+        List<CostCenter> costCenters = service.findActiveLastLevelCostCenters(enterpriseId);
+        List<CostCenterRes> response = costCenters.stream()
+                .map(mapper::toRes)
+                .toList();
+        return ResponseEntity.ok(response);
     }
 }

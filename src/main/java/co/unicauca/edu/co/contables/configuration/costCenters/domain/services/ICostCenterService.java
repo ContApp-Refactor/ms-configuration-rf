@@ -5,6 +5,8 @@ import co.unicauca.edu.co.contables.configuration.costCenters.presentation.DTO.r
 import co.unicauca.edu.co.contables.configuration.costCenters.presentation.DTO.request.CostCenterUpdateReq;
 import org.springframework.data.domain.Page;
 
+import java.util.List;
+
 public interface ICostCenterService {
 
 	CostCenter create(CostCenterCreateReq request);
@@ -24,5 +26,12 @@ public interface ICostCenterService {
 	CostCenter changeState(Long id, String idEnterprise, Boolean status);
 
 	CostCenter softDelete(Long id, String idEnterprise);
+
+	/**
+	 * Obtiene los centros de costo activos de último nivel (código con 5 o más caracteres)
+	 * @param idEnterprise ID de la empresa
+	 * @return Lista de centros de costo de último nivel activos
+	 */
+	List<CostCenter> findActiveLastLevelCostCenters(String idEnterprise);
 }
 

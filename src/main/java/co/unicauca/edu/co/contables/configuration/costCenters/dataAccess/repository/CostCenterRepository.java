@@ -3,13 +3,14 @@ package co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.reposi
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import java.util.List;
 import java.util.Optional;
 
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.CostCenterEntity;
 
 
-public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Long> {
+public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Long>, JpaSpecificationExecutor<CostCenterEntity> {
 
     boolean existsByCodeAndIdEnterpriseAndIsDeletedFalse(String code, String idEnterprise);
 
@@ -31,6 +32,15 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
 
     // Método para obtener solo los centros de costo raíz (sin padre) ordenados
     List<CostCenterEntity> findByIdEnterpriseAndIsDeletedFalseAndParentIsNullOrderByCode(String idEnterprise);
+
+    /**
+     * Obtiene los centros de costo activos de último nivel (código >= 5 caracteres)
+     * Filtra por empresa, estado activo, no eliminados y longitud de código
+     * @param idEnterprise ID de la empresa
+     * @param status Estado del centro de costo (true para activos)
+     * @return Lista de centros de costo de último nivel ordenados por código
+     */
+    List<CostCenterEntity> findByIdEnterpriseAndStatusAndIsDeletedFalseOrderByCode(String idEnterprise, Boolean status);
 }
 
 
