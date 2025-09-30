@@ -33,5 +33,20 @@ public interface ICostCenterService {
 	 * @return Lista de centros de costo de último nivel activos
 	 */
 	List<CostCenter> findActiveLastLevelCostCenters(String idEnterprise);
+
+	/**
+	 * Cuenta el total de centros de costo por empresa
+	 * @param idEnterprise ID de la empresa
+	 * @return Número total de centros de costo
+	 */
+	long countAllByEnterprise(String idEnterprise);
+
+	/**
+	 * Cuenta el total de centros de costo filtrados por estado
+	 * @param idEnterprise ID de la empresa
+	 * @param status Estado del centro de costo
+	 * @return Número total de centros de costo con el estado especificado
+	 */
+	long countAllByEnterpriseAndStatus(String idEnterprise, Boolean status);
 }
 

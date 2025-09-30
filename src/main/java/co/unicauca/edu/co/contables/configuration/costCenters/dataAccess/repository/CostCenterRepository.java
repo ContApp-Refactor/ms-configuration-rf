@@ -41,6 +41,21 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
      * @return Lista de centros de costo de último nivel ordenados por código
      */
     List<CostCenterEntity> findByIdEnterpriseAndStatusAndIsDeletedFalseOrderByCode(String idEnterprise, Boolean status);
+
+    /**
+     * Cuenta el total de centros de costo por empresa (no eliminados)
+     * @param idEnterprise ID de la empresa
+     * @return Número total de centros de costo
+     */
+    long countByIdEnterpriseAndIsDeletedFalse(String idEnterprise);
+
+    /**
+     * Cuenta el total de centros de costo filtrados por estado (no eliminados)
+     * @param idEnterprise ID de la empresa
+     * @param status Estado del centro de costo
+     * @return Número total de centros de costo con el estado especificado
+     */
+    long countByIdEnterpriseAndStatusAndIsDeletedFalse(String idEnterprise, Boolean status);
 }
 
 
