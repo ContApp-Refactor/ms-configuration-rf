@@ -15,11 +15,12 @@ public class AccountingCalendarCreateMonthReq {
     @NotBlank
     private String idEnterprise;
 
-    @Min(2000)
+    @Min(value = 2000)
+    @Max(value = 9999)
     private int year;
 
-    @Min(1)
-    @Max(12)
+    @Min(value = 1)
+    @Max(value = 12)
     private int month;
 }
 

@@ -30,18 +30,19 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
         @Override
         @Transactional
         public AccountingCalendar create(AccountingCalendarCreateReq request) {
-                // Validar que la fecha sea después del año 2000
-                if (request.getDate().getYear() < 2000) {
-                        throw new AccountingCalendarInvalidDateException();
-                }
+                // Parsear y validar la fecha
+                LocalDate date = parseAndValidateDate(request.getDate());
 
-                // Validar si ya existe una fecha para ese día
+                // Validación de negocio: verificar que no exista duplicado
                 boolean exists = repository.existsByIdEnterpriseAndDate(
-                                request.getIdEnterprise(), request.getDate());
+                                request.getIdEnterprise(), date);
                 if (exists) {
                         throw new AccountingCalendarDateExistsException();
                 }
+
+                // Crear y guardar
                 AccountingCalendar domain = domainMapper.toDomain(request);
+                domain.setDate(date); // Asignar la fecha parseada
                 AccountingCalendarEntity saved = repository.save(dataMapper.toEntity(domain));
                 return dataMapper.toDomain(saved);
         }
@@ -64,6 +65,7 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
         @Override
         @Transactional
         public List<AccountingCalendar> openMonthBatch(AccountingCalendarCreateMonthReq request) {
+                // Las validaciones básicas (rango de año y mes) ya están en @Min/@Max del DTO
                 YearMonth ym = YearMonth.of(request.getYear(), request.getMonth());
                 LocalDate start = ym.atDay(1);
                 LocalDate end = ym.atEndOfMonth();
@@ -110,6 +112,7 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
         @Override
         @Transactional
         public List<AccountingCalendar> openYearBatch(AccountingCalendarCreateYearReq request) {
+                // Las validaciones básicas (rango de año) ya están en @Min/@Max del DTO
                 LocalDate start = LocalDate.of(request.getYear(), 1, 1);
                 LocalDate end = LocalDate.of(request.getYear(), 12, 31);
 
@@ -176,6 +179,31 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
         }
 
         // Métodos auxiliares privados
+        private LocalDate parseAndValidateDate(String dateString) {
+                // Validar que no sea null o vacío
+                if (dateString == null || dateString.trim().isEmpty()) {
+                        throw new AccountingCalendarInvalidDateException("La fecha es obligatoria");
+                }
+
+                LocalDate date;
+                try {
+                        // Intentar parsear la fecha
+                        date = LocalDate.parse(dateString);
+                } catch (Exception e) {
+                        throw new AccountingCalendarInvalidDateException(
+                                        "Formato de fecha inválido: " + dateString + ". Use el formato YYYY-MM-DD", e);
+                }
+
+                // Validar rango de año
+                int year = date.getYear();
+                if (year < 2000 || year > 9999) {
+                        throw new AccountingCalendarInvalidDateException(
+                                        "El año debe estar entre 2000 y 9999. Año recibido: " + year);
+                }
+
+                return date;
+        }
+
         private List<LocalDate> generateDateRange(LocalDate start, LocalDate end) {
                 return start.datesUntil(end.plusDays(1))
                                 .collect(Collectors.toList());

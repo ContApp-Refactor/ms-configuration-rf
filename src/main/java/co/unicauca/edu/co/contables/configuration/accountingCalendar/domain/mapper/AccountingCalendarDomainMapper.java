@@ -11,6 +11,7 @@ public interface AccountingCalendarDomainMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "tenantId", ignore = true)
+    @Mapping(target = "date", ignore = true) // La fecha se asigna manualmente después de parsear
     AccountingCalendar toDomain(AccountingCalendarCreateReq req);
 
     AccountingCalendarRes toRes(AccountingCalendar domain);

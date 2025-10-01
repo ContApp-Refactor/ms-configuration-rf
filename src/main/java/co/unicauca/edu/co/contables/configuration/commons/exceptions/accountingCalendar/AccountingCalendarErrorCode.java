@@ -7,7 +7,7 @@ import lombok.Getter;
 public enum AccountingCalendarErrorCode implements ErrorCodeDefinition {
     NOT_FOUND("ACCOUNTING_CALENDAR_NOT_FOUND", "Calendario contable no encontrado"),
     DATE_ALREADY_EXISTS("ACCOUNTING_CALENDAR_DATE_EXISTS", "Ya existe una fecha para el día especificado"),
-    INVALID_DATE("ACCOUNTING_CALENDAR_INVALID_DATE", "La fecha debe ser posterior al año 2000");
+    INVALID_DATE("ACCOUNTING_CALENDAR_INVALID_DATE", "La fecha no es válida");
 
     private final String code;
     private final String message;
@@ -17,6 +17,3 @@ public enum AccountingCalendarErrorCode implements ErrorCodeDefinition {
         this.message = message;
     }
 }
-
-
- 
