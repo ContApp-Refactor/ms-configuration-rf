@@ -6,6 +6,7 @@ import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentCla
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassInactiveException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypesAlreadyExistsException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypesNotFoundException;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.InvalidModuleException;
 import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.entity.DocumentTypeEntity;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.mapper.DocumentTypeDataMapper;
@@ -38,9 +39,9 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     @Override
     @Transactional
     public DocumentType create(DocumentTypeCreateReq request) {
-        // Validación de módulo usando el ENUM
+        
         if (!DocumentModule.isValidName(request.getModule())) {
-            throw new IllegalArgumentException("Módulo inválido: " + request.getModule());
+            throw new InvalidModuleException(request.getModule());
         }
 
         // Estandarización de nombre y prefijo
@@ -80,7 +81,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     public DocumentType update(DocumentTypeUpdateReq request) {
         // Validación de módulo usando el ENUM
         if (!DocumentModule.isValidName(request.getModule())) {
-            throw new IllegalArgumentException("Módulo inválido: " + request.getModule());
+            throw new InvalidModuleException(request.getModule());
         }
 
         DocumentTypeEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
@@ -154,7 +155,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     public Page<DocumentType> findAllByModuleAndEnterprise(String module, String idEnterprise, int page, int size) {
         // Validar que el módulo esté permitido usando el ENUM
         if (!DocumentModule.isValidName(module)) {
-            throw new IllegalArgumentException("Módulo inválido: " + module);
+            throw new InvalidModuleException(module);
         }
         
         // Obtener el nombre estandarizado del módulo desde el ENUM

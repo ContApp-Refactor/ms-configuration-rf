@@ -1,5 +1,7 @@
 package co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models;
 
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.InvalidModuleException;
+import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
 import lombok.Getter;
 
 /**
@@ -31,11 +33,11 @@ public enum DocumentModule {
      * 
      * @param id ID del módulo
      * @return El módulo correspondiente
-     * @throws IllegalArgumentException si el ID no existe
+     * @throws InvalidModuleException si el ID no existe
      */
     public static DocumentModule fromId(Integer id) {
         if (id == null) {
-            throw new IllegalArgumentException("El ID del módulo no puede ser nulo");
+            throw new InvalidModuleException(id);
         }
         
         for (DocumentModule module : values()) {
@@ -43,33 +45,36 @@ public enum DocumentModule {
                 return module;
             }
         }
-        throw new IllegalArgumentException("No existe un módulo con ID: " + id);
+        throw new InvalidModuleException(id);
     }
 
     /**
      * Busca un módulo por su nombre (case-insensitive).
+     * Usa StringStandardizationUtils para normalización consistente.
      * 
      * @param name Nombre del módulo
      * @return El módulo correspondiente
-     * @throws IllegalArgumentException si el nombre no existe
+     * @throws InvalidModuleException si el nombre no existe
      */
     public static DocumentModule fromName(String name) {
         if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("El nombre del módulo no puede ser nulo o vacío");
+            throw new InvalidModuleException(name);
         }
         
-        String normalizedName = name.trim().toLowerCase();
+        String normalizedInput = StringStandardizationUtils.standardizeName(name);
         
         for (DocumentModule module : values()) {
-            if (module.name.toLowerCase().equals(normalizedName)) {
+            String normalizedModuleName = StringStandardizationUtils.standardizeName(module.name);
+            if (normalizedModuleName.equals(normalizedInput)) {
                 return module;
             }
         }
-        throw new IllegalArgumentException("No existe un módulo con nombre: " + name);
+        throw new InvalidModuleException(name);
     }
 
     /**
      * Verifica si un nombre de módulo es válido.
+     * Usa StringStandardizationUtils para normalización consistente.
      * 
      * @param name Nombre del módulo a validar
      * @return true si el módulo existe, false en caso contrario
@@ -79,10 +84,11 @@ public enum DocumentModule {
             return false;
         }
         
-        String normalizedName = name.trim().toLowerCase();
+        String normalizedInput = StringStandardizationUtils.standardizeName(name);
         
         for (DocumentModule module : values()) {
-            if (module.name.toLowerCase().equals(normalizedName)) {
+            String normalizedModuleName = StringStandardizationUtils.standardizeName(module.name);
+            if (normalizedModuleName.equals(normalizedInput)) {
                 return true;
             }
         }
