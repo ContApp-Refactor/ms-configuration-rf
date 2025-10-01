@@ -2,9 +2,12 @@ package co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.servi
 
 import org.springframework.data.domain.Page;
 
+import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentType;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeCreateReq;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeUpdateReq;
+
+import java.util.List;
 
 public interface IDocumentTypeService {
 
@@ -38,4 +41,10 @@ public interface IDocumentTypeService {
 	 * @return Número total de tipos de documento del módulo especificado
 	 */
 	long countAllByModuleAndEnterprise(String module, String idEnterprise);
+
+	/**
+	 * Obtiene todos los módulos disponibles en el sistema
+	 * @return Lista de módulos disponibles
+	 */
+	List<DocumentModule> getAllModules();
 }

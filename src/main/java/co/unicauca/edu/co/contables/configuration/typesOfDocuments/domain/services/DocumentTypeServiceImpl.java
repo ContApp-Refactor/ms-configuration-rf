@@ -11,6 +11,7 @@ import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.en
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.mapper.DocumentTypeDataMapper;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.repository.DocumentTypeRepository;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.mapper.DocumentTypeDomainMapper;
+import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentType;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeCreateReq;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeUpdateReq;
@@ -23,24 +24,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class DocumentTypeServiceImpl implements IDocumentTypeService {
-
-    private static final Set<String> ALLOWED_MODULES = new HashSet<>(Arrays.asList(
-            "Inventario promedio ponderado",
-            "Inventario PEPS",
-            "Comercial",
-            "Tesorería",
-            "Cartera",
-            "Contable comercial",
-            "Contable cartera",
-            "Estados financieros"
-    ));
 
     private final DocumentTypeRepository repository;
     private final DocumentTypeDataMapper dataMapper;
@@ -50,9 +38,9 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     @Override
     @Transactional
     public DocumentType create(DocumentTypeCreateReq request) {
-        // Validación de módulo permitido (insensible a mayúsculas/minúsculas)
-        if (!isModuleAllowed(request.getModule())) {
-            throw new IllegalArgumentException("Modulo invalido");
+        // Validación de módulo usando el ENUM
+        if (!DocumentModule.isValidName(request.getModule())) {
+            throw new IllegalArgumentException("Módulo inválido: " + request.getModule());
         }
 
         // Estandarización de nombre y prefijo
@@ -90,9 +78,9 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     @Override
     @Transactional
     public DocumentType update(DocumentTypeUpdateReq request) {
-        // Validación de módulo permitido (insensible a mayúsculas/minúsculas)
-        if (!isModuleAllowed(request.getModule())) {
-            throw new IllegalArgumentException("Módulo inválido");
+        // Validación de módulo usando el ENUM
+        if (!DocumentModule.isValidName(request.getModule())) {
+            throw new IllegalArgumentException("Módulo inválido: " + request.getModule());
         }
 
         DocumentTypeEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
@@ -164,13 +152,14 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     @Override
     @Transactional(readOnly = true)
     public Page<DocumentType> findAllByModuleAndEnterprise(String module, String idEnterprise, int page, int size) {
-        // Validar que el módulo esté permitido
-        if (!isModuleAllowed(module)) {
-            throw new IllegalArgumentException("Modulo invalido: " + module);
+        // Validar que el módulo esté permitido usando el ENUM
+        if (!DocumentModule.isValidName(module)) {
+            throw new IllegalArgumentException("Módulo inválido: " + module);
         }
         
-        // Estandarizar el módulo para la búsqueda
-        String standardizedModule = StringStandardizationUtils.standardizeName(module);
+        // Obtener el nombre estandarizado del módulo desde el ENUM
+        DocumentModule documentModule = DocumentModule.fromName(module);
+        String standardizedModule = documentModule.getName();
         
         Pageable pageable = PageRequest.of(page, size);
         return repository.findAllByModuleAndIdEnterprise(standardizedModule, idEnterprise, pageable)
@@ -199,19 +188,10 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         return dataMapper.toDomain(current);
     }
 
-    /**
-     * Valida si un módulo está permitido, sin distinguir entre mayúsculas y minúsculas
-     * @param module el módulo a validar
-     * @return true si el módulo está permitido, false en caso contrario
-     */
-    private boolean isModuleAllowed(String module) {
-        if (module == null) return false;
-        
-        String normalizedModule = module.trim().toLowerCase(new Locale("es", "ES"));
-        
-        return ALLOWED_MODULES.stream()
-                .map(allowed -> allowed.toLowerCase(new Locale("es", "ES")))
-                .anyMatch(allowed -> allowed.equals(normalizedModule));
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentModule> getAllModules() {
+        return Arrays.asList(DocumentModule.values());
     }
 
     @Override

@@ -1,11 +1,13 @@
 package co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.controller;
 
 import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
+import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentType;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.services.IDocumentTypeService;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.mapper.DocumentTypeDomainMapper;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeCreateReq;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeUpdateReq;
+import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.response.DocumentModuleRes;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.response.DocumentTypeRes;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/config/document-types")
@@ -117,5 +121,25 @@ public class DocumentTypeController {
             @PathVariable String enterpriseId) {
         DocumentType deleted = service.Delete(id, enterpriseId);
         return ResponseEntity.ok(mapper.toRes(deleted));
+    }
+
+    /**
+     * Obtiene todos los módulos disponibles en el sistema.
+     * Los módulos son globales y no dependen de la empresa.
+     * 
+     * @return Lista de módulos con su ID y nombre
+     */
+    @GetMapping("/modules")
+    public ResponseEntity<List<DocumentModuleRes>> getAllModules() {
+        List<DocumentModule> modules = service.getAllModules();
+        
+        List<DocumentModuleRes> response = modules.stream()
+                .map(module -> DocumentModuleRes.builder()
+                        .id(module.getId())
+                        .name(module.getName())
+                        .build())
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(response);
     }
 }
