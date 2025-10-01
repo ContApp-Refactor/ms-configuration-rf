@@ -78,11 +78,11 @@ public class DocumentTypeController {
     }
 
     /**
-     * Obtiene tipos de documento filtrados por módulo con paginación flexible.
+     * Obtiene tipos de documento filtrados por ID de módulo con paginación flexible.
      * Si no se especifican parámetros de paginación, retorna todos los tipos de documento del módulo.
      * 
      * @param enterpriseId ID de la empresa
-     * @param module       Módulo del tipo de documento
+     * @param moduleId     ID del módulo (1-8)
      * @param page         Número de página (opcional)
      * @param size         Tamaño de página (opcional)
      * @return Página de tipos de documento filtrados por módulo
@@ -90,18 +90,18 @@ public class DocumentTypeController {
     @GetMapping("/findAllByModule/{enterpriseId}")
     public ResponseEntity<Page<DocumentTypeRes>> listByModule(
             @PathVariable("enterpriseId") String enterpriseId,
-            @RequestParam String module,
+            @RequestParam Integer moduleId,
             @RequestParam(required = false) Optional<Integer> page,
             @RequestParam(required = false) Optional<Integer> size) {
 
         // Contar total de registros con el filtro de módulo
-        long totalRecords = service.countAllByModuleAndEnterprise(module, enterpriseId);
+        long totalRecords = service.countAllByModuleAndEnterprise(moduleId, enterpriseId);
 
         // Crear Pageable flexible
         Pageable pageable = paginationHelper.createFlexiblePageable(page, size, totalRecords);
 
         // Obtener página de datos
-        Page<DocumentType> pageResult = service.findAllByModuleAndEnterprise(module, enterpriseId,
+        Page<DocumentType> pageResult = service.findAllByModuleAndEnterprise(moduleId, enterpriseId,
                 pageable.getPageNumber(), pageable.getPageSize());
         return ResponseEntity.ok(pageResult.map(mapper::toRes));
     }
@@ -116,7 +116,7 @@ public class DocumentTypeController {
     }
 
     @DeleteMapping("/delete/{id}/{enterpriseId}")
-    public ResponseEntity<DocumentTypeRes> softDelete(
+    public ResponseEntity<DocumentTypeRes> Delete(
             @PathVariable Long id,
             @PathVariable String enterpriseId) {
         DocumentType deleted = service.Delete(id, enterpriseId);

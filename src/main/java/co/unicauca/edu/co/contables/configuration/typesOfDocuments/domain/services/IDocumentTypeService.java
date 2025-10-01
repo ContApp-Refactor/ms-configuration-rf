@@ -21,7 +21,15 @@ public interface IDocumentTypeService {
 
 	Page<DocumentType> findAllByEnterprise(String idEnterprise, int page, int size, String sortField, String sortOrder);
 	
-	Page<DocumentType> findAllByModuleAndEnterprise(String module, String idEnterprise, int page, int size);
+	/**
+	 * Busca tipos de documento por ID de módulo y empresa
+	 * @param moduleId ID del módulo
+	 * @param idEnterprise ID de la empresa
+	 * @param page Número de página
+	 * @param size Tamaño de página
+	 * @return Página de tipos de documento
+	 */
+	Page<DocumentType> findAllByModuleAndEnterprise(Integer moduleId, String idEnterprise, int page, int size);
 
 	DocumentType changeState(Long id, String idEnterprise, Boolean status);
 
@@ -35,12 +43,12 @@ public interface IDocumentTypeService {
 	long countAllByEnterprise(String idEnterprise);
 
 	/**
-	 * Cuenta el total de tipos de documento filtrados por módulo
-	 * @param module Módulo del tipo de documento
+	 * Cuenta el total de tipos de documento filtrados por ID de módulo
+	 * @param moduleId ID del módulo
 	 * @param idEnterprise ID de la empresa
 	 * @return Número total de tipos de documento del módulo especificado
 	 */
-	long countAllByModuleAndEnterprise(String module, String idEnterprise);
+	long countAllByModuleAndEnterprise(Integer moduleId, String idEnterprise);
 
 	/**
 	 * Obtiene todos los módulos disponibles en el sistema

@@ -152,15 +152,15 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<DocumentType> findAllByModuleAndEnterprise(String module, String idEnterprise, int page, int size) {
-        // Validar que el módulo esté permitido usando el ENUM
-        if (!DocumentModule.isValidName(module)) {
-            throw new InvalidModuleException(module);
+    public Page<DocumentType> findAllByModuleAndEnterprise(Integer moduleId, String idEnterprise, int page, int size) {
+        // Validar que el ID del módulo sea válido
+        if (!DocumentModule.isValidId(moduleId)) {
+            throw new InvalidModuleException(moduleId);
         }
         
-        // Obtener el nombre estandarizado del módulo desde el ENUM
-        DocumentModule documentModule = DocumentModule.fromName(module);
-        String standardizedModule = documentModule.getName();
+        // Obtener el módulo por ID y estandarizar su nombre
+        DocumentModule documentModule = DocumentModule.fromId(moduleId);
+        String standardizedModule = StringStandardizationUtils.standardizeName(documentModule.getName());
         
         Pageable pageable = PageRequest.of(page, size);
         return repository.findAllByModuleAndIdEnterprise(standardizedModule, idEnterprise, pageable)
@@ -203,8 +203,17 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
     @Override
     @Transactional(readOnly = true)
-    public long countAllByModuleAndEnterprise(String module, String idEnterprise) {
-        return repository.countByModuleAndIdEnterprise(module, idEnterprise);
+    public long countAllByModuleAndEnterprise(Integer moduleId, String idEnterprise) {
+        // Validar que el ID del módulo sea válido
+        if (!DocumentModule.isValidId(moduleId)) {
+            throw new InvalidModuleException(moduleId);
+        }
+        
+        // Obtener el módulo por ID y estandarizar su nombre
+        DocumentModule documentModule = DocumentModule.fromId(moduleId);
+        String standardizedModule = StringStandardizationUtils.standardizeName(documentModule.getName());
+        
+        return repository.countByModuleAndIdEnterprise(standardizedModule, idEnterprise);
     }
 
 }
