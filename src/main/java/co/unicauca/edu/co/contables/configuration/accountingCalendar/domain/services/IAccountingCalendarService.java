@@ -3,6 +3,7 @@ package co.unicauca.edu.co.contables.configuration.accountingCalendar.domain.ser
 import co.unicauca.edu.co.contables.configuration.accountingCalendar.domain.models.AccountingCalendar;
 import co.unicauca.edu.co.contables.configuration.accountingCalendar.presentation.DTO.request.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface IAccountingCalendarService {
@@ -24,6 +25,8 @@ public interface IAccountingCalendarService {
 	List<AccountingCalendar> findAllByEnterpriseAndYear(String idEnterprise, int year);
 
 	List<Integer> findExistingYearsByEnterprise(String idEnterprise);
+
+	boolean existsDate(String idEnterprise, LocalDate date);
 
 }
 

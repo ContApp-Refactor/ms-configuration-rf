@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,6 +75,14 @@ public class AccountingCalendarController {
     public ResponseEntity<List<Integer>> findExistingYears(@PathVariable String enterpriseId) {
         List<Integer> years = service.findExistingYearsByEnterprise(enterpriseId);
         return ResponseEntity.ok(years);
+    }
+
+    @GetMapping("/exists/{enterpriseId}")
+    public ResponseEntity<Boolean> existsDate(
+            @PathVariable String enterpriseId,
+            @RequestParam LocalDate date) {
+        boolean exists = service.existsDate(enterpriseId, date);
+        return ResponseEntity.ok(exists);
     }
 
 }

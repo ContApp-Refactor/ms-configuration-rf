@@ -169,6 +169,12 @@ public class AccountingCalendarServiceImpl implements IAccountingCalendarService
                 return repository.findDistinctYearsByIdEnterprise(idEnterprise);
         }
 
+        @Override
+        @Transactional(readOnly = true)
+        public boolean existsDate(String idEnterprise, LocalDate date) {
+                return repository.existsByIdEnterpriseAndDate(idEnterprise, date);
+        }
+
         // Métodos auxiliares privados
         private List<LocalDate> generateDateRange(LocalDate start, LocalDate end) {
                 return start.datesUntil(end.plusDays(1))
