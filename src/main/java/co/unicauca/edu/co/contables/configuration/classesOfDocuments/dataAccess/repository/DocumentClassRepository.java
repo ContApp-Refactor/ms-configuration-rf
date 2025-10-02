@@ -35,6 +35,23 @@ public interface DocumentClassRepository extends JpaRepository<DocumentClassEnti
      * @return Número total de clases de documento con el estado especificado
      */
     long countByIdEnterpriseAndStatus(String idEnterprise, Boolean status);
+
+    /**
+     * Busca clases de documento por empresa y nombre (búsqueda parcial case-insensitive)
+     * @param idEnterprise ID de la empresa
+     * @param name Término de búsqueda
+     * @param pageable Configuración de paginación
+     * @return Página de clases de documento que coinciden con la búsqueda
+     */
+    Page<DocumentClassEntity> findByIdEnterpriseAndNameContainingIgnoreCase(String idEnterprise, String name, Pageable pageable);
+
+    /**
+     * Cuenta clases de documento por empresa y nombre (búsqueda parcial case-insensitive)
+     * @param idEnterprise ID de la empresa
+     * @param name Término de búsqueda
+     * @return Número total de clases de documento que coinciden con la búsqueda
+     */
+    long countByIdEnterpriseAndNameContainingIgnoreCase(String idEnterprise, String name);
 }
 
 

@@ -141,6 +141,22 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         return repository.countByIdEnterpriseAndStatus(idEnterprise, status);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DocumentClass> findByEnterpriseAndNameContaining(String idEnterprise, String search, int page, int size, String sortField, String sortOrder) {
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
+            Sort.by(sortField).descending() : 
+            Sort.by(sortField).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return repository.findByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search, pageable).map(dataMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countByEnterpriseAndNameContaining(String idEnterprise, String search) {
+        return repository.countByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search);
+    }
+
 }
 
 
