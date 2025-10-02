@@ -53,6 +53,9 @@ public class CostCenterServiceImpl implements ICostCenterService {
 			CostCenterEntity parent = repository.findByIdAndIdEnterprise(request.getParentId(), request.getIdEnterprise())
 					.orElseThrow(CostCentersNotFoundException::new);
 			entity.setParent(parent);
+			
+			// Activar automáticamente todas las cuentas padre si están inactivas
+			activateParentHierarchy(parent);
 		}
 
 		CostCenterEntity saved = repository.save(entity);
@@ -283,6 +286,24 @@ public class CostCenterServiceImpl implements ICostCenterService {
 				idEnterprise, search, idEnterprise, search);
 	}
 
+	/**
+	 * Activa recursivamente toda la jerarquía de cuentas padre si están inactivas.
+	 * @param parent Centro de costo padre a activar (junto con sus ancestros)
+	 */
+	private void activateParentHierarchy(CostCenterEntity parent) {
+		if (parent == null) {
+			return;
+		}
+		
+		// Si el padre está inactivo, activarlo
+		if (!parent.getStatus()) {
+			parent.setStatus(true);
+			repository.save(parent);
+		}
+		
+		// Recursivamente activar el padre del padre
+		if (parent.getParent() != null) {
+			activateParentHierarchy(parent.getParent());
+		}
+	}
 }
-
-
