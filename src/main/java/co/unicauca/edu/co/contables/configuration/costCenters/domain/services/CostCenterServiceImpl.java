@@ -187,7 +187,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 
 		// Validar que no tenga centros de costo hijos
 		if (repository.existsByParentId(id)) {
-			throw new CostCenterHasChildrenException(id, current.getCode());
+			throw new CostCenterHasChildrenException(current.getCode());
 		}
 
 		// Eliminación física del centro de costo

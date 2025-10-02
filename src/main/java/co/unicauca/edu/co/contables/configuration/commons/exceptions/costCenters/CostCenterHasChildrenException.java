@@ -18,10 +18,10 @@ public class CostCenterHasChildrenException extends BaseBusinessException {
         );
     }
 
-    public CostCenterHasChildrenException(Long id, String code) {
+    public CostCenterHasChildrenException( String code) {
         super(
             CostCentersErrorCode.COST_CENTER_HAS_CHILDREN,
-            String.format("No se puede eliminar el centro de costo con ID %d (%s) porque tiene centros de costo hijos asociados", id, code)
+            String.format("No se puede eliminar el centro de costo '%s' porque tiene centros de costo hijos asociados", code)
         );
     }
 }
