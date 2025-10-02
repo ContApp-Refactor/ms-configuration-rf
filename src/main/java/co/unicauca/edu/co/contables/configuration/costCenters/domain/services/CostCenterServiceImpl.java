@@ -3,6 +3,7 @@ package co.unicauca.edu.co.contables.configuration.costCenters.domain.services;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCentersAlreadyExistsException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCentersNotFoundException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterHasChildrenException;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterInvalidCodePrefixException;
 import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.CostCenterEntity;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.mapper.CostCenterDataMapper;
@@ -78,6 +79,14 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		boolean enterpriseChanged = request.getIdEnterprise() != null && !request.getIdEnterprise().equals(current.getIdEnterprise());
 
 		String targetEnterprise = enterpriseChanged ? request.getIdEnterprise() : current.getIdEnterprise();
+
+		// Validar que si tiene padre, el nuevo código mantenga el prefijo del código del padre
+		if (codeChanged && current.getParent() != null) {
+			String parentCode = current.getParent().getCode();
+			if (!request.getCode().startsWith(parentCode)) {
+				throw new CostCenterInvalidCodePrefixException(parentCode, request.getCode());
+			}
+		}
 
         if (codeChanged || enterpriseChanged) {
             boolean existsCode = repository.existsByCodeAndIdEnterprise(request.getCode(), targetEnterprise);
