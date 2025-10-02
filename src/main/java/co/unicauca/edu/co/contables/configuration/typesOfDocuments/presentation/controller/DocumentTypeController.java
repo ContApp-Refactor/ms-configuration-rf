@@ -63,17 +63,24 @@ public class DocumentTypeController {
             @RequestParam(required = false) Optional<Integer> page,
             @RequestParam(required = false) Optional<Integer> size,
             @RequestParam(defaultValue = "name") String sortField,
-            @RequestParam(defaultValue = "asc") String sortOrder) {
+            @RequestParam(defaultValue = "asc") String sortOrder,
+            @RequestParam(required = false) String search) {
 
-        // Contar total de registros
-        long totalRecords = service.countAllByEnterprise(enterpriseId);
+        // Contar total de registros (con o sin filtro)
+        long totalRecords = (search != null && !search.trim().isEmpty()) 
+            ? service.countByEnterpriseAndNameContaining(enterpriseId, search)
+            : service.countAllByEnterprise(enterpriseId);
 
         // Crear Pageable flexible
         Pageable pageable = paginationHelper.createFlexiblePageable(page, size, totalRecords);
 
-        // Obtener página de datos
-        Page<DocumentType> pageResult = service.findAllByEnterprise(enterpriseId, pageable.getPageNumber(),
-                pageable.getPageSize(), sortField, sortOrder);
+        // Obtener página de datos (con o sin filtro)
+        Page<DocumentType> pageResult = (search != null && !search.trim().isEmpty())
+            ? service.findByEnterpriseAndNameContaining(enterpriseId, search, pageable.getPageNumber(),
+                    pageable.getPageSize(), sortField, sortOrder)
+            : service.findAllByEnterprise(enterpriseId, pageable.getPageNumber(),
+                    pageable.getPageSize(), sortField, sortOrder);
+        
         return ResponseEntity.ok(pageResult.map(mapper::toRes));
     }
 

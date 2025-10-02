@@ -39,6 +39,23 @@ public interface DocumentTypeRepository extends JpaRepository<DocumentTypeEntity
      * @return Número total de tipos de documento del módulo especificado
      */
     long countByModuleAndIdEnterprise(String module, String idEnterprise);
+
+    /**
+     * Busca tipos de documento por empresa y nombre (búsqueda parcial case-insensitive)
+     * @param idEnterprise ID de la empresa
+     * @param name Término de búsqueda
+     * @param pageable Configuración de paginación
+     * @return Página de tipos de documento que coinciden con la búsqueda
+     */
+    Page<DocumentTypeEntity> findByIdEnterpriseAndNameContainingIgnoreCase(String idEnterprise, String name, Pageable pageable);
+
+    /**
+     * Cuenta tipos de documento por empresa y nombre (búsqueda parcial case-insensitive)
+     * @param idEnterprise ID de la empresa
+     * @param name Término de búsqueda
+     * @return Número total de tipos de documento que coinciden con la búsqueda
+     */
+    long countByIdEnterpriseAndNameContainingIgnoreCase(String idEnterprise, String name);
 }
 
 
