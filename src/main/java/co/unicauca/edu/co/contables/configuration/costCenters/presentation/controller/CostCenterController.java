@@ -1,5 +1,6 @@
 package co.unicauca.edu.co.contables.configuration.costCenters.presentation.controller;
 
+import co.unicauca.edu.co.contables.configuration.commons.utils.ExportFileNameGenerator;
 import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.models.CostCenter;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.mapper.CostCenterDomainMapper;
@@ -18,8 +19,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -158,8 +157,7 @@ public class CostCenterController {
      * Permite filtrar por estado mediante parámetro opcional.
      * 
      * @param enterpriseId ID de la empresa
-     * @param status       Estado de los centros de costo (true=activos,
-     *                     false=inactivos, null=todos)
+     * @param status       Estado de los centros de costo
      * @param companyName  Nombre de la empresa para el archivo (opcional)
      * @return Archivo Excel con los centros de costo
      */
@@ -170,27 +168,10 @@ public class CostCenterController {
             @RequestParam(required = false) String companyName) {
 
         Resource excelFile = exportService.exportCostCenters(enterpriseId, status);
-        String filename = generateFileName(enterpriseId, status, companyName);
+        String filename = ExportFileNameGenerator.generateExcelFileName("centros_costo", companyName, status);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .body(excelFile);
-    }
-
-    /**
-     * Genera el nombre del archivo Excel con timestamp.
-     */
-    private String generateFileName(String enterpriseId, Boolean status, String companyName) {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String statusSuffix = status != null ? (status ? "_activos" : "_inactivos") : "";
-        
-        // Si se proporciona el nombre de la empresa, incluirlo en el nombre del archivo
-        if (companyName != null && !companyName.trim().isEmpty()) {
-            String sanitizedCompanyName = companyName.trim().replaceAll("[^a-zA-Z0-9_-]", "_");
-            return String.format("centros_costo_%s%s_%s.xlsx", sanitizedCompanyName, statusSuffix, timestamp);
-        }
-        
-        // Si no se proporciona nombre, exportar sin identificador de empresa
-        return String.format("centros_costo%s_%s.xlsx", statusSuffix, timestamp);
     }
 }
