@@ -4,25 +4,33 @@ import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.models.CostCenter;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.mapper.CostCenterDomainMapper;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.services.ICostCenterService;
+import co.unicauca.edu.co.contables.configuration.costCenters.domain.services.IExportCostCenterService;
 import co.unicauca.edu.co.contables.configuration.costCenters.presentation.DTO.request.CostCenterCreateReq;
 import co.unicauca.edu.co.contables.configuration.costCenters.presentation.DTO.request.CostCenterUpdateReq;
 import co.unicauca.edu.co.contables.configuration.costCenters.presentation.DTO.response.CostCenterRes;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/config/cost-centers")
 @RequiredArgsConstructor
 public class CostCenterController {
 
     private final ICostCenterService service;
+    private final IExportCostCenterService exportService;
     private final CostCenterDomainMapper mapper;
     private final PaginationHelper paginationHelper;
 
@@ -75,7 +83,7 @@ public class CostCenterController {
                         pageable.getPageSize())
                 : service.findAllByEnterpriseHierarchical(enterpriseId, pageable.getPageNumber(),
                         pageable.getPageSize());
-        
+
         Page<CostCenterRes> mapped = pageResult.map(mapper::toRes);
         return ResponseEntity.ok(mapped);
     }
@@ -143,5 +151,46 @@ public class CostCenterController {
                 .map(mapper::toRes)
                 .toList();
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Exporta centros de costo de una empresa a Excel.
+     * Permite filtrar por estado mediante parámetro opcional.
+     * 
+     * @param enterpriseId ID de la empresa
+     * @param status       Estado de los centros de costo (true=activos,
+     *                     false=inactivos, null=todos)
+     * @param companyName  Nombre de la empresa para el archivo (opcional)
+     * @return Archivo Excel con los centros de costo
+     */
+    @GetMapping("/export/excel/{enterpriseId}")
+    public ResponseEntity<Resource> exportCostCenters(
+            @PathVariable String enterpriseId,
+            @RequestParam(required = false) Boolean status,
+            @RequestParam(required = false) String companyName) {
+
+        Resource excelFile = exportService.exportCostCenters(enterpriseId, status);
+        String filename = generateFileName(enterpriseId, status, companyName);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(excelFile);
+    }
+
+    /**
+     * Genera el nombre del archivo Excel con timestamp.
+     */
+    private String generateFileName(String enterpriseId, Boolean status, String companyName) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String statusSuffix = status != null ? (status ? "_activos" : "_inactivos") : "";
+        
+        // Si se proporciona el nombre de la empresa, incluirlo en el nombre del archivo
+        if (companyName != null && !companyName.trim().isEmpty()) {
+            String sanitizedCompanyName = companyName.trim().replaceAll("[^a-zA-Z0-9_-]", "_");
+            return String.format("centros_costo_%s%s_%s.xlsx", sanitizedCompanyName, statusSuffix, timestamp);
+        }
+        
+        // Si no se proporciona nombre, exportar sin identificador de empresa
+        return String.format("centros_costo%s_%s.xlsx", statusSuffix, timestamp);
     }
 }
