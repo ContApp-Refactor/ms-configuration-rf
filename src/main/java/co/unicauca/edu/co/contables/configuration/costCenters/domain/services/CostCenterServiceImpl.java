@@ -92,8 +92,12 @@ public class CostCenterServiceImpl implements ICostCenterService {
 			}
 		}
 
+		// Si el código cambió, actualizar códigos de hijos en cascada
+		String oldCode = current.getCode();
+		String newCode = request.getCode();
+		
 		current.setIdEnterprise(request.getIdEnterprise());
-		current.setCode(request.getCode());
+		current.setCode(newCode);
 		current.setName(request.getName());
 		if (request.getParentId() != null) {
 			CostCenterEntity parent = repository.findByIdAndIdEnterprise(request.getParentId(), targetEnterprise)
@@ -102,7 +106,15 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		} else {
 			current.setParent(null);
 		}
-		return dataMapper.toDomain(repository.save(current));
+		
+		CostCenterEntity saved = repository.save(current);
+		
+		// Actualizar códigos de hijos si el código cambió
+		if (codeChanged) {
+			updateChildrenCodes(current.getId(), oldCode, newCode);
+		}
+		
+		return dataMapper.toDomain(saved);
 	}
 
 
@@ -309,6 +321,36 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		// Recursivamente activar el padre del padre
 		if (parent.getParent() != null) {
 			activateParentHierarchy(parent.getParent());
+		}
+	}
+
+	/**
+	 * Actualiza recursivamente los códigos de todos los centros de costo hijos cuando cambia el código del padre.
+	 * Reemplaza el prefijo del código padre antiguo por el nuevo en todos los descendientes.
+	 * 
+	 * @param parentId ID del centro de costo padre cuyo código cambió
+	 * @param oldParentCode Código antiguo del padre
+	 * @param newParentCode Código nuevo del padre
+	 */
+	private void updateChildrenCodes(Long parentId, String oldParentCode, String newParentCode) {
+		// Obtener todos los hijos directos del padre
+		List<CostCenterEntity> children = repository.findByParentId(parentId);
+		
+		for (CostCenterEntity child : children) {
+			String oldChildCode = child.getCode();
+			
+			// Verificar que el código del hijo comience con el código del padre antiguo
+			if (oldChildCode.startsWith(oldParentCode)) {
+				// Reemplazar el prefijo del código padre antiguo por el nuevo
+				String newChildCode = newParentCode + oldChildCode.substring(oldParentCode.length());
+				
+				// Actualizar el código del hijo
+				child.setCode(newChildCode);
+				repository.save(child);
+				
+				// Actualizar recursivamente los códigos de los descendientes de este hijo
+				updateChildrenCodes(child.getId(), oldChildCode, newChildCode);
+			}
 		}
 	}
 }
