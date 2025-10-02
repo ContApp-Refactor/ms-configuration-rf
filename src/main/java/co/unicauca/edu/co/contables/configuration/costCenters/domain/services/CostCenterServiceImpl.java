@@ -164,6 +164,11 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		CostCenterEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
 				.orElseThrow(CostCentersNotFoundException::new);
 
+		// Si se activa cuenta hija se activan padres
+		if (status && current.getParent() != null) {
+			activateParentHierarchy(current.getParent());
+		}
+
 		// Cambiar el estado del centro de costo actual
 		current.setStatus(status);
 		CostCenterEntity saved = repository.save(current);
