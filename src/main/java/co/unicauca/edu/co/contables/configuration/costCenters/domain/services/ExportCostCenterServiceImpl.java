@@ -1,5 +1,7 @@
 package co.unicauca.edu.co.contables.configuration.costCenters.domain.services;
 
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterExportException;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterExportNoDataException;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.repository.CostCenterRepository;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.CostCenterEntity;
 import lombok.RequiredArgsConstructor;
@@ -36,10 +38,7 @@ public class ExportCostCenterServiceImpl implements IExportCostCenterService {
         }
 
         if (costCenters.isEmpty()) {
-            String statusMessage = status != null
-                    ? String.format(" con estado %s", status ? "activo" : "inactivo")
-                    : "";
-            throw new RuntimeException("No hay centros de costo para exportar" + statusMessage);
+            throw new CostCenterExportNoDataException(status);
         }
 
         return generateExcelFile(costCenters, enterpriseId, status);
@@ -72,7 +71,7 @@ public class ExportCostCenterServiceImpl implements IExportCostCenterService {
             return new ByteArrayResource(outputStream.toByteArray());
 
         } catch (IOException e) {
-            throw new RuntimeException("Error al generar archivo de exportación", e);
+            throw new CostCenterExportException("Error al generar archivo de exportación de centros de costo", e);
         }
     }
 
