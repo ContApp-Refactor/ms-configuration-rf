@@ -68,6 +68,29 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
      * @return Número total de centros de costo con el estado especificado
      */
     long countByIdEnterpriseAndStatus(String idEnterprise, Boolean status);
+
+    /**
+     * Busca centros de costo por empresa y término de búsqueda en código o nombre (case-insensitive)
+     * @param idEnterprise1 ID de la empresa para búsqueda por código
+     * @param code Término de búsqueda en código
+     * @param idEnterprise2 ID de la empresa para búsqueda por nombre
+     * @param name Término de búsqueda en nombre
+     * @param pageable Configuración de paginación
+     * @return Página de centros de costo que coinciden con la búsqueda
+     */
+    Page<CostCenterEntity> findByIdEnterpriseAndCodeContainingIgnoreCaseOrIdEnterpriseAndNameContainingIgnoreCase(
+            String idEnterprise1, String code, String idEnterprise2, String name, Pageable pageable);
+
+    /**
+     * Cuenta centros de costo por empresa y término de búsqueda en código o nombre (case-insensitive)
+     * @param idEnterprise1 ID de la empresa para búsqueda por código
+     * @param code Término de búsqueda en código
+     * @param idEnterprise2 ID de la empresa para búsqueda por nombre
+     * @param name Término de búsqueda en nombre
+     * @return Número total de centros de costo que coinciden con la búsqueda
+     */
+    long countByIdEnterpriseAndCodeContainingIgnoreCaseOrIdEnterpriseAndNameContainingIgnoreCase(
+            String idEnterprise1, String code, String idEnterprise2, String name);
 }
 
 

@@ -57,5 +57,23 @@ public interface ICostCenterService {
 	 * @return Número total de centros de costo con el estado especificado
 	 */
 	long countAllByEnterpriseAndStatus(String idEnterprise, Boolean status);
+
+	/**
+	 * Busca centros de costo por empresa y término de búsqueda (código o nombre)
+	 * @param idEnterprise ID de la empresa
+	 * @param search Término de búsqueda
+	 * @param page Número de página
+	 * @param size Tamaño de página
+	 * @return Página de centros de costo que coinciden con la búsqueda
+	 */
+	Page<CostCenter> findByEnterpriseAndSearch(String idEnterprise, String search, int page, int size);
+
+	/**
+	 * Cuenta centros de costo por empresa y término de búsqueda (código o nombre)
+	 * @param idEnterprise ID de la empresa
+	 * @param search Término de búsqueda
+	 * @return Número total de centros de costo que coinciden con la búsqueda
+	 */
+	long countByEnterpriseAndSearch(String idEnterprise, String search);
 }
 

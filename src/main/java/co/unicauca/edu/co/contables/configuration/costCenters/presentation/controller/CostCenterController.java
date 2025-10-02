@@ -51,23 +51,31 @@ public class CostCenterController {
      * @param enterpriseId ID de la empresa
      * @param page         Número de página (opcional)
      * @param size         Tamaño de página (opcional)
+     * @param search       Término de búsqueda (opcional)
      * @return Página de centros de costo jerárquicos
      */
     @GetMapping("/findAll/{enterpriseId}")
     public ResponseEntity<Page<CostCenterRes>> listHierarchical(
             @PathVariable String enterpriseId,
             @RequestParam(required = false) Optional<Integer> page,
-            @RequestParam(required = false) Optional<Integer> size) {
+            @RequestParam(required = false) Optional<Integer> size,
+            @RequestParam(required = false) String search) {
 
-        // Contar total de registros
-        long totalRecords = service.countAllByEnterprise(enterpriseId);
+        // Contar total de registros (con o sin filtro)
+        long totalRecords = (search != null && !search.trim().isEmpty())
+                ? service.countByEnterpriseAndSearch(enterpriseId, search)
+                : service.countAllByEnterprise(enterpriseId);
 
         // Crear Pageable flexible
         Pageable pageable = paginationHelper.createFlexiblePageable(page, size, totalRecords);
 
-        // Obtener página de datos
-        Page<CostCenter> pageResult = service.findAllByEnterpriseHierarchical(enterpriseId, pageable.getPageNumber(),
-                pageable.getPageSize());
+        // Obtener página de datos (con o sin filtro)
+        Page<CostCenter> pageResult = (search != null && !search.trim().isEmpty())
+                ? service.findByEnterpriseAndSearch(enterpriseId, search, pageable.getPageNumber(),
+                        pageable.getPageSize())
+                : service.findAllByEnterpriseHierarchical(enterpriseId, pageable.getPageNumber(),
+                        pageable.getPageSize());
+        
         Page<CostCenterRes> mapped = pageResult.map(mapper::toRes);
         return ResponseEntity.ok(mapped);
     }

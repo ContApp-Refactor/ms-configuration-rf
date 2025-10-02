@@ -268,6 +268,21 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		return repository.countByIdEnterpriseAndStatus(idEnterprise, status);
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public Page<CostCenter> findByEnterpriseAndSearch(String idEnterprise, String search, int page, int size) {
+		Pageable pageable = PageRequest.of(page, size);
+		return repository.findByIdEnterpriseAndCodeContainingIgnoreCaseOrIdEnterpriseAndNameContainingIgnoreCase(
+				idEnterprise, search, idEnterprise, search, pageable).map(dataMapper::toDomain);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public long countByEnterpriseAndSearch(String idEnterprise, String search) {
+		return repository.countByIdEnterpriseAndCodeContainingIgnoreCaseOrIdEnterpriseAndNameContainingIgnoreCase(
+				idEnterprise, search, idEnterprise, search);
+	}
+
 }
 
 
