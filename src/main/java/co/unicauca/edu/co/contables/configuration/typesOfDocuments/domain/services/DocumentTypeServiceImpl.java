@@ -46,10 +46,6 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
             throw new InvalidModuleException(request.getModuleId());
         }
 
-        // Obtener el módulo por ID y estandarizar su nombre
-        DocumentModule documentModule = DocumentModule.fromId(request.getModuleId());
-        String standardizedModule = StringStandardizationUtils.standardizeName(documentModule.getName());
-
         // Estandarización de nombre y prefijo
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
         String standardizedPrefix = StringStandardizationUtils.standardizePrefix(request.getPrefix());
@@ -74,7 +70,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         DocumentType domain = domainMapper.toDomain(request);
         domain.setName(standardizedName);
         domain.setPrefix(standardizedPrefix);
-        domain.setModule(standardizedModule);
+        domain.setModuleId(request.getModuleId());
         DocumentTypeEntity toSave = dataMapper.toEntity(domain);
         toSave.setDocumentClass(docClass);
 

@@ -12,7 +12,7 @@ public class DocumentType {
     private String prefix;
     private String name;
     private Long documentClassId;
-    private String module;
+    private Integer moduleId;
     private String idEnterprise;
     @Builder.Default
     private Boolean status = true;

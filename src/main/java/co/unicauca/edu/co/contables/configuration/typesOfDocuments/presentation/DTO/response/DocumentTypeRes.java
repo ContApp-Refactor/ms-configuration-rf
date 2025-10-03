@@ -13,7 +13,7 @@ public class DocumentTypeRes {
     private String prefix;
     private String name;
     private Long documentClassId;
-    private String module;
+    private Integer moduleId;
     private Boolean status;
 }
 
