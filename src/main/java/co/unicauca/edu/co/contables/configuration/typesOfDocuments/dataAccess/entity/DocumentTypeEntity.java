@@ -12,7 +12,8 @@ import org.hibernate.annotations.TenantId;
         @Index(name = "idx_doc_type_id_enterprise", columnList = "id_enterprise"),
         @Index(name = "idx_doc_type_prefix", columnList = "prefix"),
         @Index(name = "idx_doc_type_name", columnList = "name"),
-        @Index(name = "idx_doc_type_module", columnList = "module")
+        @Index(name = "idx_doc_type_module", columnList = "module"),
+        @Index(name = "idx_doc_type_module_enterprise", columnList = "module,id_enterprise")
     }
 )
 @Getter
