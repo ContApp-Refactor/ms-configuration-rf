@@ -4,6 +4,7 @@ import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.en
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
 import java.util.Optional;
 
 public interface DocumentTypeRepository extends JpaRepository<DocumentTypeEntity, Long> {
@@ -20,7 +21,7 @@ public interface DocumentTypeRepository extends JpaRepository<DocumentTypeEntity
 
     Optional<DocumentTypeEntity> findByIdAndIdEnterprise(Long id, String idEnterprise);
     
-    Page<DocumentTypeEntity> findAllByModuleAndIdEnterprise(String module, String idEnterprise, Pageable pageable);
+    List<DocumentTypeEntity> findAllByModuleAndIdEnterprise(String module, String idEnterprise);
 
     // Método para verificar si una clase de documento está siendo usada por tipos
     boolean existsByDocumentClassId(Long documentClassId);
@@ -31,14 +32,6 @@ public interface DocumentTypeRepository extends JpaRepository<DocumentTypeEntity
      * @return Número total de tipos de documento
      */
     long countByIdEnterprise(String idEnterprise);
-
-    /**
-     * Cuenta el total de tipos de documento filtrados por módulo
-     * @param module Módulo del tipo de documento
-     * @param idEnterprise ID de la empresa
-     * @return Número total de tipos de documento del módulo especificado
-     */
-    long countByModuleAndIdEnterprise(String module, String idEnterprise);
 
     /**
      * Busca tipos de documento por empresa y nombre (búsqueda parcial case-insensitive)

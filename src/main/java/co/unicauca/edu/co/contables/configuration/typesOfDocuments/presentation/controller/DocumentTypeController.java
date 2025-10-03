@@ -85,32 +85,23 @@ public class DocumentTypeController {
     }
 
     /**
-     * Obtiene tipos de documento filtrados por ID de módulo con paginación flexible.
-     * Si no se especifican parámetros de paginación, retorna todos los tipos de documento del módulo.
+     * Obtiene todos los tipos de documento filtrados por ID de módulo.
      * 
      * @param enterpriseId ID de la empresa
      * @param moduleId     ID del módulo (1-8)
-     * @param page         Número de página (opcional)
-     * @param size         Tamaño de página (opcional)
-     * @return Página de tipos de documento filtrados por módulo
+     * @return Lista de tipos de documento del módulo
      */
     @GetMapping("/findAllByModule/{enterpriseId}")
-    public ResponseEntity<Page<DocumentTypeRes>> listByModule(
+    public ResponseEntity<List<DocumentTypeRes>> listByModule(
             @PathVariable("enterpriseId") String enterpriseId,
-            @RequestParam Integer moduleId,
-            @RequestParam(required = false) Optional<Integer> page,
-            @RequestParam(required = false) Optional<Integer> size) {
+            @RequestParam Integer moduleId) {
 
-        // Contar total de registros con el filtro de módulo
-        long totalRecords = service.countAllByModuleAndEnterprise(moduleId, enterpriseId);
-
-        // Crear Pageable flexible
-        Pageable pageable = paginationHelper.createFlexiblePageable(page, size, totalRecords);
-
-        // Obtener página de datos
-        Page<DocumentType> pageResult = service.findAllByModuleAndEnterprise(moduleId, enterpriseId,
-                pageable.getPageNumber(), pageable.getPageSize());
-        return ResponseEntity.ok(pageResult.map(mapper::toRes));
+        List<DocumentType> documentTypes = service.findAllByModuleAndEnterprise(moduleId, enterpriseId);
+        List<DocumentTypeRes> response = documentTypes.stream()
+                .map(mapper::toRes)
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/changeState/{id}/{enterpriseId}")
