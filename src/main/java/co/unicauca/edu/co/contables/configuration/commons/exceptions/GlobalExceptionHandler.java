@@ -2,10 +2,13 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -101,6 +104,40 @@ public class GlobalExceptionHandler {
                 "error", errorResponse,
                 "violations", violations
         ), status);
+    }
+
+    /**
+     * Maneja errores de deserialización JSON (tipos de datos incorrectos).
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex, WebRequest request) {
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        String message = "Error en el formato de los datos enviados";
+
+        // Intentar extraer información más específica si es un error de formato
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException) {
+            InvalidFormatException ife = (InvalidFormatException) cause;
+            String fieldName = ife.getPath().isEmpty() ? "campo" : ife.getPath().get(0).getFieldName();
+            String targetType = ife.getTargetType().getSimpleName();
+            Object value = ife.getValue();
+            
+            message = String.format("El campo '%s' tiene un formato inválido. Se esperaba un %s pero se recibió: '%s'", 
+                    fieldName, targetType, value);
+        }
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message)
+                .code(ErrorCode.GENERIC_ERROR.getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, status);
     }
 
     private HttpStatus mapStatusFromErrorCode(String code) {

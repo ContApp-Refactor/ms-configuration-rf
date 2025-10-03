@@ -41,9 +41,14 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     @Transactional
     public DocumentType create(DocumentTypeCreateReq request) {
         
-        if (!DocumentModule.isValidName(request.getModule())) {
-            throw new InvalidModuleException(request.getModule());
+        // Validar que el ID del módulo sea válido
+        if (!DocumentModule.isValidId(request.getModuleId())) {
+            throw new InvalidModuleException(request.getModuleId());
         }
+
+        // Obtener el módulo por ID y estandarizar su nombre
+        DocumentModule documentModule = DocumentModule.fromId(request.getModuleId());
+        String standardizedModule = StringStandardizationUtils.standardizeName(documentModule.getName());
 
         // Estandarización de nombre y prefijo
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
@@ -69,7 +74,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         DocumentType domain = domainMapper.toDomain(request);
         domain.setName(standardizedName);
         domain.setPrefix(standardizedPrefix);
-        domain.setModule(StringStandardizationUtils.standardizeName(request.getModule()));
+        domain.setModule(standardizedModule);
         DocumentTypeEntity toSave = dataMapper.toEntity(domain);
         toSave.setDocumentClass(docClass);
 
@@ -80,10 +85,14 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     @Override
     @Transactional
     public DocumentType update(DocumentTypeUpdateReq request) {
-        // Validación de módulo usando el ENUM
-        if (!DocumentModule.isValidName(request.getModule())) {
-            throw new InvalidModuleException(request.getModule());
+        // Validar que el ID del módulo sea válido
+        if (!DocumentModule.isValidId(request.getModuleId())) {
+            throw new InvalidModuleException(request.getModuleId());
         }
+
+        // Obtener el módulo por ID y estandarizar su nombre
+        DocumentModule documentModule = DocumentModule.fromId(request.getModuleId());
+        String standardizedModule = StringStandardizationUtils.standardizeName(documentModule.getName());
 
         DocumentTypeEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
                 .orElseThrow(DocumentTypesNotFoundException::new);
@@ -122,7 +131,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         current.setPrefix(standardizedPrefix);
         current.setName(standardizedName);
         current.setDocumentClass(docClass);
-        current.setModule(StringStandardizationUtils.standardizeName(request.getModule()));
+        current.setModule(standardizedModule);
 
         DocumentTypeEntity saved = repository.save(current);
         return dataMapper.toDomain(saved);

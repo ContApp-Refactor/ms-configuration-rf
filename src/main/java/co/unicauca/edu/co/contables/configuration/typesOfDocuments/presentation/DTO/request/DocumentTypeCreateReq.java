@@ -23,8 +23,10 @@ public class DocumentTypeCreateReq {
     @NotNull(message = "La clase de documento es obligatoria")
     private Long documentClassId;
 
-    @NotBlank(message = "El módulo es obligatorio")
-    private String module;
+    @NotNull(message = "El módulo es obligatorio")
+    @Min(value = 1, message = "El ID del módulo debe ser mayor a 0")
+    @Max(value = 8, message = "El ID del módulo debe estar entre 1 y 8")
+    private Integer moduleId;
 }
 
 
