@@ -8,7 +8,6 @@ import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardiz
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.CostCenterEntity;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.mapper.CostCenterDataMapper;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.repository.CostCenterRepository;
-import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.repository.CostCenterSpecifications;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.mapper.CostCenterDomainMapper;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.models.CostCenter;
 import co.unicauca.edu.co.contables.configuration.costCenters.presentation.DTO.request.CostCenterCreateReq;
@@ -273,11 +272,9 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	@Override
 	@Transactional(readOnly = true)
 	public List<CostCenter> findActiveLastLevelCostCenters(String idEnterprise) {
-		// Usar Specification para filtrar directamente en la base de datos
-		// Esto es más eficiente que traer todos los registros y filtrar en memoria
-		List<CostCenterEntity> auxiliaryCostCenters = repository.findAll(
-			CostCenterSpecifications.isAuxiliaryCostCenter(idEnterprise)
-		);
+		
+		// Filtra por empresa, estado activo y código con longitud >= 5
+		List<CostCenterEntity> auxiliaryCostCenters = repository.findAuxiliaryCostCenters(idEnterprise);
 		
 		// Mapear entidades a modelos de dominio
 		return auxiliaryCostCenters.stream()

@@ -3,14 +3,15 @@ package co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.reposi
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.CostCenterEntity;
 
 
-public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Long>, JpaSpecificationExecutor<CostCenterEntity> {
+public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Long> {
 
     boolean existsByCodeAndIdEnterprise(String code, String idEnterprise);
 
@@ -106,6 +107,16 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
      * @return Lista de centros de costo con el estado especificado
      */
     List<CostCenterEntity> findAllByIdEnterpriseAndStatus(String idEnterprise, Boolean status);
+
+    /**
+     * Obtiene centros de costo auxiliares (último nivel) 
+     * Filtra por: empresa, estado activo y código con longitud >= 5
+     * @param idEnterprise ID de la empresa
+     * @return Lista de centros de costo auxiliares ordenados por código
+     */
+    @Query("SELECT c FROM CostCenterEntity c WHERE c.idEnterprise = :idEnterprise " +
+           "AND c.status = true AND LENGTH(c.code) >= 5 ORDER BY c.code ASC")
+    List<CostCenterEntity> findAuxiliaryCostCenters(@Param("idEnterprise") String idEnterprise);
 }
 
 
