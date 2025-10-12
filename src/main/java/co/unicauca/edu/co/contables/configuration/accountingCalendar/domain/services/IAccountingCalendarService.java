@@ -2,8 +2,8 @@ package co.unicauca.edu.co.contables.configuration.accountingCalendar.domain.ser
 
 import co.unicauca.edu.co.contables.configuration.accountingCalendar.domain.models.AccountingCalendar;
 import co.unicauca.edu.co.contables.configuration.accountingCalendar.presentation.DTO.request.*;
-import org.springframework.data.domain.Page;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface IAccountingCalendarService {
@@ -22,7 +22,11 @@ public interface IAccountingCalendarService {
 
 	long deleteByYear(AccountingCalendarDeleteYearReq request);
 
-	Page<AccountingCalendar> findActiveByEnterpriseAndYear(String idEnterprise, int year, int page, int size);
+	List<AccountingCalendar> findAllByEnterpriseAndYear(String idEnterprise, int year);
+
+	List<Integer> findExistingYearsByEnterprise(String idEnterprise);
+
+	boolean existsDate(String idEnterprise, LocalDate date);
 
 }
 

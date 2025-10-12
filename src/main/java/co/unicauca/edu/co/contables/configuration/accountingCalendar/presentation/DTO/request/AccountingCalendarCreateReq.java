@@ -1,10 +1,8 @@
 package co.unicauca.edu.co.contables.configuration.accountingCalendar.presentation.DTO.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
-
-import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -16,15 +14,10 @@ public class AccountingCalendarCreateReq {
     @NotBlank
     private String idEnterprise;
 
-    @NotNull
-    private LocalDate date;
-
-    private Boolean status; // true: OPEN, false: CLOSED (default false)
-
-    // Validación personalizada para fecha mínima
-    public boolean isValidDate() {
-        return date != null && date.getYear() >= 2000;
-    }
+    @NotBlank
+    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", 
+             message = "La fecha debe tener el formato YYYY-MM-DD")
+    private String date;
 }
 
 

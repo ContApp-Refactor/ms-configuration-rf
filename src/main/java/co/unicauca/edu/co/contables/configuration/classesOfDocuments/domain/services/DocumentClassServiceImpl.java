@@ -30,12 +30,13 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
     private final DocumentClassDomainMapper domainMapper;
     private final DocumentTypeRepository documentTypeRepository;
 
+    @Override
     @Transactional
     public DocumentClass create(DocumentClassCreateReq request) {
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
 
-        // Validar unicidad del nombre por empresa (solo registros no eliminados)
-        if (repository.existsByNameAndIdEnterpriseAndIsDeletedFalse(standardizedName, request.getIdEnterprise())) {
+        // Validar unicidad del nombre por empresa
+        if (repository.existsByNameAndIdEnterprise(standardizedName, request.getIdEnterprise())) {
             throw new DocumentClassesAlreadyExistsException(standardizedName, request.getIdEnterprise());
         }
         DocumentClass domain = domainMapper.toDomain(request);
@@ -44,9 +45,10 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional
     public DocumentClass update(DocumentClassUpdateReq request) {
-        DocumentClassEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getId(), request.getIdEnterprise())
+        DocumentClassEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
                 .orElseThrow(DocumentClassesNotFoundException::new);
 
         String targetEnterprise = request.getIdEnterprise() != null ? request.getIdEnterprise() : current.getIdEnterprise();
@@ -56,9 +58,9 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         boolean nameChanged = standardizedName != null && !standardizedName.equals(current.getName());
         boolean enterpriseChanged = targetEnterprise != null && !targetEnterprise.equals(current.getIdEnterprise());
 
-        // Validar unicidad del nombre si cambió (solo entre registros no eliminados)
+        // Validar unicidad del nombre si cambió
         if (nameChanged || enterpriseChanged) {
-            if (repository.existsByNameAndIdEnterpriseAndIdNotAndIsDeletedFalse(standardizedName, targetEnterprise, current.getId())) {
+            if (repository.existsByNameAndIdEnterpriseAndIdNot(standardizedName, targetEnterprise, current.getId())) {
                 throw new DocumentClassesAlreadyExistsException(standardizedName, targetEnterprise);
             }
         }
@@ -70,35 +72,40 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public DocumentClass findById(Long id, String idEnterprise) {
-        return dataMapper.toDomain(repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+        return dataMapper.toDomain(repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentClassesNotFoundException::new));
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Page<DocumentClass> findAllByEnterprise(String idEnterprise, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable).map(dataMapper::toDomain);
+        return repository.findAllByIdEnterprise(idEnterprise, pageable).map(dataMapper::toDomain);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Page<DocumentClass> findAllByEnterprise(String idEnterprise, int page, int size, String sortField, String sortOrder) {
         Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
             Sort.by(sortField).descending() : 
             Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable).map(dataMapper::toDomain);
+        return repository.findAllByIdEnterprise(idEnterprise, pageable).map(dataMapper::toDomain);
     }
 
+    @Override
     public Page<DocumentClass> findAllByEnterpriseAndStatus(String idEnterprise, Boolean status, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return repository.findAllByIdEnterpriseAndStatusAndIsDeletedFalse(idEnterprise, status, pageable).map(dataMapper::toDomain);
+        return repository.findAllByIdEnterpriseAndStatus(idEnterprise, status, pageable).map(dataMapper::toDomain);
     }
 
+    @Override
     @Transactional
     public DocumentClass changeState(Long id, String idEnterprise, Boolean status) {
-        DocumentClassEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+        DocumentClassEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentClassesNotFoundException::new);
 
         current.setStatus(status);
@@ -106,19 +113,48 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional
-    public DocumentClass softDelete(Long id, String idEnterprise) {
-        DocumentClassEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+    public DocumentClass Delete(Long id, String idEnterprise) {
+        DocumentClassEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentClassesNotFoundException::new);
 
-        // Validar que la clase de documento no esté siendo utilizada por tipos de documentos activos
-        if (documentTypeRepository.existsByDocumentClassIdAndIsDeletedFalse(id)) {
+        // Validar que la clase de documento no esté siendo utilizada por tipos de documentos
+        if (documentTypeRepository.existsByDocumentClassId(id)) {
             throw new DocumentClassInUseException(current.getName());
         }
 
-        current.setIsDeleted(true);
-        DocumentClassEntity saved = repository.save(current);
-        return dataMapper.toDomain(saved);
+  
+        repository.delete(current);
+        return dataMapper.toDomain(current);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countAllByEnterprise(String idEnterprise) {
+        return repository.countByIdEnterprise(idEnterprise);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countAllByEnterpriseAndStatus(String idEnterprise, Boolean status) {
+        return repository.countByIdEnterpriseAndStatus(idEnterprise, status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DocumentClass> findByEnterpriseAndNameContaining(String idEnterprise, String search, int page, int size, String sortField, String sortOrder) {
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
+            Sort.by(sortField).descending() : 
+            Sort.by(sortField).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return repository.findByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search, pageable).map(dataMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countByEnterpriseAndNameContaining(String idEnterprise, String search) {
+        return repository.countByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search);
     }
 
 }

@@ -7,10 +7,10 @@ import co.unicauca.edu.co.contables.configuration.accountingCalendar.presentatio
 import co.unicauca.edu.co.contables.configuration.accountingCalendar.presentation.DTO.response.AccountingCalendarRes;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -63,14 +63,26 @@ public class AccountingCalendarController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/active/{enterpriseId}")
-    public ResponseEntity<Page<AccountingCalendarRes>> findActiveByEnterpriseAndYear(
+    @GetMapping("/year/{enterpriseId}")
+    public ResponseEntity<List<AccountingCalendarRes>> findAllByYear(
             @PathVariable String enterpriseId,
-            @RequestParam int year,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "400") int size) {
-        Page<AccountingCalendar> result = service.findActiveByEnterpriseAndYear(enterpriseId, year, page, size);
-        return ResponseEntity.ok(result.map(mapper::toRes));
+            @RequestParam int year) {
+        List<AccountingCalendar> calendars = service.findAllByEnterpriseAndYear(enterpriseId, year);
+        return ResponseEntity.ok(calendars.stream().map(mapper::toRes).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/years/{enterpriseId}")
+    public ResponseEntity<List<Integer>> findExistingYears(@PathVariable String enterpriseId) {
+        List<Integer> years = service.findExistingYearsByEnterprise(enterpriseId);
+        return ResponseEntity.ok(years);
+    }
+
+    @GetMapping("/exists/{enterpriseId}")
+    public ResponseEntity<Boolean> existsDate(
+            @PathVariable String enterpriseId,
+            @RequestParam LocalDate date) {
+        boolean exists = service.existsDate(enterpriseId, date);
+        return ResponseEntity.ok(exists);
     }
 
 }

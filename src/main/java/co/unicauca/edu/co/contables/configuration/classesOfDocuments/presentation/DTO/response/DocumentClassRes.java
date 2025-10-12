@@ -14,7 +14,6 @@ public class DocumentClassRes {
     private String name;
     private String idEnterprise;
     private Boolean status;
-    private Boolean isDeleted;
 }
 
 

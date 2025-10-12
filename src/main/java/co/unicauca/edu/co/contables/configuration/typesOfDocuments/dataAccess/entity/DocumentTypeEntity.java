@@ -12,7 +12,8 @@ import org.hibernate.annotations.TenantId;
         @Index(name = "idx_doc_type_id_enterprise", columnList = "id_enterprise"),
         @Index(name = "idx_doc_type_prefix", columnList = "prefix"),
         @Index(name = "idx_doc_type_name", columnList = "name"),
-        @Index(name = "idx_doc_type_module", columnList = "module")
+        @Index(name = "idx_doc_type_module", columnList = "module"),
+        @Index(name = "idx_doc_type_module_enterprise", columnList = "module,id_enterprise")
     }
 )
 @Getter
@@ -45,10 +46,6 @@ public class DocumentTypeEntity {
     @Builder.Default
     @Column(name = "status", nullable = false)
     private Boolean status = true;
-
-    @Builder.Default
-    @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted = false;
 
     @TenantId
     @Column(name = "tenant_id")

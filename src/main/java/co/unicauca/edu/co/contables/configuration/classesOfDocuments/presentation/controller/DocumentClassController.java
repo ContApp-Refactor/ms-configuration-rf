@@ -1,5 +1,6 @@
 package co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.controller;
 
+import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.models.DocumentClass;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.services.IDocumentClassService;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.mapper.DocumentClassDomainMapper;
@@ -8,8 +9,12 @@ import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentatio
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.response.DocumentClassRes;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 
 @RestController
@@ -19,6 +24,7 @@ public class DocumentClassController {
 
     private final IDocumentClassService service;
     private final DocumentClassDomainMapper mapper;
+    private final PaginationHelper paginationHelper;
 
     @PostMapping("/create")
     public ResponseEntity<DocumentClassRes> create(@Valid @RequestBody DocumentClassCreateReq request) {
@@ -37,24 +43,69 @@ public class DocumentClassController {
         return ResponseEntity.ok(mapper.toRes(service.findById(id, enterpriseId)));
     }
 
+    /**
+     * Obtiene clases de documento con paginación flexible.
+     * Si no se especifican parámetros de paginación, retorna todas las clases de documento.
+     * 
+     * @param enterpriseId ID de la empresa
+     * @param page         Número de página (opcional)
+     * @param size         Tamaño de página (opcional)
+     * @param sortField    Campo de ordenamiento (opcional)
+     * @param sortOrder    Orden (asc/desc) (opcional)
+     * @return Página de clases de documento
+     */
     @GetMapping("/findAll/{enterpriseId}")
-    public ResponseEntity<?> list(
-            @PathVariable("enterpriseId") String enterpriseId,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size,
+    public ResponseEntity<Page<DocumentClassRes>> list(
+            @PathVariable String enterpriseId,
+            @RequestParam(required = false) Optional<Integer> page,
+            @RequestParam(required = false) Optional<Integer> size,
             @RequestParam(defaultValue = "name") String sortField,
-            @RequestParam(defaultValue = "asc") String sortOrder) {
-        return ResponseEntity.ok(service.findAllByEnterprise(enterpriseId, page, size, sortField, sortOrder)
-                .map(mapper::toRes));
+            @RequestParam(defaultValue = "asc") String sortOrder,
+            @RequestParam(required = false) String search) {
+
+        // Contar total de registros (con o sin filtro)
+        long totalRecords = (search != null && !search.trim().isEmpty()) 
+            ? service.countByEnterpriseAndNameContaining(enterpriseId, search)
+            : service.countAllByEnterprise(enterpriseId);
+
+        // Crear Pageable flexible
+        Pageable pageable = paginationHelper.createFlexiblePageable(page, size, totalRecords);
+
+        // Obtener página de datos (con o sin filtro)
+        Page<DocumentClass> pageResult = (search != null && !search.trim().isEmpty())
+            ? service.findByEnterpriseAndNameContaining(enterpriseId, search, pageable.getPageNumber(),
+                    pageable.getPageSize(), sortField, sortOrder)
+            : service.findAllByEnterprise(enterpriseId, pageable.getPageNumber(),
+                    pageable.getPageSize(), sortField, sortOrder);
+        
+        return ResponseEntity.ok(pageResult.map(mapper::toRes));
     }   
 
+    /**
+     * Obtiene clases de documento activas con paginación flexible.
+     * Si no se especifican parámetros de paginación, retorna todas las clases de documento activas.
+     * 
+     * @param enterpriseId ID de la empresa
+     * @param page         Número de página (opcional)
+     * @param size         Tamaño de página (opcional)
+     * @return Página de clases de documento activas
+     */
     @GetMapping("/findAllActive/{enterpriseId}")
-    public ResponseEntity<?> listActive(
-            @PathVariable("enterpriseId") String enterpriseId,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "50") Integer size) {
-        return ResponseEntity.ok(service.findAllByEnterpriseAndStatus(enterpriseId, true, page, size)
-                .map(mapper::toRes));
+    public ResponseEntity<Page<DocumentClassRes>> listActive(
+            @PathVariable String enterpriseId,
+            @RequestParam(required = false) Optional<Integer> page,
+            @RequestParam(required = false) Optional<Integer> size) {
+
+        // Contar total de registros activos
+        long totalRecords = service.countAllByEnterpriseAndStatus(enterpriseId, true);
+
+        // Crear Pageable flexible
+        Pageable pageable = paginationHelper.createFlexiblePageable(page, size, totalRecords);
+
+        // Obtener página de datos
+        Page<DocumentClass> pageResult = service.findAllByEnterpriseAndStatus(enterpriseId, true,
+                pageable.getPageNumber(), pageable.getPageSize());
+        return ResponseEntity.ok(pageResult.map(mapper::toRes));
     }
 
     @PatchMapping("/changeState/{id}/{enterpriseId}")
@@ -67,10 +118,10 @@ public class DocumentClassController {
     }
 
     @DeleteMapping("/delete/{id}/{enterpriseId}")
-    public ResponseEntity<DocumentClassRes> softDelete(
+    public ResponseEntity<DocumentClassRes> Delete(
             @PathVariable Long id,
             @PathVariable String enterpriseId) {
-        DocumentClass deleted = service.softDelete(id, enterpriseId);
+        DocumentClass deleted = service.Delete(id, enterpriseId);
         return ResponseEntity.ok(mapper.toRes(deleted));
     }
 }

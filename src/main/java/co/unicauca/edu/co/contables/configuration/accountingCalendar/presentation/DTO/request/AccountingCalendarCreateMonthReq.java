@@ -3,7 +3,6 @@ package co.unicauca.edu.co.contables.configuration.accountingCalendar.presentati
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Getter
@@ -16,15 +15,13 @@ public class AccountingCalendarCreateMonthReq {
     @NotBlank
     private String idEnterprise;
 
-    @Min(2000)
+    @Min(value = 2000)
+    @Max(value = 9999)
     private int year;
 
-    @Min(1)
-    @Max(12)
+    @Min(value = 1)
+    @Max(value = 12)
     private int month;
-
-    @NotNull
-    private Boolean status; // true: OPEN, false: CLOSED
 }
 
 

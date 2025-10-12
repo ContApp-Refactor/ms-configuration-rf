@@ -14,7 +14,6 @@ public class AccountingCalendarRes {
     private String idEnterprise;
     private String tenantId;
     private LocalDate date;
-    private boolean status;
 }
 
 

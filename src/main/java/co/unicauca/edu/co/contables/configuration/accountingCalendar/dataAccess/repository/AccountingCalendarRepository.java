@@ -1,9 +1,9 @@
 package co.unicauca.edu.co.contables.configuration.accountingCalendar.dataAccess.repository;
 
 import co.unicauca.edu.co.contables.configuration.accountingCalendar.dataAccess.entity.AccountingCalendarEntity;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 import java.time.LocalDate;
@@ -18,8 +18,12 @@ public interface AccountingCalendarRepository extends JpaRepository<AccountingCa
     List<AccountingCalendarEntity> findAllByIdEnterpriseAndDateBetween(
             String idEnterprise, LocalDate startDate, LocalDate endDate);
 
-    Page<AccountingCalendarEntity> findAllByIdEnterpriseAndStatusAndDateBetweenOrderByDateAsc(
-            String idEnterprise, boolean status, LocalDate startOfYear, LocalDate endOfYear, Pageable pageable);
+    List<AccountingCalendarEntity> findAllByIdEnterpriseAndDateBetweenOrderByDateAsc(
+            String idEnterprise, LocalDate startDate, LocalDate endDate);
+
+    @Query("SELECT DISTINCT YEAR(ac.date) FROM AccountingCalendarEntity ac " +
+           "WHERE ac.idEnterprise = :idEnterprise ORDER BY YEAR(ac.date)")
+    List<Integer> findDistinctYearsByIdEnterprise(@Param("idEnterprise") String idEnterprise);
 
     long deleteByIdEnterpriseAndDateBetween(
             String idEnterprise, LocalDate startDate, LocalDate endDate);

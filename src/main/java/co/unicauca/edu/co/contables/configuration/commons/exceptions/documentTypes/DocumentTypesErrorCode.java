@@ -6,7 +6,8 @@ import lombok.Getter;
 @Getter
 public enum DocumentTypesErrorCode implements ErrorCodeDefinition {
     DOCUMENT_TYPE_NOT_FOUND("DOCUMENT_TYPE_NOT_FOUND", "Tipo de documento no encontrado"),
-    DOCUMENT_TYPE_ALREADY_EXISTS("DOCUMENT_TYPE_ALREADY_EXISTS", "Tipo de documento ya existe");
+    DOCUMENT_TYPE_ALREADY_EXISTS("DOCUMENT_TYPE_ALREADY_EXISTS", "Tipo de documento ya existe"),
+    INVALID_MODULE("INVALID_MODULE", "Módulo inválido");
 
     private final String code;
     private final String message;

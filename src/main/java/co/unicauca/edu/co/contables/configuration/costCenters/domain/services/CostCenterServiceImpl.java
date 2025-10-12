@@ -3,11 +3,11 @@ package co.unicauca.edu.co.contables.configuration.costCenters.domain.services;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCentersAlreadyExistsException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCentersNotFoundException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterHasChildrenException;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterInvalidCodePrefixException;
 import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.CostCenterEntity;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.mapper.CostCenterDataMapper;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.repository.CostCenterRepository;
-import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.repository.CostCenterSpecifications;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.mapper.CostCenterDomainMapper;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.models.CostCenter;
 import co.unicauca.edu.co.contables.configuration.costCenters.presentation.DTO.request.CostCenterCreateReq;
@@ -34,25 +34,28 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	@Override
 	@Transactional
 	public CostCenter create(CostCenterCreateReq request) {
-		// Validación de unicidad por código y nombre dentro de la empresa (solo registros no eliminados)
-		if (repository.existsByCodeAndIdEnterpriseAndIsDeletedFalse(request.getCode(), request.getIdEnterprise())) {
+		// Validación de unicidad por código y nombre dentro de la empresa
+		if (repository.existsByCodeAndIdEnterprise(request.getCode(), request.getIdEnterprise())) {
 			throw new CostCentersAlreadyExistsException(request.getCode(), request.getIdEnterprise());
 		}
 		// Estandarizar nombre: primera letra mayúscula, resto minúsculas, colapsar espacios
 		String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
 		request.setName(standardizedName);
 
-		// Validación de nombre exacto (tras estandarización, solo registros no eliminados)
-		if (repository.existsByNameAndIdEnterpriseAndIsDeletedFalse(standardizedName, request.getIdEnterprise())) {
+		// Validación de nombre exacto (tras estandarización)
+		if (repository.existsByNameAndIdEnterprise(standardizedName, request.getIdEnterprise())) {
 			throw new CostCentersAlreadyExistsException(request.getName(), request.getIdEnterprise(), true);
 		}
 
 		CostCenter costCenter = domainMapper.toDomain(request);
 		CostCenterEntity entity = dataMapper.toEntity(costCenter);
 		if (request.getParentId() != null) {
-			CostCenterEntity parent = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getParentId(), request.getIdEnterprise())
+			CostCenterEntity parent = repository.findByIdAndIdEnterprise(request.getParentId(), request.getIdEnterprise())
 					.orElseThrow(CostCentersNotFoundException::new);
 			entity.setParent(parent);
+			
+			// Activar automáticamente todas las cuentas padre si están inactivas
+			activateParentHierarchy(parent);
 		}
 
 		CostCenterEntity saved = repository.save(entity);
@@ -62,54 +65,73 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	@Override
 	@Transactional
 	public CostCenter update(CostCenterUpdateReq request) {
-		CostCenterEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getId(), request.getIdEnterprise())
+		CostCenterEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
 				.orElseThrow(CostCentersNotFoundException::new);
 
 		// Estandarizar nombre antes de validar
 		String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
 		request.setName(standardizedName);
 
-		// Si cambian code o name, validar que no exista otro con esos datos en la misma empresa (solo registros no eliminados)
+		// Si cambian code o name, validar que no exista otro con esos datos en la misma empresa
         boolean codeChanged = request.getCode() != null && !request.getCode().equals(current.getCode());
 		boolean nameChanged = request.getName() != null && !request.getName().equals(current.getName());
 		boolean enterpriseChanged = request.getIdEnterprise() != null && !request.getIdEnterprise().equals(current.getIdEnterprise());
 
 		String targetEnterprise = enterpriseChanged ? request.getIdEnterprise() : current.getIdEnterprise();
 
+		// Validar que si tiene padre, el nuevo código mantenga el prefijo del código del padre
+		if (codeChanged && current.getParent() != null) {
+			String parentCode = current.getParent().getCode();
+			if (!request.getCode().startsWith(parentCode)) {
+				throw new CostCenterInvalidCodePrefixException(parentCode, request.getCode());
+			}
+		}
+
         if (codeChanged || enterpriseChanged) {
-            boolean existsCode = repository.existsByCodeAndIdEnterpriseAndIsDeletedFalse(request.getCode(), targetEnterprise);
+            boolean existsCode = repository.existsByCodeAndIdEnterprise(request.getCode(), targetEnterprise);
 			if (existsCode) {
 				throw new CostCentersAlreadyExistsException(request.getCode(), targetEnterprise);
 			}
 		}
 		if (nameChanged || enterpriseChanged) {
-			boolean existsName = repository.existsByNameAndIdEnterpriseAndIdNotAndIsDeletedFalse(request.getName(), targetEnterprise, current.getId());
+			boolean existsName = repository.existsByNameAndIdEnterpriseAndIdNot(request.getName(), targetEnterprise, current.getId());
 			if (existsName) {
 				throw new CostCentersAlreadyExistsException(request.getName(), targetEnterprise, true);
 			}
 		}
 
+		// Si el código cambió, actualizar códigos de hijos en cascada
+		String oldCode = current.getCode();
+		String newCode = request.getCode();
+		
 		current.setIdEnterprise(request.getIdEnterprise());
-		current.setCode(request.getCode());
+		current.setCode(newCode);
 		current.setName(request.getName());
 		if (request.getParentId() != null) {
-			CostCenterEntity parent = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getParentId(), targetEnterprise)
+			CostCenterEntity parent = repository.findByIdAndIdEnterprise(request.getParentId(), targetEnterprise)
 					.orElseThrow(CostCentersNotFoundException::new);
 			current.setParent(parent);
 		} else {
 			current.setParent(null);
 		}
-
-		return dataMapper.toDomain(repository.save(current));
+		
+		CostCenterEntity saved = repository.save(current);
+		
+		// Actualizar códigos de hijos si el código cambió
+		if (codeChanged) {
+			updateChildrenCodes(current.getId(), oldCode, newCode);
+		}
+		
+		return dataMapper.toDomain(saved);
 	}
 
 
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<CostCenter> findAllByEnterpriseAndStatus(String idEnterprise, Boolean status, int page, int size) {
+    	@Override
+	@Transactional(readOnly = true)
+	public Page<CostCenter> findAllByEnterpriseAndStatus(String idEnterprise, Boolean status, int page, int size) {
 		Pageable pageable = PageRequest.of(page, size);
-		return repository.findAllByIdEnterpriseAndStatusAndIsDeletedFalse(idEnterprise, status, pageable)
+		return repository.findAllByIdEnterpriseAndStatus(idEnterprise, status, pageable)
 				.map(dataMapper::toDomain);
 	}
 
@@ -117,7 +139,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	@Transactional(readOnly = true)
 	public Page<CostCenter> findAllByEnterpriseHierarchical(String idEnterprise, int page, int size) {
 		// Obtener solo los centros de costo raíz (padres)
-		List<CostCenterEntity> rootCostCenters = repository.findByIdEnterpriseAndIsDeletedFalseAndParentIsNullOrderByCode(idEnterprise);
+		List<CostCenterEntity> rootCostCenters = repository.findByIdEnterpriseAndParentIsNullOrderByCode(idEnterprise);
 		
 		// Calcular el total de elementos una sola vez
 		long totalElements = countAllNodesInRoots(rootCostCenters);
@@ -152,15 +174,20 @@ public class CostCenterServiceImpl implements ICostCenterService {
     @Override
     @Transactional(readOnly = true)
     public CostCenter findById(Long id, String idEnterprise) {
-		return dataMapper.toDomain(repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+		return dataMapper.toDomain(repository.findByIdAndIdEnterprise(id, idEnterprise)
 				.orElseThrow(CostCentersNotFoundException::new));
 	}
 
 	@Override
 	@Transactional
 	public CostCenter changeState(Long id, String idEnterprise, Boolean status) {
-		CostCenterEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+		CostCenterEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
 				.orElseThrow(CostCentersNotFoundException::new);
+
+		// Si se activa cuenta hija se activan padres
+		if (status && current.getParent() != null) {
+			activateParentHierarchy(current.getParent());
+		}
 
 		// Cambiar el estado del centro de costo actual
 		current.setStatus(status);
@@ -174,28 +201,27 @@ public class CostCenterServiceImpl implements ICostCenterService {
 
 	@Override
 	@Transactional
-	public CostCenter softDelete(Long id, String idEnterprise) {
-		CostCenterEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+	public CostCenter delete(Long id, String idEnterprise) {
+		CostCenterEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
 				.orElseThrow(CostCentersNotFoundException::new);
 
-		// Validar que el centro de costo no tenga hijos activos (no eliminados)
-		if (repository.existsByParentIdAndIsDeletedFalse(id)) {
-			throw new CostCenterHasChildrenException(current.getName(), current.getCode());
+		// Validar que no tenga centros de costo hijos
+		if (repository.existsByParentId(id)) {
+			throw new CostCenterHasChildrenException(current.getCode());
 		}
 
-		current.setIsDeleted(true);
-		CostCenterEntity saved = repository.save(current);
-		return dataMapper.toDomain(saved);
+		// Eliminación física del centro de costo
+		repository.delete(current);
+		return dataMapper.toDomain(current);
 	}
 
 	/**
 	 * Cambia recursivamente el estado de todos los centros de costo hijos (y descendientes) de un centro de costo padre.
 	 * @param parentId ID del centro de costo padre
-	 * @param status nuevo estado a aplicar
 	 */
 	private void changeChildrenStateRecursively(Long parentId, Boolean status) {
-		// Obtener todos los hijos activos (no eliminados) del centro de costo padre
-		List<CostCenterEntity> children = repository.findByParentIdAndIsDeletedFalse(parentId);
+		// Obtener todos los hijos del centro de costo padre
+		List<CostCenterEntity> children = repository.findByParentId(parentId);
 		
 		// Cambiar el estado de cada hijo y procesar recursivamente sus descendientes
 		for (CostCenterEntity child : children) {
@@ -212,7 +238,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	 * Agrega recursivamente todos los hijos de un centro de costo a la lista resultado
 	 */
 	private void addChildrenRecursively(CostCenterEntity parent, List<CostCenter> result) {
-		List<CostCenterEntity> children = repository.findByParentIdAndIsDeletedFalse(parent.getId());
+		List<CostCenterEntity> children = repository.findByParentId(parent.getId());
 		for (CostCenterEntity child : children) {
 			result.add(dataMapper.toDomain(child));
 			// Recursivamente agregar los hijos de este hijo
@@ -235,7 +261,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	 * Cuenta recursivamente todos los hijos de un centro de costo
 	 */
 	private long countChildrenRecursively(CostCenterEntity parent) {
-		List<CostCenterEntity> children = repository.findByParentIdAndIsDeletedFalse(parent.getId());
+		List<CostCenterEntity> children = repository.findByParentId(parent.getId());
 		long count = children.size();
 		for (CostCenterEntity child : children) {
 			count += countChildrenRecursively(child);
@@ -246,11 +272,9 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	@Override
 	@Transactional(readOnly = true)
 	public List<CostCenter> findActiveLastLevelCostCenters(String idEnterprise) {
-		// Usar Specification para filtrar directamente en la base de datos
-		// Esto es más eficiente que traer todos los registros y filtrar en memoria
-		List<CostCenterEntity> auxiliaryCostCenters = repository.findAll(
-			CostCenterSpecifications.isAuxiliaryCostCenter(idEnterprise)
-		);
+		
+		// Filtra por empresa, estado activo y código con longitud >= 5
+		List<CostCenterEntity> auxiliaryCostCenters = repository.findAuxiliaryCostCenters(idEnterprise);
 		
 		// Mapear entidades a modelos de dominio
 		return auxiliaryCostCenters.stream()
@@ -258,6 +282,81 @@ public class CostCenterServiceImpl implements ICostCenterService {
 				.toList();
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public long countAllByEnterprise(String idEnterprise) {
+		return repository.countByIdEnterprise(idEnterprise);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public long countAllByEnterpriseAndStatus(String idEnterprise, Boolean status) {
+		return repository.countByIdEnterpriseAndStatus(idEnterprise, status);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Page<CostCenter> findByEnterpriseAndSearch(String idEnterprise, String search, int page, int size) {
+		Pageable pageable = PageRequest.of(page, size);
+		return repository.findByIdEnterpriseAndCodeContainingIgnoreCaseOrIdEnterpriseAndNameContainingIgnoreCase(
+				idEnterprise, search, idEnterprise, search, pageable).map(dataMapper::toDomain);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public long countByEnterpriseAndSearch(String idEnterprise, String search) {
+		return repository.countByIdEnterpriseAndCodeContainingIgnoreCaseOrIdEnterpriseAndNameContainingIgnoreCase(
+				idEnterprise, search, idEnterprise, search);
+	}
+
+	/**
+	 * Activa recursivamente toda la jerarquía de cuentas padre si están inactivas.
+	 * @param parent Centro de costo padre a activar (junto con sus ancestros)
+	 */
+	private void activateParentHierarchy(CostCenterEntity parent) {
+		if (parent == null) {
+			return;
+		}
+		
+		// Si el padre está inactivo, activarlo
+		if (!parent.getStatus()) {
+			parent.setStatus(true);
+			repository.save(parent);
+		}
+		
+		// Recursivamente activar el padre del padre
+		if (parent.getParent() != null) {
+			activateParentHierarchy(parent.getParent());
+		}
+	}
+
+	/**
+	 * Actualiza recursivamente los códigos de todos los centros de costo hijos cuando cambia el código del padre.
+	 * Reemplaza el prefijo del código padre antiguo por el nuevo en todos los descendientes.
+	 * 
+	 * @param parentId ID del centro de costo padre cuyo código cambió
+	 * @param oldParentCode Código antiguo del padre
+	 * @param newParentCode Código nuevo del padre
+	 */
+	private void updateChildrenCodes(Long parentId, String oldParentCode, String newParentCode) {
+		// Obtener todos los hijos directos del padre
+		List<CostCenterEntity> children = repository.findByParentId(parentId);
+		
+		for (CostCenterEntity child : children) {
+			String oldChildCode = child.getCode();
+			
+			// Verificar que el código del hijo comience con el código del padre antiguo
+			if (oldChildCode.startsWith(oldParentCode)) {
+				// Reemplazar el prefijo del código padre antiguo por el nuevo
+				String newChildCode = newParentCode + oldChildCode.substring(oldParentCode.length());
+				
+				// Actualizar el código del hijo
+				child.setCode(newChildCode);
+				repository.save(child);
+				
+				// Actualizar recursivamente los códigos de los descendientes de este hijo
+				updateChildrenCodes(child.getId(), oldChildCode, newChildCode);
+			}
+		}
+	}
 }
-
-

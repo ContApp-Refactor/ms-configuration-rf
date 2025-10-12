@@ -1,15 +1,24 @@
 package co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.controller;
 
+import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
+import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentType;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.services.IDocumentTypeService;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.mapper.DocumentTypeDomainMapper;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeCreateReq;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeUpdateReq;
+import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.response.DocumentModuleRes;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.response.DocumentTypeRes;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/config/document-types")
@@ -18,6 +27,7 @@ public class DocumentTypeController {
 
     private final IDocumentTypeService service;
     private final DocumentTypeDomainMapper mapper;
+    private final PaginationHelper paginationHelper;
 
     @PostMapping("/create")
     public ResponseEntity<DocumentTypeRes> create(@Valid @RequestBody DocumentTypeCreateReq request) {
@@ -36,25 +46,62 @@ public class DocumentTypeController {
         return ResponseEntity.ok(mapper.toRes(service.findById(id, enterpriseId)));
     }
 
+    /**
+     * Obtiene tipos de documento con paginación flexible.
+     * Si no se especifican parámetros de paginación, retorna todos los tipos de documento.
+     * 
+     * @param enterpriseId ID de la empresa
+     * @param page         Número de página (opcional)
+     * @param size         Tamaño de página (opcional)
+     * @param sortField    Campo de ordenamiento (opcional)
+     * @param sortOrder    Orden (asc/desc) (opcional)
+     * @return Página de tipos de documento
+     */
     @GetMapping("/findAll/{enterpriseId}")
-    public ResponseEntity<?> list(
+    public ResponseEntity<Page<DocumentTypeRes>> list(
             @PathVariable("enterpriseId") String enterpriseId,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) Optional<Integer> page,
+            @RequestParam(required = false) Optional<Integer> size,
             @RequestParam(defaultValue = "name") String sortField,
-            @RequestParam(defaultValue = "asc") String sortOrder) {
-        return ResponseEntity.ok(service.findAllByEnterprise(enterpriseId, page, size, sortField, sortOrder)
-                .map(mapper::toRes));
+            @RequestParam(defaultValue = "asc") String sortOrder,
+            @RequestParam(required = false) String search) {
+
+        // Contar total de registros (con o sin filtro)
+        long totalRecords = (search != null && !search.trim().isEmpty()) 
+            ? service.countByEnterpriseAndNameContaining(enterpriseId, search)
+            : service.countAllByEnterprise(enterpriseId);
+
+        // Crear Pageable flexible
+        Pageable pageable = paginationHelper.createFlexiblePageable(page, size, totalRecords);
+
+        // Obtener página de datos (con o sin filtro)
+        Page<DocumentType> pageResult = (search != null && !search.trim().isEmpty())
+            ? service.findByEnterpriseAndNameContaining(enterpriseId, search, pageable.getPageNumber(),
+                    pageable.getPageSize(), sortField, sortOrder)
+            : service.findAllByEnterprise(enterpriseId, pageable.getPageNumber(),
+                    pageable.getPageSize(), sortField, sortOrder);
+        
+        return ResponseEntity.ok(pageResult.map(mapper::toRes));
     }
 
+    /**
+     * Obtiene todos los tipos de documento filtrados por ID de módulo.
+     * 
+     * @param enterpriseId ID de la empresa
+     * @param moduleId     ID del módulo (1-8)
+     * @return Lista de tipos de documento del módulo
+     */
     @GetMapping("/findAllByModule/{enterpriseId}")
-    public ResponseEntity<?> listByModule(
+    public ResponseEntity<List<DocumentTypeRes>> listByModule(
             @PathVariable("enterpriseId") String enterpriseId,
-            @RequestParam String module,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
-        return ResponseEntity.ok(service.findAllByModuleAndEnterprise(module, enterpriseId, page, size)
-                .map(mapper::toRes));
+            @RequestParam Integer moduleId) {
+
+        List<DocumentType> documentTypes = service.findAllByModuleAndEnterprise(moduleId, enterpriseId);
+        List<DocumentTypeRes> response = documentTypes.stream()
+                .map(mapper::toRes)
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/changeState/{id}/{enterpriseId}")
@@ -67,10 +114,30 @@ public class DocumentTypeController {
     }
 
     @DeleteMapping("/delete/{id}/{enterpriseId}")
-    public ResponseEntity<DocumentTypeRes> softDelete(
+    public ResponseEntity<DocumentTypeRes> Delete(
             @PathVariable Long id,
             @PathVariable String enterpriseId) {
-        DocumentType deleted = service.softDelete(id, enterpriseId);
+        DocumentType deleted = service.Delete(id, enterpriseId);
         return ResponseEntity.ok(mapper.toRes(deleted));
+    }
+
+    /**
+     * Obtiene todos los módulos disponibles en el sistema.
+     * Los módulos son globales y no dependen de la empresa.
+     * 
+     * @return Lista de módulos con su ID y nombre
+     */
+    @GetMapping("/modules")
+    public ResponseEntity<List<DocumentModuleRes>> getAllModules() {
+        List<DocumentModule> modules = service.getAllModules();
+        
+        List<DocumentModuleRes> response = modules.stream()
+                .map(module -> DocumentModuleRes.builder()
+                        .id(module.getId())
+                        .name(module.getName())
+                        .build())
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(response);
     }
 }

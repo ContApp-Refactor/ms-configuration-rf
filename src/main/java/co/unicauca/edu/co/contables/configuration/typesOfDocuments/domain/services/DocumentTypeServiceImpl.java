@@ -6,11 +6,13 @@ import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentCla
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassInactiveException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypesAlreadyExistsException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypesNotFoundException;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.InvalidModuleException;
 import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.entity.DocumentTypeEntity;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.mapper.DocumentTypeDataMapper;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.repository.DocumentTypeRepository;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.mapper.DocumentTypeDomainMapper;
+import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentType;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeCreateReq;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeUpdateReq;
@@ -23,54 +25,44 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class DocumentTypeServiceImpl implements IDocumentTypeService {
-
-    private static final Set<String> ALLOWED_MODULES = new HashSet<>(Arrays.asList(
-            "Inventario promedio ponderado",
-            "Inventario PEPS",
-            "Comercial",
-            "Tesorería",
-            "Cartera",
-            "Contable comercial",
-            "Contable cartera",
-            "Estados financieros"
-    ));
 
     private final DocumentTypeRepository repository;
     private final DocumentTypeDataMapper dataMapper;
     private final DocumentTypeDomainMapper domainMapper;
     private final DocumentClassRepository documentClassRepository;
 
+    @Override
     @Transactional
     public DocumentType create(DocumentTypeCreateReq request) {
-        // Validación de módulo permitido (insensible a mayúsculas/minúsculas)
-        if (!isModuleAllowed(request.getModule())) {
-            throw new IllegalArgumentException("Modulo invalido");
+        
+        // Validar que el ID del módulo sea válido
+        if (!DocumentModule.isValidId(request.getModuleId())) {
+            throw new InvalidModuleException(request.getModuleId());
         }
 
         // Estandarización de nombre y prefijo
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
         String standardizedPrefix = StringStandardizationUtils.standardizePrefix(request.getPrefix());
 
-        // Unicidad por empresa: prefijo y nombre (solo registros no eliminados)
-        if (repository.existsByPrefixAndIdEnterpriseAndIsDeletedFalse(standardizedPrefix, request.getIdEnterprise())) {
+        // Unicidad por empresa: prefijo y nombre
+        if (repository.existsByPrefixAndIdEnterprise(standardizedPrefix, request.getIdEnterprise())) {
             throw new DocumentTypesAlreadyExistsException("prefijo", standardizedPrefix, request.getIdEnterprise());
         }
-        if (repository.existsByNameAndIdEnterpriseAndIsDeletedFalse(standardizedName, request.getIdEnterprise())) {
+        if (repository.existsByNameAndIdEnterprise(standardizedName, request.getIdEnterprise())) {
             throw new DocumentTypesAlreadyExistsException("nombre", standardizedName, request.getIdEnterprise());
         }
 
-        // Validar que la clase exista, esté activa y no eliminada
-        DocumentClassEntity docClass = documentClassRepository.findByIdAndIdEnterpriseAndStatusAndIsDeletedFalse(request.getDocumentClassId(), request.getIdEnterprise(), true)
+        // Validar que la clase exista y esté activa
+        DocumentClassEntity docClass = documentClassRepository.findByIdAndIdEnterpriseAndStatus(request.getDocumentClassId(), request.getIdEnterprise(), true)
                 .orElseGet(() -> {
                     // Verificar si existe pero está inactiva
-                    DocumentClassEntity inactiveClass = documentClassRepository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getDocumentClassId(), request.getIdEnterprise())
+                    DocumentClassEntity inactiveClass = documentClassRepository.findByIdAndIdEnterprise(request.getDocumentClassId(), request.getIdEnterprise())
                             .orElseThrow(DocumentClassesNotFoundException::new);
                     throw new DocumentClassInactiveException(inactiveClass.getName());
                 });
@@ -78,7 +70,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         DocumentType domain = domainMapper.toDomain(request);
         domain.setName(standardizedName);
         domain.setPrefix(standardizedPrefix);
-        domain.setModule(StringStandardizationUtils.standardizeName(request.getModule()));
+        domain.setModuleId(request.getModuleId());
         DocumentTypeEntity toSave = dataMapper.toEntity(domain);
         toSave.setDocumentClass(docClass);
 
@@ -86,14 +78,19 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional
     public DocumentType update(DocumentTypeUpdateReq request) {
-        // Validación de módulo permitido (insensible a mayúsculas/minúsculas)
-        if (!isModuleAllowed(request.getModule())) {
-            throw new IllegalArgumentException("Módulo inválido");
+        // Validar que el ID del módulo sea válido
+        if (!DocumentModule.isValidId(request.getModuleId())) {
+            throw new InvalidModuleException(request.getModuleId());
         }
 
-        DocumentTypeEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getId(), request.getIdEnterprise())
+        // Obtener el módulo por ID y estandarizar su nombre
+        DocumentModule documentModule = DocumentModule.fromId(request.getModuleId());
+        String standardizedModule = StringStandardizationUtils.standardizeName(documentModule.getName());
+
+        DocumentTypeEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
                 .orElseThrow(DocumentTypesNotFoundException::new);
 
         String targetEnterprise = request.getIdEnterprise() != null ? request.getIdEnterprise() : current.getIdEnterprise();
@@ -104,24 +101,24 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         boolean nameChanged = standardizedName != null && !standardizedName.equals(current.getName());
         boolean enterpriseChanged = targetEnterprise != null && !targetEnterprise.equals(current.getIdEnterprise());
 
-        // Validar unicidad del prefijo si cambió (solo entre registros no eliminados)
+        // Validar unicidad del prefijo si cambió
         if (prefixChanged || enterpriseChanged) {
-            if (repository.existsByPrefixAndIdEnterpriseAndIdNotAndIsDeletedFalse(standardizedPrefix, targetEnterprise, current.getId())) {
+            if (repository.existsByPrefixAndIdEnterpriseAndIdNot(standardizedPrefix, targetEnterprise, current.getId())) {
                 throw new DocumentTypesAlreadyExistsException("prefijo", standardizedPrefix, targetEnterprise);
             }
         }
-        // Validar unicidad del nombre si cambió (solo entre registros no eliminados)
+        // Validar unicidad del nombre si cambió
         if (nameChanged || enterpriseChanged) {
-            if (repository.existsByNameAndIdEnterpriseAndIdNotAndIsDeletedFalse(standardizedName, targetEnterprise, current.getId())) {
+            if (repository.existsByNameAndIdEnterpriseAndIdNot(standardizedName, targetEnterprise, current.getId())) {
                 throw new DocumentTypesAlreadyExistsException("nombre", standardizedName, targetEnterprise);
             }
         }
 
-        // Validar que la clase exista, esté activa y no eliminada
-        DocumentClassEntity docClass = documentClassRepository.findByIdAndIdEnterpriseAndStatusAndIsDeletedFalse(request.getDocumentClassId(), targetEnterprise, true)
+        // Validar que la clase exista y esté activa
+        DocumentClassEntity docClass = documentClassRepository.findByIdAndIdEnterpriseAndStatus(request.getDocumentClassId(), targetEnterprise, true)
                 .orElseGet(() -> {
                     // Verificar si existe pero está inactiva
-                    DocumentClassEntity inactiveClass = documentClassRepository.findByIdAndIdEnterpriseAndIsDeletedFalse(request.getDocumentClassId(), targetEnterprise)
+                    DocumentClassEntity inactiveClass = documentClassRepository.findByIdAndIdEnterprise(request.getDocumentClassId(), targetEnterprise)
                             .orElseThrow(DocumentClassesNotFoundException::new);
                     throw new DocumentClassInactiveException(inactiveClass.getName());
                 });
@@ -130,50 +127,57 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         current.setPrefix(standardizedPrefix);
         current.setName(standardizedName);
         current.setDocumentClass(docClass);
-        current.setModule(StringStandardizationUtils.standardizeName(request.getModule()));
+        current.setModule(standardizedModule);
 
         DocumentTypeEntity saved = repository.save(current);
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public DocumentType findById(Long id, String idEnterprise) {
-        return dataMapper.toDomain(repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise).orElseThrow(DocumentTypesNotFoundException::new));
+        return dataMapper.toDomain(repository.findByIdAndIdEnterprise(id, idEnterprise).orElseThrow(DocumentTypesNotFoundException::new));
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Page<DocumentType> findAllByEnterprise(String idEnterprise, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable).map(dataMapper::toDomain);
+        return repository.findAllByIdEnterprise(idEnterprise, pageable).map(dataMapper::toDomain);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Page<DocumentType> findAllByEnterprise(String idEnterprise, int page, int size, String sortField, String sortOrder) {
         Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
             Sort.by(sortField).descending() : 
             Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        return repository.findAllByIdEnterpriseAndIsDeletedFalse(idEnterprise, pageable).map(dataMapper::toDomain);
+        return repository.findAllByIdEnterprise(idEnterprise, pageable).map(dataMapper::toDomain);
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public Page<DocumentType> findAllByModuleAndEnterprise(String module, String idEnterprise, int page, int size) {
-        // Validar que el módulo esté permitido
-        if (!isModuleAllowed(module)) {
-            throw new IllegalArgumentException("Modulo invalido: " + module);
+    public List<DocumentType> findAllByModuleAndEnterprise(Integer moduleId, String idEnterprise) {
+        // Validar que el ID del módulo sea válido
+        if (!DocumentModule.isValidId(moduleId)) {
+            throw new InvalidModuleException(moduleId);
         }
         
-        // Estandarizar el módulo para la búsqueda
-        String standardizedModule = StringStandardizationUtils.standardizeName(module);
+        // Obtener el módulo por ID y estandarizar su nombre
+        DocumentModule documentModule = DocumentModule.fromId(moduleId);
+        String standardizedModule = StringStandardizationUtils.standardizeName(documentModule.getName());
         
-        Pageable pageable = PageRequest.of(page, size);
-        return repository.findAllByModuleAndIdEnterpriseAndIsDeletedFalse(standardizedModule, idEnterprise, pageable)
-                .map(dataMapper::toDomain);
+        return repository.findAllByModuleAndIdEnterprise(standardizedModule, idEnterprise)
+                .stream()
+                .map(dataMapper::toDomain)
+                .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional
     public DocumentType changeState(Long id, String idEnterprise, Boolean status) {
-        DocumentTypeEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+        DocumentTypeEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentTypesNotFoundException::new);
 
         current.setStatus(status);
@@ -181,29 +185,43 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         return dataMapper.toDomain(saved);
     }
 
+    @Override
     @Transactional
-    public DocumentType softDelete(Long id, String idEnterprise) {
-        DocumentTypeEntity current = repository.findByIdAndIdEnterpriseAndIsDeletedFalse(id, idEnterprise)
+    public DocumentType Delete(Long id, String idEnterprise) {
+        DocumentTypeEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentTypesNotFoundException::new);
 
-        current.setIsDeleted(true);
-        DocumentTypeEntity saved = repository.save(current);
-        return dataMapper.toDomain(saved);
+
+        repository.delete(current);
+        return dataMapper.toDomain(current);
     }
 
-    /**
-     * Valida si un módulo está permitido, sin distinguir entre mayúsculas y minúsculas
-     * @param module el módulo a validar
-     * @return true si el módulo está permitido, false en caso contrario
-     */
-    private boolean isModuleAllowed(String module) {
-        if (module == null) return false;
-        
-        String normalizedModule = module.trim().toLowerCase(new Locale("es", "ES"));
-        
-        return ALLOWED_MODULES.stream()
-                .map(allowed -> allowed.toLowerCase(new Locale("es", "ES")))
-                .anyMatch(allowed -> allowed.equals(normalizedModule));
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentModule> getAllModules() {
+        return Arrays.asList(DocumentModule.values());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countAllByEnterprise(String idEnterprise) {
+        return repository.countByIdEnterprise(idEnterprise);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DocumentType> findByEnterpriseAndNameContaining(String idEnterprise, String search, int page, int size, String sortField, String sortOrder) {
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
+            Sort.by(sortField).descending() : 
+            Sort.by(sortField).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return repository.findByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search, pageable).map(dataMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countByEnterpriseAndNameContaining(String idEnterprise, String search) {
+        return repository.countByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search);
     }
 
 }
