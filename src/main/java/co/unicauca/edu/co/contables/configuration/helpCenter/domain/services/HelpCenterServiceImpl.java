@@ -27,16 +27,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HelpCenterServiceImpl implements IHelpCenterService {
 
+    // Constantes para campos de ordenamiento
+    private static final String DEFAULT_SORT_FIELD = "name";
+    private static final String SORT_FIELD_MODULE = "module";
+    private static final String SORT_FIELD_MODULE_ID = "moduleId";
+    private static final String SORT_FIELD_NAME = "name";
+
     private final HelpCenterRepository repository;
     private final HelpCenterDataMapper dataMapper;
     private final HelpCenterDomainMapper domainMapper;
-
-    // Constantes para campos de ordenamiento
-    private static final String SORT_FIELD_ID = "id";
-    private static final String SORT_FIELD_MODULE = "module";
-    private static final String SORT_FIELD_MODULE_ID = "moduleid";
-    private static final String SORT_FIELD_NAME = "name";
-    private static final String DEFAULT_SORT_FIELD = SORT_FIELD_NAME;
 
     @Override
     @Transactional
@@ -116,7 +115,7 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
     public Page<HelpCenter> findAll(int page, int size, String sortField, String sortOrder) {
 
         sortField = validateSortField(sortField);
-        if (SORT_FIELD_MODULE_ID.equalsIgnoreCase(sortField)) {
+        if (SORT_FIELD_MODULE_ID.equals(sortField)) {
             sortField = SORT_FIELD_MODULE;
         }
         Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortField).descending()
@@ -175,7 +174,7 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
             String sortOrder) {
         // Validar y mapear sortField
         sortField = validateSortField(sortField);
-        if (SORT_FIELD_MODULE_ID.equalsIgnoreCase(sortField)) {
+        if (SORT_FIELD_MODULE_ID.equals(sortField)) {
             sortField = SORT_FIELD_MODULE;
         }
         Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortField).descending()
@@ -195,26 +194,24 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
 
     /**
      * Valida que el campo de ordenamiento sea permitido.
-     * Campos permitidos: SORT_FIELD_ID, SORT_FIELD_MODULE, SORT_FIELD_MODULE_ID, SORT_FIELD_NAME
+     * Campos permitidos: id, module, moduleId, name
      * 
      * @param sortField Campo a validar
-     * @return Campo válido o DEFAULT_SORT_FIELD por defecto
+     * @return Campo válido o 'name' por defecto
      */
     private String validateSortField(String sortField) {
         if (sortField == null || sortField.trim().isEmpty()) {
             return DEFAULT_SORT_FIELD;
         }
         switch (sortField.toLowerCase()) {
-            case SORT_FIELD_ID:
-                return SORT_FIELD_ID;
-            case SORT_FIELD_MODULE:
-                return SORT_FIELD_MODULE;
-            case SORT_FIELD_MODULE_ID:
-                return SORT_FIELD_MODULE_ID;
-            case SORT_FIELD_NAME:
-                return SORT_FIELD_NAME;
-            default:
-                return DEFAULT_SORT_FIELD;
-        }
+        case SORT_FIELD_MODULE:
+            return SORT_FIELD_MODULE;
+        case SORT_FIELD_MODULE_ID:
+            return SORT_FIELD_MODULE_ID;
+        case SORT_FIELD_NAME:
+            return SORT_FIELD_NAME;
+        default:
+            return DEFAULT_SORT_FIELD; // Default
+    }
     }
 }
