@@ -39,16 +39,15 @@ public class HelpCenterController {
         return ResponseEntity.ok(mapper.toRes(updated));
     }
 
-    @GetMapping("/findById/{id}/{enterpriseId}")
-    public ResponseEntity<HelpCenterRes> getById(@PathVariable Long id, @PathVariable String enterpriseId) {
-        return ResponseEntity.ok(mapper.toRes(service.findById(id, enterpriseId)));
+    @GetMapping("/findById/{id}")
+    public ResponseEntity<HelpCenterRes> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(mapper.toRes(service.findById(id)));
     }
 
     /**
      * Obtiene registros de ayuda con paginación flexible.
      * Si no se especifican parámetros de paginación, retorna todos los registros.
      * 
-     * @param enterpriseId ID de la empresa
      * @param page         Número de página (opcional)
      * @param size         Tamaño de página (opcional)
      * @param sortField    Campo de ordenamiento (opcional, por defecto: name)
@@ -56,9 +55,8 @@ public class HelpCenterController {
      * @param search       Término de búsqueda (opcional)
      * @return Página de registros de ayuda
      */
-    @GetMapping("/findAll/{enterpriseId}")
+    @GetMapping("/findAll")
     public ResponseEntity<Page<HelpCenterRes>> list(
-            @PathVariable("enterpriseId") String enterpriseId,
             @RequestParam(required = false) Optional<Integer> page,
             @RequestParam(required = false) Optional<Integer> size,
             @RequestParam(defaultValue = "name") String sortField,
@@ -67,17 +65,17 @@ public class HelpCenterController {
 
         // Contar total de registros (con o sin filtro)
         long totalRecords = (search != null && !search.trim().isEmpty()) 
-            ? service.countByEnterpriseAndNameContaining(enterpriseId, search)
-            : service.countAllByEnterprise(enterpriseId);
+            ? service.countByNameContaining(search)
+            : service.countAll();
 
         // Crear Pageable flexible
         Pageable pageable = paginationHelper.createFlexiblePageable(page, size, totalRecords);
 
         // Obtener página de datos (con o sin filtro)
         Page<HelpCenter> pageResult = (search != null && !search.trim().isEmpty())
-            ? service.findByEnterpriseAndNameContaining(enterpriseId, search, pageable.getPageNumber(),
+            ? service.findByNameContaining(search, pageable.getPageNumber(),
                     pageable.getPageSize(), sortField, sortOrder)
-            : service.findAllByEnterprise(enterpriseId, pageable.getPageNumber(),
+            : service.findAll(pageable.getPageNumber(),
                     pageable.getPageSize(), sortField, sortOrder);
         
         return ResponseEntity.ok(pageResult.map(mapper::toRes));
@@ -87,16 +85,14 @@ public class HelpCenterController {
      * Obtiene todos los registros de ayuda filtrados por ID de módulo.
      * Retorna solo nombres y descripciones asociadas al módulo.
      * 
-     * @param enterpriseId ID de la empresa
      * @param moduleId     ID del módulo (1-8)
      * @return Lista de registros de ayuda del módulo
      */
-    @GetMapping("/findAllByModule/{enterpriseId}")
+    @GetMapping("/findAllByModule")
     public ResponseEntity<List<HelpCenterRes>> listByModule(
-            @PathVariable("enterpriseId") String enterpriseId,
             @RequestParam Integer moduleId) {
 
-        List<HelpCenter> helpCenters = service.findAllByModuleAndEnterprise(moduleId, enterpriseId);
+        List<HelpCenter> helpCenters = service.findAllByModule(moduleId);
         List<HelpCenterRes> response = helpCenters.stream()
                 .map(mapper::toRes)
                 .collect(Collectors.toList());
@@ -104,20 +100,17 @@ public class HelpCenterController {
         return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/changeState/{id}/{enterpriseId}")
+    @PatchMapping("/changeState/{id}")
     public ResponseEntity<HelpCenterRes> changeState(
             @PathVariable Long id,
-            @PathVariable String enterpriseId,
             @RequestParam Boolean status) {
-        HelpCenter updated = service.changeState(id, enterpriseId, status);
+        HelpCenter updated = service.changeState(id, status);
         return ResponseEntity.ok(mapper.toRes(updated));
     }
 
-    @DeleteMapping("/delete/{id}/{enterpriseId}")
-    public ResponseEntity<HelpCenterRes> delete(
-            @PathVariable Long id,
-            @PathVariable String enterpriseId) {
-        HelpCenter deleted = service.delete(id, enterpriseId);
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<HelpCenterRes> delete(@PathVariable Long id) {
+        HelpCenter deleted = service.delete(id);
         return ResponseEntity.ok(mapper.toRes(deleted));
     }
 }

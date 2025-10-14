@@ -13,6 +13,5 @@ public class HelpCenterRes {
     private String moduleName;
     private String name;
     private String description;
-    private String idEnterprise;
     private Boolean status;
 }
