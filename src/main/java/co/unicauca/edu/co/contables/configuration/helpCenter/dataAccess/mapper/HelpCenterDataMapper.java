@@ -30,6 +30,7 @@ public class HelpCenterDataMapper {
         return HelpCenterEntity.builder()
                 .id(domain.getId())
                 .module(domain.getModuleId() != null ? DocumentModule.fromId(domain.getModuleId()) : null)
+                .moduleId(domain.getModuleId())
                 .name(domain.getName())
                 .description(domain.getDescription())
                 .status(domain.getStatus())

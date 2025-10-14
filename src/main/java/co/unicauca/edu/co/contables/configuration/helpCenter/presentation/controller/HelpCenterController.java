@@ -2,6 +2,7 @@ package co.unicauca.edu.co.contables.configuration.helpCenter.presentation.contr
 
 import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.mapper.HelpCenterDomainMapper;
+import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.HelpCenter;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.services.IHelpCenterService;
 import co.unicauca.edu.co.contables.configuration.helpCenter.presentation.DTO.request.HelpCenterCreateReq;
@@ -14,7 +15,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -112,5 +115,23 @@ public class HelpCenterController {
     public ResponseEntity<HelpCenterRes> delete(@PathVariable Long id) {
         HelpCenter deleted = service.delete(id);
         return ResponseEntity.ok(mapper.toRes(deleted));
+    }
+
+    /**
+     * Obtiene la lista de módulos disponibles para centros de ayuda.
+     * 
+     * @return Lista de módulos con ID y nombre
+     */
+    @GetMapping("/modules")
+    public ResponseEntity<List<Map<String, Object>>> getModules() {
+        List<Map<String, Object>> modules = Arrays.stream(DocumentModule.values())
+                .map(module -> {
+                    Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("id", module.getId());
+                    map.put("name", module.getName());
+                    return map;
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(modules);
     }
 }
