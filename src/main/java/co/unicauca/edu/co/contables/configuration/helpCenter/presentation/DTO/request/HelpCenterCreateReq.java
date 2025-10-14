@@ -21,7 +21,4 @@ public class HelpCenterCreateReq {
 
     @NotBlank(message = "La descripción es obligatoria")
     private String description;
-
-    @NotBlank(message = "El ID de la empresa es obligatorio")
-    private String idEnterprise;
 }

@@ -13,48 +13,21 @@ public interface IHelpCenterService {
 
     HelpCenter update(HelpCenterUpdateReq request);
 
-    HelpCenter findById(Long id, String idEnterprise);
+    HelpCenter findById(Long id);
 
-    Page<HelpCenter> findAllByEnterprise(String idEnterprise, int page, int size);
+    Page<HelpCenter> findAll(int page, int size);
 
-    Page<HelpCenter> findAllByEnterprise(String idEnterprise, int page, int size, String sortField, String sortOrder);
+    Page<HelpCenter> findAll(int page, int size, String sortField, String sortOrder);
 
-    /**
-     * Obtiene todos los registros de ayuda por ID de módulo y empresa
-     * @param moduleId ID del módulo
-     * @param idEnterprise ID de la empresa
-     * @return Lista de registros de ayuda del módulo
-     */
-    List<HelpCenter> findAllByModuleAndEnterprise(Integer moduleId, String idEnterprise);
+    List<HelpCenter> findAllByModule(Integer moduleId);
 
-    HelpCenter changeState(Long id, String idEnterprise, Boolean status);
+    HelpCenter changeState(Long id, Boolean status);
 
-    HelpCenter delete(Long id, String idEnterprise);
+    HelpCenter delete(Long id);
 
-    /**
-     * Cuenta el total de registros de ayuda por empresa
-     * @param idEnterprise ID de la empresa
-     * @return Número total de registros de ayuda
-     */
-    long countAllByEnterprise(String idEnterprise);
+    long countAll();
 
-    /**
-     * Busca registros de ayuda por empresa y nombre (búsqueda parcial)
-     * @param idEnterprise ID de la empresa
-     * @param search Término de búsqueda
-     * @param page Número de página
-     * @param size Tamaño de página
-     * @param sortField Campo de ordenamiento
-     * @param sortOrder Orden (asc/desc)
-     * @return Página de registros de ayuda que coinciden con la búsqueda
-     */
-    Page<HelpCenter> findByEnterpriseAndNameContaining(String idEnterprise, String search, int page, int size, String sortField, String sortOrder);
+    Page<HelpCenter> findByNameContaining(String search, int page, int size, String sortField, String sortOrder);
 
-    /**
-     * Cuenta registros de ayuda por empresa y nombre (búsqueda parcial)
-     * @param idEnterprise ID de la empresa
-     * @param search Término de búsqueda
-     * @return Número total de registros de ayuda que coinciden con la búsqueda
-     */
-    long countByEnterpriseAndNameContaining(String idEnterprise, String search);
+    long countByNameContaining(String search);
 }

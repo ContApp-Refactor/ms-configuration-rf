@@ -43,9 +43,9 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
         // Estandarización de nombre
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
 
-        // Unicidad por empresa: nombre
-        if (repository.existsByNameAndIdEnterprise(standardizedName, request.getIdEnterprise())) {
-            throw new HelpCenterAlreadyExistsException(standardizedName, request.getIdEnterprise());
+        // Validar unicidad de nombre
+        if (repository.existsByName(standardizedName)) {
+            throw new HelpCenterAlreadyExistsException(standardizedName, "SYSTEM");
         }
 
         HelpCenter domain = domainMapper.toDomain(request);
@@ -66,26 +66,21 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
             throw new InvalidModuleException(request.getModuleId());
         }
 
-        HelpCenterEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
+        HelpCenterEntity current = repository.findById(request.getId())
                 .orElseThrow(HelpCenterNotFoundException::new);
 
-        String targetEnterprise = request.getIdEnterprise() != null ? request.getIdEnterprise() : current.getIdEnterprise();
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
 
-        boolean nameChanged = standardizedName != null && !standardizedName.equals(current.getName());
-        boolean enterpriseChanged = targetEnterprise != null && !targetEnterprise.equals(current.getIdEnterprise());
-
         // Validar unicidad del nombre si cambió
-        if (nameChanged || enterpriseChanged) {
-            if (repository.existsByNameAndIdEnterpriseAndIdNot(standardizedName, targetEnterprise, current.getId())) {
-                throw new HelpCenterAlreadyExistsException(standardizedName, targetEnterprise);
+        if (!standardizedName.equals(current.getName())) {
+            if (repository.existsByNameAndIdNot(standardizedName, current.getId())) {
+                throw new HelpCenterAlreadyExistsException(standardizedName, "SYSTEM");
             }
         }
 
         // Obtener el módulo y actualizar
         DocumentModule documentModule = DocumentModule.fromId(request.getModuleId());
 
-        current.setIdEnterprise(targetEnterprise);
         current.setName(standardizedName);
         current.setDescription(request.getDescription());
         current.setModule(documentModule);
@@ -96,33 +91,33 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
 
     @Override
     @Transactional(readOnly = true)
-    public HelpCenter findById(Long id, String idEnterprise) {
+    public HelpCenter findById(Long id) {
         return dataMapper.toDomain(
-            repository.findByIdAndIdEnterprise(id, idEnterprise)
+            repository.findById(id)
                 .orElseThrow(HelpCenterNotFoundException::new)
         );
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<HelpCenter> findAllByEnterprise(String idEnterprise, int page, int size) {
+    public Page<HelpCenter> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return repository.findAllByIdEnterprise(idEnterprise, pageable).map(dataMapper::toDomain);
+        return repository.findAll(pageable).map(dataMapper::toDomain);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<HelpCenter> findAllByEnterprise(String idEnterprise, int page, int size, String sortField, String sortOrder) {
+    public Page<HelpCenter> findAll(int page, int size, String sortField, String sortOrder) {
         Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
             Sort.by(sortField).descending() : 
             Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        return repository.findAllByIdEnterprise(idEnterprise, pageable).map(dataMapper::toDomain);
+        return repository.findAll(pageable).map(dataMapper::toDomain);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<HelpCenter> findAllByModuleAndEnterprise(Integer moduleId, String idEnterprise) {
+    public List<HelpCenter> findAllByModule(Integer moduleId) {
         // Validar que el ID del módulo sea válido
         if (!DocumentModule.isValidId(moduleId)) {
             throw new InvalidModuleException(moduleId);
@@ -131,7 +126,7 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
         // Obtener el módulo por ID
         DocumentModule documentModule = DocumentModule.fromId(moduleId);
         
-        return repository.findAllByModuleAndIdEnterprise(documentModule, idEnterprise)
+        return repository.findAllByModule(documentModule)
                 .stream()
                 .map(dataMapper::toDomain)
                 .collect(Collectors.toList());
@@ -139,8 +134,8 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
 
     @Override
     @Transactional
-    public HelpCenter changeState(Long id, String idEnterprise, Boolean status) {
-        HelpCenterEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
+    public HelpCenter changeState(Long id, Boolean status) {
+        HelpCenterEntity current = repository.findById(id)
                 .orElseThrow(HelpCenterNotFoundException::new);
 
         current.setStatus(status);
@@ -150,8 +145,8 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
 
     @Override
     @Transactional
-    public HelpCenter delete(Long id, String idEnterprise) {
-        HelpCenterEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
+    public HelpCenter delete(Long id) {
+        HelpCenterEntity current = repository.findById(id)
                 .orElseThrow(HelpCenterNotFoundException::new);
 
         repository.delete(current);
@@ -160,26 +155,26 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
 
     @Override
     @Transactional(readOnly = true)
-    public long countAllByEnterprise(String idEnterprise) {
-        return repository.countByIdEnterprise(idEnterprise);
+    public long countAll() {
+        return repository.count();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<HelpCenter> findByEnterpriseAndNameContaining(String idEnterprise, String search, int page, int size, String sortField, String sortOrder) {
+    public Page<HelpCenter> findByNameContaining(String search, int page, int size, String sortField, String sortOrder) {
         Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
             Sort.by(sortField).descending() : 
             Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         // Busca en nombre O descripción usando query personalizada
-        return repository.searchByEnterpriseAndText(idEnterprise, search, pageable)
+        return repository.searchByText(search, pageable)
                 .map(dataMapper::toDomain);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public long countByEnterpriseAndNameContaining(String idEnterprise, String search) {
+    public long countByNameContaining(String search) {
         // Cuenta en nombre O descripción usando query personalizada
-        return repository.countByEnterpriseAndText(idEnterprise, search);
+        return repository.countByText(search);
     }
 }

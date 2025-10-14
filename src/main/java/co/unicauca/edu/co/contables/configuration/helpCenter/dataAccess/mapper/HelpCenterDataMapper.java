@@ -18,7 +18,6 @@ public class HelpCenterDataMapper {
                 .moduleId(entity.getModule() != null ? entity.getModule().getId() : null)
                 .name(entity.getName())
                 .description(entity.getDescription())
-                .idEnterprise(entity.getIdEnterprise())
                 .status(entity.getStatus())
                 .build();
     }
@@ -33,7 +32,6 @@ public class HelpCenterDataMapper {
                 .module(domain.getModuleId() != null ? DocumentModule.fromId(domain.getModuleId()) : null)
                 .name(domain.getName())
                 .description(domain.getDescription())
-                .idEnterprise(domain.getIdEnterprise())
                 .status(domain.getStatus())
                 .build();
     }

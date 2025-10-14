@@ -9,35 +9,35 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface HelpCenterRepository extends JpaRepository<HelpCenterEntity, Long> {
 
-    boolean existsByNameAndIdEnterprise(String name, String idEnterprise);
+    boolean existsByName(String name);
 
-    boolean existsByNameAndIdEnterpriseAndIdNot(String name, String idEnterprise, Long id);
+    boolean existsByNameAndIdNot(String name, Long id);
 
-    Page<HelpCenterEntity> findAllByIdEnterprise(String idEnterprise, Pageable pageable);
+    List<HelpCenterEntity> findAllByModule(DocumentModule module);
 
-    Optional<HelpCenterEntity> findByIdAndIdEnterprise(Long id, String idEnterprise);
-
-    List<HelpCenterEntity> findAllByModuleAndIdEnterprise(DocumentModule module, String idEnterprise);
-
-    long countByIdEnterprise(String idEnterprise);
-
-
-    @Query("SELECT h FROM HelpCenterEntity h WHERE h.idEnterprise = :idEnterprise " +
-           "AND (LOWER(h.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(CAST(h.description AS string)) LIKE LOWER(CONCAT('%', :search, '%')))")
-    Page<HelpCenterEntity> searchByEnterpriseAndText(
-            @Param("idEnterprise") String idEnterprise, 
+    /**
+     * Busca registros de ayuda por término de búsqueda en nombre O descripción
+     * @param search Término de búsqueda
+     * @param pageable Configuración de paginación
+     * @return Página de registros que coinciden en nombre O descripción
+     */
+    @Query("SELECT h FROM HelpCenterEntity h " +
+           "WHERE LOWER(h.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(CAST(h.description AS string)) LIKE LOWER(CONCAT('%', :search, '%'))")
+    Page<HelpCenterEntity> searchByText(
             @Param("search") String search, 
             Pageable pageable);
 
-    @Query("SELECT COUNT(h) FROM HelpCenterEntity h WHERE h.idEnterprise = :idEnterprise " +
-           "AND (LOWER(h.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(CAST(h.description AS string)) LIKE LOWER(CONCAT('%', :search, '%')))")
-    long countByEnterpriseAndText(
-            @Param("idEnterprise") String idEnterprise, 
-            @Param("search") String search);
+    /**
+     * Cuenta registros de ayuda por término de búsqueda en nombre O descripción
+     * @param search Término de búsqueda
+     * @return Número total de registros que coinciden
+     */
+    @Query("SELECT COUNT(h) FROM HelpCenterEntity h " +
+           "WHERE LOWER(h.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(CAST(h.description AS string)) LIKE LOWER(CONCAT('%', :search, '%'))")
+    long countByText(@Param("search") String search);
 }

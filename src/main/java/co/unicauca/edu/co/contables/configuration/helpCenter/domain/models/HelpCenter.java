@@ -12,7 +12,6 @@ public class HelpCenter {
     private Integer moduleId;
     private String name;
     private String description;
-    private String idEnterprise;
     @Builder.Default
     private Boolean status = true;
 }

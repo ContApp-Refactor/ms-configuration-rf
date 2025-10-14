@@ -19,7 +19,6 @@ public class HelpCenterDomainMapper {
                 .moduleId(request.getModuleId())
                 .name(request.getName())
                 .description(request.getDescription())
-                .idEnterprise(request.getIdEnterprise())
                 .build();
     }
 
@@ -33,7 +32,6 @@ public class HelpCenterDomainMapper {
                 .moduleId(request.getModuleId())
                 .name(request.getName())
                 .description(request.getDescription())
-                .idEnterprise(request.getIdEnterprise())
                 .build();
     }
 
@@ -58,7 +56,6 @@ public class HelpCenterDomainMapper {
                 .moduleName(moduleName)
                 .name(domain.getName())
                 .description(domain.getDescription())
-                .idEnterprise(domain.getIdEnterprise())
                 .status(domain.getStatus())
                 .build();
     }
