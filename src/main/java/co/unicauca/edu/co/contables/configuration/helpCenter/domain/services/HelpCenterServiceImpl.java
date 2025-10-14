@@ -115,9 +115,6 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
     public Page<HelpCenter> findAll(int page, int size, String sortField, String sortOrder) {
 
         sortField = validateSortField(sortField);
-        if (SORT_FIELD_MODULE_ID.equals(sortField)) {
-            sortField = SORT_FIELD_MODULE;
-        }
         Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortField).descending()
                 : Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -174,9 +171,6 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
             String sortOrder) {
         // Validar y mapear sortField
         sortField = validateSortField(sortField);
-        if (SORT_FIELD_MODULE_ID.equals(sortField)) {
-            sortField = SORT_FIELD_MODULE;
-        }
         Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortField).descending()
                 : Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);

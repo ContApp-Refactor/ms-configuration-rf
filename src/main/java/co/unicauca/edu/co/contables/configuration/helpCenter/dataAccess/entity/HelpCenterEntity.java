@@ -9,6 +9,7 @@ import lombok.*;
     name = "help_center",
     indexes = {
         @Index(name = "idx_help_center_module", columnList = "module"),
+        @Index(name = "idx_help_center_module_id", columnList = "module_id"),
         @Index(name = "idx_help_center_name", columnList = "name")
     }
 )
@@ -26,6 +27,9 @@ public class HelpCenterEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "module", nullable = false, length = 50)
     private DocumentModule module;
+
+    @Column(name = "module_id", nullable = false)
+    private Integer moduleId;
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;
