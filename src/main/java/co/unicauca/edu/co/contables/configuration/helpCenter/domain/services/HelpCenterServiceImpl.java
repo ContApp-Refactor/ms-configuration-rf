@@ -31,10 +31,17 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
     private final HelpCenterDataMapper dataMapper;
     private final HelpCenterDomainMapper domainMapper;
 
+    // Constantes para campos de ordenamiento
+    private static final String SORT_FIELD_ID = "id";
+    private static final String SORT_FIELD_MODULE = "module";
+    private static final String SORT_FIELD_MODULE_ID = "moduleid";
+    private static final String SORT_FIELD_NAME = "name";
+    private static final String DEFAULT_SORT_FIELD = SORT_FIELD_NAME;
+
     @Override
     @Transactional
     public HelpCenter create(HelpCenterCreateReq request) {
-        
+
         // Validar que el ID del módulo sea válido
         if (!DocumentModule.isValidId(request.getModuleId())) {
             throw new InvalidModuleException(request.getModuleId());
@@ -51,10 +58,10 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
         HelpCenter domain = domainMapper.toDomain(request);
         domain.setName(standardizedName);
         domain.setModuleId(request.getModuleId());
-        
+
         HelpCenterEntity toSave = dataMapper.toEntity(domain);
         HelpCenterEntity saved = repository.save(toSave);
-        
+
         return dataMapper.toDomain(saved);
     }
 
@@ -93,9 +100,8 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
     @Transactional(readOnly = true)
     public HelpCenter findById(Long id) {
         return dataMapper.toDomain(
-            repository.findById(id)
-                .orElseThrow(HelpCenterNotFoundException::new)
-        );
+                repository.findById(id)
+                        .orElseThrow(HelpCenterNotFoundException::new));
     }
 
     @Override
@@ -108,9 +114,13 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
     @Override
     @Transactional(readOnly = true)
     public Page<HelpCenter> findAll(int page, int size, String sortField, String sortOrder) {
-        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
-            Sort.by(sortField).descending() : 
-            Sort.by(sortField).ascending();
+
+        sortField = validateSortField(sortField);
+        if (SORT_FIELD_MODULE_ID.equalsIgnoreCase(sortField)) {
+            sortField = SORT_FIELD_MODULE;
+        }
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortField).descending()
+                : Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         return repository.findAll(pageable).map(dataMapper::toDomain);
     }
@@ -122,10 +132,10 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
         if (!DocumentModule.isValidId(moduleId)) {
             throw new InvalidModuleException(moduleId);
         }
-        
+
         // Obtener el módulo por ID
         DocumentModule documentModule = DocumentModule.fromId(moduleId);
-        
+
         return repository.findAllByModule(documentModule)
                 .stream()
                 .map(dataMapper::toDomain)
@@ -161,12 +171,17 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<HelpCenter> findByNameContaining(String search, int page, int size, String sortField, String sortOrder) {
-        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
-            Sort.by(sortField).descending() : 
-            Sort.by(sortField).ascending();
+    public Page<HelpCenter> findByNameContaining(String search, int page, int size, String sortField,
+            String sortOrder) {
+        // Validar y mapear sortField
+        sortField = validateSortField(sortField);
+        if (SORT_FIELD_MODULE_ID.equalsIgnoreCase(sortField)) {
+            sortField = SORT_FIELD_MODULE;
+        }
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortField).descending()
+                : Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        // Busca en nombre O descripción usando query personalizada
+        // Busca en nombre módulo, nombre O descripción usando query personalizada
         return repository.searchByText(search, pageable)
                 .map(dataMapper::toDomain);
     }
@@ -174,7 +189,32 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
     @Override
     @Transactional(readOnly = true)
     public long countByNameContaining(String search) {
-        // Cuenta en nombre O descripción usando query personalizada
+        // Cuenta en nombre módulo, nombre O descripción usando query personalizada
         return repository.countByText(search);
+    }
+
+    /**
+     * Valida que el campo de ordenamiento sea permitido.
+     * Campos permitidos: SORT_FIELD_ID, SORT_FIELD_MODULE, SORT_FIELD_MODULE_ID, SORT_FIELD_NAME
+     * 
+     * @param sortField Campo a validar
+     * @return Campo válido o DEFAULT_SORT_FIELD por defecto
+     */
+    private String validateSortField(String sortField) {
+        if (sortField == null || sortField.trim().isEmpty()) {
+            return DEFAULT_SORT_FIELD;
+        }
+        switch (sortField.toLowerCase()) {
+            case SORT_FIELD_ID:
+                return SORT_FIELD_ID;
+            case SORT_FIELD_MODULE:
+                return SORT_FIELD_MODULE;
+            case SORT_FIELD_MODULE_ID:
+                return SORT_FIELD_MODULE_ID;
+            case SORT_FIELD_NAME:
+                return SORT_FIELD_NAME;
+            default:
+                return DEFAULT_SORT_FIELD;
+        }
     }
 }
