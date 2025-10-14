@@ -90,6 +90,7 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
         current.setName(standardizedName);
         current.setDescription(request.getDescription());
         current.setModule(documentModule);
+        current.setModuleId(request.getModuleId());
 
         HelpCenterEntity saved = repository.save(current);
         return dataMapper.toDomain(saved);
