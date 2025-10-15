@@ -51,7 +51,7 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
 
         // Validar unicidad de nombre
         if (repository.existsByName(standardizedName)) {
-            throw new HelpCenterAlreadyExistsException(standardizedName, "SYSTEM");
+            throw new HelpCenterAlreadyExistsException(standardizedName);
         }
 
         HelpCenter domain = domainMapper.toDomain(request);
@@ -80,7 +80,7 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
         // Validar unicidad del nombre si cambió
         if (!standardizedName.equals(current.getName())) {
             if (repository.existsByNameAndIdNot(standardizedName, current.getId())) {
-                throw new HelpCenterAlreadyExistsException(standardizedName, "SYSTEM");
+                throw new HelpCenterAlreadyExistsException(standardizedName);
             }
         }
 
