@@ -133,7 +133,7 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
         // Obtener el módulo por ID
         DocumentModule documentModule = DocumentModule.fromId(moduleId);
 
-        return repository.findAllByModule(documentModule)
+        return repository.findAllByModuleAndStatus(documentModule, true)
                 .stream()
                 .map(dataMapper::toDomain)
                 .collect(Collectors.toList());
