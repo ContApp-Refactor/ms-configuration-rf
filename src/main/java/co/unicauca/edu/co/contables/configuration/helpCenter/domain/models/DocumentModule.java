@@ -18,7 +18,8 @@ public enum DocumentModule {
     CARTERA(5, "Cartera"),
     CONTABLE_COMERCIAL(6, "Contable comercial"),
     CONTABLE_CARTERA(7, "Contable cartera"),
-    ESTADOS_FINANCIEROS(8, "Estados financieros");
+    ESTADOS_FINANCIEROS(8, "Estados financieros"),
+    CONFIGURACION(9, "Configuración");
 
     private final Integer id;
     private final String name;

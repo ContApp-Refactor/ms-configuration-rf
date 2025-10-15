@@ -16,7 +16,7 @@ public interface HelpCenterRepository extends JpaRepository<HelpCenterEntity, Lo
 
     boolean existsByNameAndIdNot(String name, Long id);
 
-    List<HelpCenterEntity> findAllByModule(DocumentModule module);
+    List<HelpCenterEntity> findAllByModuleAndStatus(DocumentModule module, Boolean status);
 
     /**
      * Busca registros de ayuda por término de búsqueda en ID módulo, nombre módulo o nombre

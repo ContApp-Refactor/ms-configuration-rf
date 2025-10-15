@@ -85,11 +85,11 @@ public class HelpCenterController {
     }
 
     /**
-     * Obtiene todos los registros de ayuda filtrados por ID de módulo.
-     * Retorna solo nombres y descripciones asociadas al módulo.
+     * Obtiene todos los registros de ayuda filtrados por ID de módulo y estado activo.
+     * Retorna solo nombres y descripciones asociadas al módulo para registros activos.
      * 
      * @param moduleId     ID del módulo (1-8)
-     * @return Lista de registros de ayuda del módulo
+     * @return Lista de registros de ayuda activos del módulo
      */
     @GetMapping("/findAllByModule")
     public ResponseEntity<List<HelpCenterRes>> listByModule(
