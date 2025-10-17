@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -30,12 +31,14 @@ public class HelpCenterController {
     private final HelpCenterDomainMapper mapper;
     private final PaginationHelper paginationHelper;
 
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/create")
     public ResponseEntity<HelpCenterRes> create(@Valid @RequestBody HelpCenterCreateReq request) {
         HelpCenter created = service.create(request);
         return ResponseEntity.ok(mapper.toRes(created));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/update")
     public ResponseEntity<HelpCenterRes> update(@Valid @RequestBody HelpCenterUpdateReq request) {
         HelpCenter updated = service.update(request);
@@ -103,6 +106,7 @@ public class HelpCenterController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("isAuthenticated()")
     @PatchMapping("/changeState/{id}")
     public ResponseEntity<HelpCenterRes> changeState(
             @PathVariable Long id,
@@ -111,6 +115,7 @@ public class HelpCenterController {
         return ResponseEntity.ok(mapper.toRes(updated));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<HelpCenterRes> delete(@PathVariable Long id) {
         HelpCenter deleted = service.delete(id);
