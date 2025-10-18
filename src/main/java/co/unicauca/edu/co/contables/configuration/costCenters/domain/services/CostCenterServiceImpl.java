@@ -193,8 +193,10 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		current.setStatus(status);
 		CostCenterEntity saved = repository.save(current);
 
-		// Cambiar recursivamente el estado de todos los hijos
-		changeChildrenStateRecursively(id, status);
+		// Si se está inactivando, inactivar todos los hijos recursivamente
+		if (!status) {
+			changeChildrenStateRecursively(id, status);
+		}
 
 		return dataMapper.toDomain(saved);
 	}
@@ -223,13 +225,10 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		// Obtener todos los hijos del centro de costo padre
 		List<CostCenterEntity> children = repository.findByParentId(parentId);
 		
-		// Cambiar el estado de cada hijo y procesar recursivamente sus descendientes
 		for (CostCenterEntity child : children) {
-			// Cambiar el estado del hijo
 			child.setStatus(status);
 			repository.save(child);
 			
-			// Procesar recursivamente los hijos de este hijo
 			changeChildrenStateRecursively(child.getId(), status);
 		}
 	}
@@ -241,7 +240,6 @@ public class CostCenterServiceImpl implements ICostCenterService {
 		List<CostCenterEntity> children = repository.findByParentId(parent.getId());
 		for (CostCenterEntity child : children) {
 			result.add(dataMapper.toDomain(child));
-			// Recursivamente agregar los hijos de este hijo
 			addChildrenRecursively(child, result);
 		}
 	}
