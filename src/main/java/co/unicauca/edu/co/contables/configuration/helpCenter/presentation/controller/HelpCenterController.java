@@ -2,6 +2,7 @@ package co.unicauca.edu.co.contables.configuration.helpCenter.presentation.contr
 
 import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.mapper.HelpCenterDomainMapper;
+import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.HelpCenter;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.services.IHelpCenterService;
 import co.unicauca.edu.co.contables.configuration.helpCenter.presentation.DTO.request.HelpCenterCreateReq;
@@ -12,9 +13,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -27,12 +31,14 @@ public class HelpCenterController {
     private final HelpCenterDomainMapper mapper;
     private final PaginationHelper paginationHelper;
 
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/create")
     public ResponseEntity<HelpCenterRes> create(@Valid @RequestBody HelpCenterCreateReq request) {
         HelpCenter created = service.create(request);
         return ResponseEntity.ok(mapper.toRes(created));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/update")
     public ResponseEntity<HelpCenterRes> update(@Valid @RequestBody HelpCenterUpdateReq request) {
         HelpCenter updated = service.update(request);
@@ -82,11 +88,11 @@ public class HelpCenterController {
     }
 
     /**
-     * Obtiene todos los registros de ayuda filtrados por ID de módulo.
-     * Retorna solo nombres y descripciones asociadas al módulo.
+     * Obtiene todos los registros de ayuda filtrados por ID de módulo y estado activo.
+     * Retorna solo nombres y descripciones asociadas al módulo para registros activos.
      * 
      * @param moduleId     ID del módulo (1-8)
-     * @return Lista de registros de ayuda del módulo
+     * @return Lista de registros de ayuda activos del módulo
      */
     @GetMapping("/findAllByModule")
     public ResponseEntity<List<HelpCenterRes>> listByModule(
@@ -100,6 +106,7 @@ public class HelpCenterController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("isAuthenticated()")
     @PatchMapping("/changeState/{id}")
     public ResponseEntity<HelpCenterRes> changeState(
             @PathVariable Long id,
@@ -108,9 +115,28 @@ public class HelpCenterController {
         return ResponseEntity.ok(mapper.toRes(updated));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<HelpCenterRes> delete(@PathVariable Long id) {
         HelpCenter deleted = service.delete(id);
         return ResponseEntity.ok(mapper.toRes(deleted));
+    }
+
+    /**
+     * Obtiene la lista de módulos disponibles para centros de ayuda.
+     * 
+     * @return Lista de módulos con ID y nombre
+     */
+    @GetMapping("/modules")
+    public ResponseEntity<List<Map<String, Object>>> getModules() {
+        List<Map<String, Object>> modules = Arrays.stream(DocumentModule.values())
+                .map(module -> {
+                    Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("id", module.getId());
+                    map.put("name", module.getName());
+                    return map;
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(modules);
     }
 }
