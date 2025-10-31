@@ -4,7 +4,7 @@ import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusines
 
 public class noCommercialTagsNotFoundException extends BaseBusinessException {
 
-    public noCommercialTagsNotFoundException(noCommercialTagsErrorCode errorCode) {
+    public noCommercialTagsNotFoundException(NoCommercialTagsErrorCode errorCode) {
         super(errorCode);
     }
 
