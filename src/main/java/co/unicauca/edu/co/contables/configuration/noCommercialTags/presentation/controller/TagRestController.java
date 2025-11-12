@@ -55,7 +55,7 @@ public class TagRestController {
         .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/tags/{enterpriseId}")
+    @GetMapping("/findAll/{enterpriseId}")
     public ResponseEntity<List<TagDTOResponse>> getAllTags(@PathVariable String enterpriseId) {
         List<Tag> tags = tagService.getAllTag(enterpriseId);
         List<TagDTOResponse> responseList = tags.stream()
