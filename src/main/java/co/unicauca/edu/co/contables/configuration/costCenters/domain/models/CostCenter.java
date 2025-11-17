@@ -18,4 +18,22 @@ public class CostCenter {
     private List<CostCenter> children;
     @Builder.Default
     private Boolean status = true;
+
+    @Builder.Default
+    private Integer usageCount = 0;
+
+    /**
+     * @brief Incrementa el contador de uso del centro de costo
+     */
+    public void incrementUsageCount() {
+        this.usageCount = this.usageCount == null ? 1 : this.usageCount + 1;
+    }
+
+    /**
+     * @brief Verifica si el centro de costo está siendo usado
+     * @return true si el centro de costo tiene uso registrado
+     */
+    public boolean isInUse() {
+        return this.usageCount != null && this.usageCount > 0;
+    }
 }

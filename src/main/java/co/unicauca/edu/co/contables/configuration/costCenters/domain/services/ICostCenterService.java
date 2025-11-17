@@ -23,6 +23,14 @@ public interface ICostCenterService {
 
 	CostCenter findById(Long id, String idEnterprise);
 
+	/**
+	 * Encuentra un centro de costo por su ID sin filtrar por empresa
+	 * Utilizado principalmente para operaciones de mensajería
+	 * @param id ID del centro de costo
+	 * @return Centro de costo encontrado o null si no existe
+	 */
+	CostCenter findById(Long id);
+
 	CostCenter changeState(Long id, String idEnterprise, Boolean status);
 
 	/**
@@ -75,5 +83,13 @@ public interface ICostCenterService {
 	 * @return Número total de centros de costo que coinciden con la búsqueda
 	 */
 	long countByEnterpriseAndSearch(String idEnterprise, String search);
+
+	/**
+	 * Actualiza el contador de uso de un centro de costo
+	 * Utilizado principalmente para operaciones de mensajería
+	 * @param id ID del centro de costo
+	 * @param usageCount Nuevo valor del contador de uso
+	 */
+	void updateUsageCount(Long id, Integer usageCount);
 }
 
