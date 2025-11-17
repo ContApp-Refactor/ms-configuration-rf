@@ -12,6 +12,7 @@ import lombok.Setter;
 public class CostCenterUsageDto {
 
     private Long costCenterId;
+    private String enterpriseId;
     private Integer quantityUsed;
 
 }
