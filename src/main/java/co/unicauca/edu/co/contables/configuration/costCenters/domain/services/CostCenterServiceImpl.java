@@ -127,7 +127,7 @@ public class CostCenterServiceImpl implements ICostCenterService {
 
 
 
-    	@Override
+    @Override
 	@Transactional(readOnly = true)
 	public Page<CostCenter> findAllByEnterpriseAndStatus(String idEnterprise, Boolean status, int page, int size) {
 		Pageable pageable = PageRequest.of(page, size);
@@ -176,6 +176,12 @@ public class CostCenterServiceImpl implements ICostCenterService {
     public CostCenter findById(Long id, String idEnterprise) {
 		return dataMapper.toDomain(repository.findByIdAndIdEnterprise(id, idEnterprise)
 				.orElseThrow(CostCentersNotFoundException::new));
+	}
+
+	@Override
+	public CostCenter findById(Long id) {
+		return dataMapper.toDomain(repository.findById(id)
+				.orElse(null));
 	}
 
 	@Override
@@ -356,5 +362,20 @@ public class CostCenterServiceImpl implements ICostCenterService {
 				updateChildrenCodes(child.getId(), oldChildCode, newChildCode);
 			}
 		}
+	}
+
+	/**
+	 * Actualiza el contador de uso de un centro de costo
+	 * Utilizado principalmente para operaciones de mensajería
+	 * @param id ID del centro de costo
+	 * @param usageCount Nuevo valor del contador de uso
+	 */
+	@Transactional
+	public void updateUsageCount(Long id, Integer usageCount) {
+		CostCenterEntity entity = repository.findById(id)
+				.orElseThrow(() -> new CostCentersNotFoundException("Centro de costo no encontrado con ID: " + id));
+
+		entity.setUsageCount(usageCount);
+		repository.save(entity);
 	}
 }

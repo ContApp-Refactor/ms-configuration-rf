@@ -47,6 +47,10 @@ public class CostCenterEntity {
         @Column(name = "status", nullable = false)
         private Boolean status = true;
 
+        @Builder.Default
+        @Column(name = "usage_count", nullable = false)
+        private Integer usageCount = 0;
+
         @TenantId
         @Column(name = "tenant_id")
         private String tenantId;
