@@ -55,6 +55,12 @@ public class CostCenterUsageListener extends AbstractMessageListener<EventDto<Co
         try {
             switch (event.getType()) {
                 case USED:
+                
+                    if (!isValidEvent(event)) {
+                        log.warn("Invalid cost center usage event received");
+                        return;
+                    }
+
                     CostCenterUsageDto data = event.getData();
                     log.info("Registrando uso de centro de costo ID: {}, cantidad: {}",
                              data.getCostCenterId(), data.getQuantityUsed());
