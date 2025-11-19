@@ -3,6 +3,7 @@ package co.unicauca.edu.co.contables.configuration.costCenters.domain.services;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCentersAlreadyExistsException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCentersNotFoundException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterHasChildrenException;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterInUseException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterInvalidCodePrefixException;
 import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.CostCenterEntity;
@@ -67,6 +68,11 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	public CostCenter update(CostCenterUpdateReq request) {
 		CostCenterEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
 				.orElseThrow(CostCentersNotFoundException::new);
+
+		// Validar que el centro de costo no tenga movimientos contables asociados
+		if (current.getUsageCount() != null && current.getUsageCount() > 0) {
+			throw new CostCenterInUseException(current.getCode(), true); // true indica operación de edición
+		}
 
 		// Estandarizar nombre antes de validar
 		String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
@@ -212,6 +218,11 @@ public class CostCenterServiceImpl implements ICostCenterService {
 	public CostCenter delete(Long id, String idEnterprise) {
 		CostCenterEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
 				.orElseThrow(CostCentersNotFoundException::new);
+
+		// Validar que el centro de costo no tenga movimientos contables asociados
+		if (current.getUsageCount() != null && current.getUsageCount() > 0) {
+			throw new CostCenterInUseException(current.getCode(), false); // false indica operación de eliminación
+		}
 
 		// Validar que no tenga centros de costo hijos
 		if (repository.existsByParentId(id)) {
