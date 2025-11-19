@@ -14,6 +14,7 @@ public class CostCenterRes {
     private String name;
     private Long parentId;
     private Boolean status;
+    private Integer usageCount;
 }
 
 
