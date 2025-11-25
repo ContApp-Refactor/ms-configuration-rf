@@ -34,6 +34,14 @@ public interface IDocumentTypeService {
 	DocumentType Delete(Long id, String idEnterprise);
 
 	/**
+	 * @brief Actualiza el contador de uso de un tipo de documento
+	 * @param id ID del tipo de documento
+	 * @param enterpriseId ID de la empresa
+	 * @param usageCount Nuevo valor del contador de uso
+	 */
+	void updateUsageCount(Long id, String enterpriseId, Integer usageCount);
+
+	/**
 	 * Cuenta el total de tipos de documento por empresa
 	 * @param idEnterprise ID de la empresa
 	 * @return Número total de tipos de documento

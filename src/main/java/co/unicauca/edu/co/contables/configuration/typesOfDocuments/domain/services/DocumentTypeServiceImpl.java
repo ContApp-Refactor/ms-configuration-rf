@@ -4,6 +4,7 @@ import co.unicauca.edu.co.contables.configuration.classesOfDocuments.dataAccess.
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.dataAccess.repository.DocumentClassRepository;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassesNotFoundException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassInactiveException;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypeInUseException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypesAlreadyExistsException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypesNotFoundException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.InvalidModuleException;
@@ -92,6 +93,12 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
         DocumentTypeEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
                 .orElseThrow(DocumentTypesNotFoundException::new);
+
+        // Validar que el tipo de documento no tenga movimientos contables registrados
+        DocumentType existingDocumentType = dataMapper.toDomain(current);
+        if (existingDocumentType.isInUse()) {
+            throw new DocumentTypeInUseException(current.getPrefix(), true); // true indica operación de edición
+        }
 
         String targetEnterprise = request.getIdEnterprise() != null ? request.getIdEnterprise() : current.getIdEnterprise();
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
@@ -191,6 +198,11 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         DocumentTypeEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentTypesNotFoundException::new);
 
+        // Validar que el tipo de documento no tenga movimientos contables registrados
+        DocumentType existingDocumentType = dataMapper.toDomain(current);
+        if (existingDocumentType.isInUse()) {
+            throw new DocumentTypeInUseException(current.getPrefix(), false); // false indica operación de eliminación
+        }
 
         repository.delete(current);
         return dataMapper.toDomain(current);
@@ -222,6 +234,15 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     @Transactional(readOnly = true)
     public long countByEnterpriseAndNameContaining(String idEnterprise, String search) {
         return repository.countByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search);
+    }
+
+    @Override
+    public void updateUsageCount(Long id, String enterpriseId, Integer usageCount) {
+        DocumentTypeEntity entity = repository.findByIdAndIdEnterprise(id, enterpriseId)
+                .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado con ID: " + id));
+
+        entity.setUsageCount(usageCount);
+        repository.save(entity);
     }
 
 }

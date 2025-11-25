@@ -16,4 +16,14 @@ public class DocumentType {
     private String idEnterprise;
     @Builder.Default
     private Boolean status = true;
+    @Builder.Default
+    private Integer usageCount = 0;
+
+    /**
+     * @brief Verifica si el tipo de documento está siendo usado
+     * @return true si el tipo de documento tiene uso registrado
+     */
+    public boolean isInUse() {
+        return this.usageCount != null && this.usageCount > 0;
+    }
 }

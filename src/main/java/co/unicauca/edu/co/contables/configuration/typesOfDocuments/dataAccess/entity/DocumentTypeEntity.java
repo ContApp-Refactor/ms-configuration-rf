@@ -47,6 +47,10 @@ public class DocumentTypeEntity {
     @Column(name = "status", nullable = false)
     private Boolean status = true;
 
+    @Column(name = "usage_count", nullable = false)
+    @Builder.Default
+    private Integer usageCount = 0;
+
     @TenantId
     @Column(name = "tenant_id")
     private String tenantId;
