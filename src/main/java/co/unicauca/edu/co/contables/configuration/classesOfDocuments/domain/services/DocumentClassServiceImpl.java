@@ -51,6 +51,13 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
         DocumentClassEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
                 .orElseThrow(DocumentClassesNotFoundException::new);
 
+        // Validar que no se pueda editar si tiene tipos de documento con registros contables
+        boolean hasDocumentTypesWithMovements = documentTypeRepository.existsByDocumentClassIdAndIdEnterpriseAndUsageCountGreaterThan(
+            current.getId(), current.getIdEnterprise(), 0);
+        if (hasDocumentTypesWithMovements) {
+            throw new DocumentClassInUseException(current.getName(), true); // true = edición
+        }
+
         String targetEnterprise = request.getIdEnterprise() != null ? request.getIdEnterprise() : current.getIdEnterprise();
 
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());

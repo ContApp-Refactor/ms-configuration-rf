@@ -3,7 +3,7 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.documentCl
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
 /**
- * Excepción para cuando se intenta eliminar una clase de documento que está siendo utilizada por tipos de documentos.
+ * Excepción para cuando se intenta eliminar o editar una clase de documento que está siendo utilizada por tipos de documentos.
  */
 public class DocumentClassInUseException extends BaseBusinessException {
 
@@ -22,6 +22,20 @@ public class DocumentClassInUseException extends BaseBusinessException {
         super(
             DocumentClassesErrorCode.DOCUMENT_CLASS_IN_USE,
             String.format("No se puede eliminar la clase de documento con ID %d ('%s') porque está siendo utilizada por tipos de documentos activos", id, className)
+        );
+    }
+
+    /**
+     * Constructor para el caso de edición cuando hay tipos con registros contables
+     * @param className nombre de la clase de documento
+     * @param isEditOperation true si es operación de edición, false si es eliminación
+     */
+    public DocumentClassInUseException(String className, boolean isEditOperation) {
+        super(
+            DocumentClassesErrorCode.DOCUMENT_CLASS_IN_USE,
+            isEditOperation ?
+                String.format("No se puede editar la clase de documento '%s' porque tiene tipos de documento con movimientos contables", className) :
+                String.format("No se puede eliminar la clase de documento '%s' porque está siendo utilizada por tipos de documentos activos", className)
         );
     }
 }

@@ -49,6 +49,14 @@ public interface DocumentTypeRepository extends JpaRepository<DocumentTypeEntity
      * @return Número total de tipos de documento que coinciden con la búsqueda
      */
     long countByIdEnterpriseAndNameContainingIgnoreCase(String idEnterprise, String name);
+
+    /**
+     * Verifica si una clase de documento tiene tipos con registros contables (usageCount > 0)
+     * @param documentClassId ID de la clase de documento
+     * @param idEnterprise ID de la empresa
+     * @return true si tiene tipos con registros contables, false en caso contrario
+     */
+    boolean existsByDocumentClassIdAndIdEnterpriseAndUsageCountGreaterThan(Long documentClassId, String idEnterprise, Integer usageCount);
 }
 
 
