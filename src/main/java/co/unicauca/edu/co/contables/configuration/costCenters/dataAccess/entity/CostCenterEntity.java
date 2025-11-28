@@ -6,6 +6,12 @@ import org.hibernate.annotations.TenantId;
 
 import java.util.List;
 
+/**
+ * @brief Entidad JPA para centros de costo
+ *
+ * Entidad JPA que representa un centro de costo en la base de datos,
+ * con soporte para jerarquía, multi-tenancy y índices optimizados.
+ */
 @Entity
 @Table(
     name = "cost_centers",

@@ -10,7 +10,12 @@ import java.util.Optional;
 
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.CostCenterEntity;
 
-
+/**
+ * @brief Repositorio para centros de costo
+ *
+ * Repositorio JPA que proporciona operaciones de acceso a datos para entidades
+ * de centros de costo, incluyendo consultas personalizadas y paginación.
+ */
 public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Long> {
 
     boolean existsByCodeAndIdEnterprise(String code, String idEnterprise);
@@ -25,29 +30,14 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
 
     Optional<CostCenterEntity> findByIdAndIdEnterprise(Long id, String idEnterprise);
 
-    /**
-     * Verifica si un centro de costo tiene centros de costo hijos
-     * @param parentId ID del centro de costo padre
-     * @return true si tiene hijos, false en caso contrario
-     */
     boolean existsByParentId(Long parentId);
-
-    /**
-     * Obtiene todos los centros de costo hijos de un centro de costo padre
-     * @param parentId ID del centro de costo padre
-     * @return Lista de centros de costo hijos
-     */
+   
     List<CostCenterEntity> findByParentId(Long parentId);
 
-    /**
-     * Obtiene solo los centros de costo raíz (sin padre) ordenados por código
-     * @param idEnterprise ID de la empresa
-     * @return Lista de centros de costo raíz ordenados por código
-     */
     List<CostCenterEntity> findByIdEnterpriseAndParentIsNullOrderByCode(String idEnterprise);
 
     /**
-     * Obtiene los centros de costo activos de último nivel (código >= 5 caracteres)
+     * @brief Obtiene los centros de costo activos de último nivel (código >= 5 caracteres)
      * Filtra por empresa, estado activo y longitud de código
      * @param idEnterprise ID de la empresa
      * @param status Estado del centro de costo (true para activos)
@@ -55,23 +45,12 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
      */
     List<CostCenterEntity> findByIdEnterpriseAndStatusOrderByCode(String idEnterprise, Boolean status);
 
-    /**
-     * Cuenta el total de centros de costo por empresa
-     * @param idEnterprise ID de la empresa
-     * @return Número total de centros de costo
-     */
     long countByIdEnterprise(String idEnterprise);
 
-    /**
-     * Cuenta el total de centros de costo filtrados por estado
-     * @param idEnterprise ID de la empresa
-     * @param status Estado del centro de costo
-     * @return Número total de centros de costo con el estado especificado
-     */
     long countByIdEnterpriseAndStatus(String idEnterprise, Boolean status);
 
     /**
-     * Busca centros de costo por empresa y término de búsqueda en código o nombre (case-insensitive)
+     * @brief Busca centros de costo por empresa y término de búsqueda en código o nombre (case-insensitive)
      * @param idEnterprise1 ID de la empresa para búsqueda por código
      * @param code Término de búsqueda en código
      * @param idEnterprise2 ID de la empresa para búsqueda por nombre
@@ -83,7 +62,7 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
             String idEnterprise1, String code, String idEnterprise2, String name, Pageable pageable);
 
     /**
-     * Cuenta centros de costo por empresa y término de búsqueda en código o nombre (case-insensitive)
+     * @brief Cuenta centros de costo por empresa y término de búsqueda en código o nombre (case-insensitive)
      * @param idEnterprise1 ID de la empresa para búsqueda por código
      * @param code Término de búsqueda en código
      * @param idEnterprise2 ID de la empresa para búsqueda por nombre
@@ -93,15 +72,11 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
     long countByIdEnterpriseAndCodeContainingIgnoreCaseOrIdEnterpriseAndNameContainingIgnoreCase(
             String idEnterprise1, String code, String idEnterprise2, String name);
 
-    /**
-     * Obtiene todos los centros de costo de una empresa sin paginación
-     * @param idEnterprise ID de la empresa
-     * @return Lista de todos los centros de costo
-     */
+   
     List<CostCenterEntity> findAllByIdEnterprise(String idEnterprise);
 
     /**
-     * Obtiene todos los centros de costo filtrados por estado sin paginación
+     * @brief Obtiene todos los centros de costo filtrados por estado sin paginación
      * @param idEnterprise ID de la empresa
      * @param status Estado del centro de costo
      * @return Lista de centros de costo con el estado especificado
@@ -109,7 +84,7 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
     List<CostCenterEntity> findAllByIdEnterpriseAndStatus(String idEnterprise, Boolean status);
 
     /**
-     * Obtiene centros de costo auxiliares (último nivel) 
+     * @brief Obtiene centros de costo auxiliares (último nivel) 
      * Filtra por: empresa, estado activo y código con longitud >= 5
      * @param idEnterprise ID de la empresa
      * @return Lista de centros de costo auxiliares ordenados por código
