@@ -7,6 +7,12 @@ import co.unicauca.edu.co.contables.configuration.helpCenter.presentation.DTO.re
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.DocumentModule;
 import org.springframework.stereotype.Component;
 
+/**
+ * @brief Mapeador de dominio para registros del centro de ayuda
+ *
+ * Mapeador manual que convierte entre modelos de dominio y DTOs
+ * de presentación para registros del centro de ayuda.
+ */
 @Component
 public class HelpCenterDomainMapper {
 

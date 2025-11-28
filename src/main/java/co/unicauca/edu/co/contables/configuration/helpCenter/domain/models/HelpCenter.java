@@ -2,6 +2,12 @@ package co.unicauca.edu.co.contables.configuration.helpCenter.domain.models;
 
 import lombok.*;
 
+/**
+ * @brief Modelo de dominio para registro del centro de ayuda
+ *
+ * Modelo de dominio que representa un registro de ayuda en la lógica de negocio,
+ * con información de módulo, nombre, descripción y estado.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

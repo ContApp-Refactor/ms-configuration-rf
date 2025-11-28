@@ -23,6 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * @brief Implementación del servicio de centro de ayuda
+ *
+ * Implementación principal del servicio de centro de ayuda que maneja
+ * operaciones CRUD, validaciones y lógica de negocio.
+ */
 @Service
 @RequiredArgsConstructor
 public class HelpCenterServiceImpl implements IHelpCenterService {
@@ -188,7 +194,7 @@ public class HelpCenterServiceImpl implements IHelpCenterService {
     }
 
     /**
-     * Valida que el campo de ordenamiento sea permitido.
+     * @brief Valida que el campo de ordenamiento sea permitido.
      * Campos permitidos: id, module, moduleId, name
      * 
      * @param sortField Campo a validar

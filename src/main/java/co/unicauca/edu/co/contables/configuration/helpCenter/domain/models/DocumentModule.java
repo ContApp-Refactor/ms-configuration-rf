@@ -5,6 +5,8 @@ import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardiz
 import lombok.Getter;
 
 /**
+ * @brief Enumeración de módulos de documentos
+ *
  * Enumeración de módulos permitidos para tipos de documentos.
  * Cada módulo tiene un ID único y un nombre.
  */
