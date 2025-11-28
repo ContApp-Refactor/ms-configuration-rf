@@ -10,6 +10,12 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
+/**
+ * @brief Repositorio para registros del centro de ayuda
+ *
+ * Repositorio JPA que proporciona operaciones de acceso a datos para entidades
+ * del centro de ayuda, incluyendo consultas personalizadas y búsquedas.
+ */
 public interface HelpCenterRepository extends JpaRepository<HelpCenterEntity, Long> {
 
     boolean existsByName(String name);
@@ -19,7 +25,7 @@ public interface HelpCenterRepository extends JpaRepository<HelpCenterEntity, Lo
     List<HelpCenterEntity> findAllByModuleAndStatus(DocumentModule module, Boolean status);
 
     /**
-     * Busca registros de ayuda por término de búsqueda en ID módulo, nombre módulo o nombre
+     * @brief Busca registros de ayuda por término de búsqueda en ID módulo, nombre módulo o nombre
      * @param search Término de búsqueda
      * @param pageable Configuración de paginación
      * @return Página de registros que coinciden en ID módulo, nombre módulo o nombre
@@ -33,7 +39,7 @@ public interface HelpCenterRepository extends JpaRepository<HelpCenterEntity, Lo
             Pageable pageable);
 
     /**
-     * Cuenta registros de ayuda por término de búsqueda en ID módulo, nombre módulo o nombre
+     * @brief Cuenta registros de ayuda por término de búsqueda en ID módulo, nombre módulo o nombre
      * @param search Término de búsqueda
      * @return Número total de registros que coinciden
      */

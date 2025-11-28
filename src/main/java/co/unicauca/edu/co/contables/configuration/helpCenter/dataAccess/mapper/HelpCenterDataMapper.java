@@ -5,6 +5,12 @@ import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.HelpC
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.DocumentModule;
 import org.springframework.stereotype.Component;
 
+/**
+ * @brief Mapeador de datos para registros del centro de ayuda
+ *
+ * Mapeador manual que convierte entre entidades JPA y modelos de dominio
+ * para registros del centro de ayuda, manejando conversiones de módulos.
+ */
 @Component
 public class HelpCenterDataMapper {
 
