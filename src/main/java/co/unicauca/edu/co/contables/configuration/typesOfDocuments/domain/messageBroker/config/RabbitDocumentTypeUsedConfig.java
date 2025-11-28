@@ -12,6 +12,7 @@ import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 
+/** @brief Configuración de RabbitMQ para mensajes de tipos de documentos usados */
 @Configuration
 @Slf4j
 @Profile("!test")

@@ -2,6 +2,7 @@ package co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.model
 
 import lombok.*;
 
+/** @brief Modelo de dominio que representa un tipo de documento */
 @Getter
 @Setter
 @NoArgsConstructor

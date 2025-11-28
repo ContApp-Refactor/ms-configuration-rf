@@ -7,6 +7,7 @@ import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+/** @brief Mapper de dominio para convertir entre modelos de dominio y DTOs de tipos de documentos */
 @Mapper(componentModel = "spring")
 public interface DocumentTypeDomainMapper {
 

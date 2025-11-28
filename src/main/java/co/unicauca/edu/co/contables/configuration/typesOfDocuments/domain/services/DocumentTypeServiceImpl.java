@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/** @brief Implementación del servicio de tipos de documentos */
 @Service
 @RequiredArgsConstructor
 public class DocumentTypeServiceImpl implements IDocumentTypeService {

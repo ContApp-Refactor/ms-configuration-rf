@@ -4,10 +4,7 @@ import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTyp
 import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
 import lombok.Getter;
 
-/**
- * Enumeración de módulos permitidos para tipos de documentos.
- * Cada módulo tiene un ID único y un nombre.
- */
+/** @brief Enumeración de módulos permitidos para tipos de documentos */
 @Getter
 public enum DocumentModule {
     

@@ -9,6 +9,7 @@ import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.
 
 import java.util.List;
 
+/** @brief Interfaz del servicio de tipos de documentos */
 public interface IDocumentTypeService {
 
 	DocumentType create(DocumentTypeCreateReq request);
@@ -22,7 +23,7 @@ public interface IDocumentTypeService {
 	Page<DocumentType> findAllByEnterprise(String idEnterprise, int page, int size, String sortField, String sortOrder);
 	
 	/**
-	 * Obtiene todos los tipos de documento por ID de módulo y empresa
+	 * @brief Obtiene todos los tipos de documento por ID de módulo y empresa
 	 * @param moduleId ID del módulo
 	 * @param idEnterprise ID de la empresa
 	 * @return Lista de tipos de documento del módulo
@@ -42,7 +43,7 @@ public interface IDocumentTypeService {
 	void updateUsageCount(Long id, String enterpriseId, Integer usageCount);
 
 	/**
-	 * Cuenta el total de tipos de documento por empresa
+	 * @brief Cuenta el total de tipos de documento por empresa
 	 * @param idEnterprise ID de la empresa
 	 * @return Número total de tipos de documento
 	 */
@@ -50,13 +51,13 @@ public interface IDocumentTypeService {
 
 
 	/**
-	 * Obtiene todos los módulos disponibles en el sistema
+	 * @brief Obtiene todos los módulos disponibles en el sistema
 	 * @return Lista de módulos disponibles
 	 */
 	List<DocumentModule> getAllModules();
 
 	/**
-	 * Busca tipos de documento por empresa y nombre (búsqueda parcial)
+	 * @brief Busca tipos de documento por empresa y nombre (búsqueda parcial)
 	 * @param idEnterprise ID de la empresa
 	 * @param search Término de búsqueda
 	 * @param page Número de página
@@ -68,7 +69,7 @@ public interface IDocumentTypeService {
 	Page<DocumentType> findByEnterpriseAndNameContaining(String idEnterprise, String search, int page, int size, String sortField, String sortOrder);
 
 	/**
-	 * Cuenta tipos de documento por empresa y nombre (búsqueda parcial)
+	 * @brief Cuenta tipos de documento por empresa y nombre (búsqueda parcial)
 	 * @param idEnterprise ID de la empresa
 	 * @param search Término de búsqueda
 	 * @return Número total de tipos de documento que coinciden con la búsqueda
