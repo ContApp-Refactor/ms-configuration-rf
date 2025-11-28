@@ -6,6 +6,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * @brief Modelo de dominio para clases de documento
+ *
+ * Representa el concepto de clase de documento en la capa de dominio,
+ * conteniendo la información básica de nombre, empresa y estado.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
