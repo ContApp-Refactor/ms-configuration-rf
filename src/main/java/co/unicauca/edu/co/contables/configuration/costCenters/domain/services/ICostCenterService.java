@@ -18,48 +18,33 @@ public interface ICostCenterService {
 	/**
 	 * Obtiene centros de costo con paginación jerárquica
 	 * Mantiene las familias completas juntas
+	 * @param idEnterprise ID de la empresa
+	 * @param page Número de página
+	 * @param size Tamaño de página
+	 * @return Página de centros de costo en orden jerárquico
 	 */
 	Page<CostCenter> findAllByEnterpriseHierarchical(String idEnterprise, int page, int size);
 
 	CostCenter findById(Long id, String idEnterprise);
 
-	/**
-	 * Encuentra un centro de costo por su ID sin filtrar por empresa
-	 * Utilizado principalmente para operaciones de mensajería
-	 * @param id ID del centro de costo
-	 * @return Centro de costo encontrado o null si no existe
-	 */
 	CostCenter findById(Long id);
 
 	CostCenter changeState(Long id, String idEnterprise, Boolean status);
 
-	/**
-	 * Elimina físicamente un centro de costo del sistema
-	 * Valida que no tenga centros de costo hijos antes de eliminar
-	 * @param id ID del centro de costo
-	 * @param idEnterprise ID de la empresa
-	 * @return Centro de costo eliminado
-	 * @throws CostCentersNotFoundException si el centro de costo no existe
-	 * @throws CostCenterHasChildrenException si el centro de costo tiene hijos
-	 */
 	CostCenter delete(Long id, String idEnterprise);
 
 	/**
-	 * Obtiene los centros de costo activos de último nivel (código con 5 o más caracteres)
+	 * @brief Obtiene los centros de costo activos de último nivel (código con 5 o más caracteres)
 	 * @param idEnterprise ID de la empresa
 	 * @return Lista de centros de costo de último nivel activos
 	 */
 	List<CostCenter> findActiveLastLevelCostCenters(String idEnterprise);
 
-	/**
-	 * Cuenta el total de centros de costo por empresa
-	 * @param idEnterprise ID de la empresa
-	 * @return Número total de centros de costo
-	 */
+	
 	long countAllByEnterprise(String idEnterprise);
 
 	/**
-	 * Cuenta el total de centros de costo filtrados por estado
+	 * @brief Cuenta el total de centros de costo filtrados por estado
 	 * @param idEnterprise ID de la empresa
 	 * @param status Estado del centro de costo
 	 * @return Número total de centros de costo con el estado especificado
@@ -67,7 +52,7 @@ public interface ICostCenterService {
 	long countAllByEnterpriseAndStatus(String idEnterprise, Boolean status);
 
 	/**
-	 * Busca centros de costo por empresa y término de búsqueda (código o nombre)
+	 * @brief Busca centros de costo por empresa y término de búsqueda (código o nombre)
 	 * @param idEnterprise ID de la empresa
 	 * @param search Término de búsqueda
 	 * @param page Número de página
@@ -77,19 +62,13 @@ public interface ICostCenterService {
 	Page<CostCenter> findByEnterpriseAndSearch(String idEnterprise, String search, int page, int size);
 
 	/**
-	 * Cuenta centros de costo por empresa y término de búsqueda (código o nombre)
+	 * @brief Cuenta centros de costo por empresa y término de búsqueda (código o nombre)
 	 * @param idEnterprise ID de la empresa
 	 * @param search Término de búsqueda
 	 * @return Número total de centros de costo que coinciden con la búsqueda
 	 */
 	long countByEnterpriseAndSearch(String idEnterprise, String search);
 
-	/**
-	 * Actualiza el contador de uso de un centro de costo
-	 * Utilizado principalmente para operaciones de mensajería
-	 * @param id ID del centro de costo
-	 * @param usageCount Nuevo valor del contador de uso
-	 */
 	void updateUsageCount(Long id, Integer usageCount);
 }
 

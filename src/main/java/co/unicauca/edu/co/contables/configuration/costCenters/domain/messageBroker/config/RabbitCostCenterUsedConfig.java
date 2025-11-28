@@ -12,6 +12,12 @@ import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 
+/**
+ * @brief Configuración RabbitMQ para centros de costo usados
+ *
+ * Configuración de Spring para RabbitMQ que define el exchange, queue
+ * y binding para eventos de uso de centros de costo.
+ */
 @Configuration
 @Slf4j
 @Profile("!test")
