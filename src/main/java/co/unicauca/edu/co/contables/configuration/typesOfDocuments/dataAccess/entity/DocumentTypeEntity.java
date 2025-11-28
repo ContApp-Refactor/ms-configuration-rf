@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.TenantId;
 
+/** @brief Entidad JPA que representa un tipo de documento en la base de datos */
 @Entity
 @Table(
     name = "types_of_documents",
