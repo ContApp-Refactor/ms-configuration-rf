@@ -5,6 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * @brief DTO de solicitud para crear registros del centro de ayuda
+ *
+ * DTO que representa la solicitud para crear un nuevo registro del centro de ayuda,
+ * con validaciones de campos obligatorios y restricciones de tamaño.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

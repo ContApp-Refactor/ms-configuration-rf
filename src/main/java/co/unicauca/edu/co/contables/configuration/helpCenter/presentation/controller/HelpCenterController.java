@@ -22,6 +22,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * @brief Controlador REST para centro de ayuda
+ *
+ * Expone endpoints REST para gestionar operaciones CRUD de registros del centro de ayuda,
+ * incluyendo búsqueda, filtrado por módulo y obtención de módulos disponibles.
+ */
 @RestController
 @RequestMapping("/api/config/help-center")
 @RequiredArgsConstructor
