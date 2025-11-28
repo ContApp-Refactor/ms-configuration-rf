@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/** @brief Controlador REST para gestión de tipos de documentos */
 @RestController
 @RequestMapping("/api/config/document-types")
 @RequiredArgsConstructor
@@ -46,17 +47,6 @@ public class DocumentTypeController {
         return ResponseEntity.ok(mapper.toRes(service.findById(id, enterpriseId)));
     }
 
-    /**
-     * Obtiene tipos de documento con paginación flexible.
-     * Si no se especifican parámetros de paginación, retorna todos los tipos de documento.
-     * 
-     * @param enterpriseId ID de la empresa
-     * @param page         Número de página (opcional)
-     * @param size         Tamaño de página (opcional)
-     * @param sortField    Campo de ordenamiento (opcional)
-     * @param sortOrder    Orden (asc/desc) (opcional)
-     * @return Página de tipos de documento
-     */
     @GetMapping("/findAll/{enterpriseId}")
     public ResponseEntity<Page<DocumentTypeRes>> list(
             @PathVariable("enterpriseId") String enterpriseId,
@@ -83,14 +73,7 @@ public class DocumentTypeController {
         
         return ResponseEntity.ok(pageResult.map(mapper::toRes));
     }
-
-    /**
-     * Obtiene todos los tipos de documento filtrados por ID de módulo.
-     * 
-     * @param enterpriseId ID de la empresa
-     * @param moduleId     ID del módulo (1-8)
-     * @return Lista de tipos de documento del módulo
-     */
+  
     @GetMapping("/findAllByModule/{enterpriseId}")
     public ResponseEntity<List<DocumentTypeRes>> listByModule(
             @PathVariable("enterpriseId") String enterpriseId,
