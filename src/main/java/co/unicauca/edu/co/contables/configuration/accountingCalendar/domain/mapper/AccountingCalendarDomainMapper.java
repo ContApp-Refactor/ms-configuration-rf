@@ -6,6 +6,13 @@ import co.unicauca.edu.co.contables.configuration.accountingCalendar.presentatio
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+/**
+ * @brief Mapeador de dominio para el calendario contable
+ *
+ * Interfaz que utiliza MapStruct para convertir entre modelos de dominio
+ * (AccountingCalendar) y DTOs de presentación (request/response).
+ * Gestiona la transformación de datos entre la capa de dominio y la presentación.
+ */
 @Mapper(componentModel = "spring")
 public interface AccountingCalendarDomainMapper {
 
