@@ -3,7 +3,7 @@ package co.unicauca.edu.co.contables.configuration.commons.utils;
 import java.util.Locale;
 
 /**
- * Clase utilitaria para estandarización de strings en toda la aplicación.
+ * @brief Clase utilitaria para estandarización de strings en toda la aplicación.
  * Centraliza la lógica de normalización para evitar duplicación de código.
  */
 public final class StringStandardizationUtils {
@@ -16,7 +16,7 @@ public final class StringStandardizationUtils {
     }
 
     /**
-     * Estandariza nombres: primera letra mayúscula, resto minúsculas, espacios normalizados.
+     * @brief Estandariza nombres: primera letra mayúscula, resto minúsculas, espacios normalizados.
      * Utilizado para nombres de clases de documentos, tipos de documentos, centros de costo, etc.
      * 
      * @param input el string a estandarizar
@@ -36,7 +36,7 @@ public final class StringStandardizationUtils {
     }
 
     /**
-     * Estandariza prefijos: convierte a mayúsculas y elimina espacios.
+     * @brief Estandariza prefijos: convierte a mayúsculas y elimina espacios.
      * Utilizado para prefijos de tipos de documentos y otros códigos similares.
      * 
      * @param input el string a estandarizar
@@ -51,7 +51,7 @@ public final class StringStandardizationUtils {
     }
 
     /**
-     * Estandariza códigos: convierte a mayúsculas y elimina espacios.
+     * @brief Estandariza códigos: convierte a mayúsculas y elimina espacios.
      * Alias de standardizePrefix para mayor claridad semántica.
      * 
      * @param input el string a estandarizar

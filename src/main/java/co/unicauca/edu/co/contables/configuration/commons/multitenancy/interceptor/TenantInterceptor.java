@@ -9,6 +9,7 @@ import org.springframework.ui.ModelMap;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.context.request.WebRequestInterceptor;
 
+/** @brief Interceptor web para establecer el contexto de inquilino */
 @Component
 public class TenantInterceptor implements WebRequestInterceptor {
 

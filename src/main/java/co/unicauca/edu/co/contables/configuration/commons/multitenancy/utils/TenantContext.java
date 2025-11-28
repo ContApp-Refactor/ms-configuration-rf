@@ -2,6 +2,7 @@ package co.unicauca.edu.co.contables.configuration.commons.multitenancy.utils;
 
 import lombok.extern.slf4j.Slf4j;
 
+/** @brief Utilidad para gestionar el contexto de inquilino en hilos */
 @Slf4j
 public class TenantContext {
     private TenantContext() {

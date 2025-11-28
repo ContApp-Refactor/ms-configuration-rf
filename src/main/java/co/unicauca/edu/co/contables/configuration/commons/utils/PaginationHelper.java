@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 /**
- * Utilidad para manejar la lógica de paginación flexible.
+ *@brief Utilidad para manejar la lógica de paginación flexible.
  * Proporciona métodos para crear objetos Pageable basados en parámetros opcionales
  * y maneja de forma segura la conversión de long a int.
  */

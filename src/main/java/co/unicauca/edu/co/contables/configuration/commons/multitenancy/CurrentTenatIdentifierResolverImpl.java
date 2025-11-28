@@ -10,11 +10,12 @@ import org.springframework.util.ObjectUtils;
 import java.util.Map;
 
 @SuppressWarnings("rawtypes")
+/** @brief Implementación del resolvedor de identificador de inquilino actual para Hibernate */
 @Component
 class CurrentTenantIdentifierResolverImpl implements CurrentTenantIdentifierResolver, HibernatePropertiesCustomizer {
 
     /**
-     * Resuelve el identificador de inquilino actual.
+     * @brief Resuelve el identificador de inquilino actual.
      * 
      * @return el identificador de inquilino actual del TenantContext si está
      *         disponible;
@@ -35,7 +36,7 @@ class CurrentTenantIdentifierResolverImpl implements CurrentTenantIdentifierReso
 
     
     /**
-     * Valida las sesiones actuales existentes.
+     * @brief Valida las sesiones actuales existentes.
      * 
      * @return true siempre, ya que las sesiones actuales son consideradas válidas
      *         por defecto.
@@ -46,7 +47,7 @@ class CurrentTenantIdentifierResolverImpl implements CurrentTenantIdentifierReso
     }
 
     /**
-     * Personaliza las propiedades de Hibernate dadas agregando el resolutor de
+     * @brief Personaliza las propiedades de Hibernate dadas agregando el resolutor de
      * identificador
      * de inquilino actual como el valor de la configuración
      * {@link AvailableSettings#MULTI_TENANT_IDENTIFIER_RESOLVER}.

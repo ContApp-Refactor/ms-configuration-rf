@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
+/** @brief Configuración de seguridad para la aplicación con JWT y OAuth2 */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
