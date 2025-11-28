@@ -22,6 +22,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * @brief Controlador REST para centros de costo
+ *
+ * Expone endpoints REST para gestionar operaciones CRUD de centros de costo,
+ * incluyendo jerarquía, exportación y cambio de estado.
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/config/cost-centers")

@@ -5,6 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.AssertTrue;
 import lombok.*;
 
+/**
+ * @brief DTO de solicitud para crear centros de costo
+ *
+ * DTO que representa la solicitud para crear un nuevo centro de costo,
+ * con validaciones de código y campos obligatorios.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
