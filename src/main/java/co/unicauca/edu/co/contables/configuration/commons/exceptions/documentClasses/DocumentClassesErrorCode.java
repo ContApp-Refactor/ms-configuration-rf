@@ -3,6 +3,12 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.documentCl
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.ErrorCodeDefinition;
 import lombok.Getter;
 
+/**
+ * @brief Códigos de error para excepciones de clases de documento
+ *
+ * Enumeración que define los códigos de error y mensajes asociados
+ * para las excepciones relacionadas con operaciones de clases de documento.
+ */
 @Getter
 public enum DocumentClassesErrorCode implements ErrorCodeDefinition {
 

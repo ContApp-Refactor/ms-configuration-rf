@@ -18,14 +18,19 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Manejador global de excepciones para toda la aplicación.
+ * @brief Manejador global de excepciones para toda la aplicación.
  * Proporciona respuestas consistentes y descriptivas para diferentes tipos de errores.
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
+     * @brief Maneja excepciones de negocio
+     *
      * Maneja excepciones de negocio y resuelve el estado HTTP según el código de error.
+     * @param ex la excepción de negocio lanzada
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
      */
     @ExceptionHandler(BaseBusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessExceptions(
@@ -47,7 +52,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * @brief Maneja errores de validación de payload
+     *
      * Maneja errores de validación de payload (Bean Validation en @RequestBody con @Valid).
+     * @param ex la excepción de validación de argumentos de método
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error y errores de campo
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Object> handleMethodArgumentNotValid(
@@ -77,7 +87,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * @brief Maneja errores de validación de parámetros
+     *
      * Maneja errores de validación a nivel de parámetros (e.g., @RequestParam, @PathVariable).
+     * @param ex la excepción de violación de restricciones
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error y violaciones
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Object> handleConstraintViolation(
@@ -107,7 +122,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * @brief Maneja errores de deserialización JSON
+     *
      * Maneja errores de deserialización JSON (tipos de datos incorrectos).
+     * @param ex la excepción de mensaje HTTP no legible
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
@@ -140,6 +160,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, status);
     }
 
+    /**
+     * @brief Mapea estado HTTP desde código de error
+     *
+     * Mapea un código de error a un estado HTTP apropiado basado en patrones del código.
+     * @param code el código de error a mapear
+     * @return HttpStatus correspondiente al código de error
+     */
     private HttpStatus mapStatusFromErrorCode(String code) {
         if (code == null) {
             return HttpStatus.BAD_REQUEST;
@@ -155,7 +182,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * @brief Maneja excepciones generales
+     *
      * Maneja excepciones generales no específicas.
+     * @param ex la excepción general
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con respuesta de error interno del servidor
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(

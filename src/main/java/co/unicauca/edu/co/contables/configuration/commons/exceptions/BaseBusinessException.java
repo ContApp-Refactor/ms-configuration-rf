@@ -1,6 +1,8 @@
 package co.unicauca.edu.co.contables.configuration.commons.exceptions;
 
 /**
+ * @brief Excepción base para excepciones de negocio
+ *
  * Excepción base para todas las excepciones de negocio del dominio.
  * Proporciona funcionalidad común para manejo de códigos de error y mensajes.
  */

@@ -3,6 +3,12 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTy
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.ErrorCodeDefinition;
 import lombok.Getter;
 
+/**
+ * @brief Códigos de error para excepciones de tipos de documento
+ *
+ * Enumeración que define los códigos de error y mensajes asociados
+ * para las excepciones relacionadas con operaciones de tipos de documento.
+ */
 @Getter
 public enum DocumentTypesErrorCode implements ErrorCodeDefinition {
     DOCUMENT_TYPE_NOT_FOUND("DOCUMENT_TYPE_NOT_FOUND", "Tipo de documento no encontrado"),

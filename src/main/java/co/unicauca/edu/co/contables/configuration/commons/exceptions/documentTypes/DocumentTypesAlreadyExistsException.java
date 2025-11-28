@@ -2,6 +2,12 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTy
 
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
+/**
+ * @brief Excepción para tipo de documento ya existente
+ *
+ * Se lanza cuando un tipo de documento ya existe (por campo específico)
+ * dentro de una empresa, evitando duplicados.
+ */
 public class DocumentTypesAlreadyExistsException extends BaseBusinessException {
 
     public DocumentTypesAlreadyExistsException() {

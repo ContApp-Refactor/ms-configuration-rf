@@ -2,6 +2,12 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.documentCl
 
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
+/**
+ * @brief Excepción para clase de documento no encontrada
+ *
+ * Se lanza cuando una clase de documento no es encontrada en las operaciones
+ * del sistema, con soporte para identificación por ID.
+ */
 public class DocumentClassesNotFoundException extends BaseBusinessException {
 
     public DocumentClassesNotFoundException() {

@@ -3,6 +3,12 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.helpCenter
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.ErrorCodeDefinition;
 import lombok.Getter;
 
+/**
+ * @brief Códigos de error para excepciones del centro de ayuda
+ *
+ * Enumeración que define los códigos de error y mensajes asociados
+ * para las excepciones relacionadas con operaciones del centro de ayuda.
+ */
 @Getter
 public enum HelpCenterErrorCode implements ErrorCodeDefinition {
     HELP_CENTER_NOT_FOUND("HELP_CENTER_NOT_FOUND", "Registro de ayuda no encontrado"),

@@ -3,7 +3,10 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.documentCl
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
 /**
- * Excepción para cuando se intenta usar una clase de documento inactiva para crear o editar un tipo de documento.
+ * @brief Excepción para clase de documento inactiva
+ *
+ * Se lanza cuando se intenta usar una clase de documento inactiva
+ * para crear o editar un tipo de documento.
  */
 public class DocumentClassInactiveException extends BaseBusinessException {
 
