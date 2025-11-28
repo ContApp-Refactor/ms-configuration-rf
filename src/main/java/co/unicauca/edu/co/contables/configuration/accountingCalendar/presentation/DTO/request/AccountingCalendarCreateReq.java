@@ -4,6 +4,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 
+/**
+ * @brief DTO de solicitud para crear un registro individual
+ *
+ * Estructura de datos para solicitudes de creación de un único registro
+ * en el calendario contable, con validaciones de formato de fecha.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
