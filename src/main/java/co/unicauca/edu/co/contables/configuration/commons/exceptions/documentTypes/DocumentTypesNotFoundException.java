@@ -2,6 +2,12 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTy
 
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
+/**
+ * @brief Excepción para tipo de documento no encontrado
+ *
+ * Se lanza cuando un tipo de documento no es encontrado en las operaciones
+ * del sistema, con soporte para identificación por ID.
+ */
 public class DocumentTypesNotFoundException extends BaseBusinessException {
 
     public DocumentTypesNotFoundException() {

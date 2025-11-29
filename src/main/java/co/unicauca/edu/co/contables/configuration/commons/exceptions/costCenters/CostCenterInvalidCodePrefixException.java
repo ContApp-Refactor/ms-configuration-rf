@@ -3,10 +3,10 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenter
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
 /**
- * Excepción lanzada cuando se intenta actualizar el código de un centro de costo hijo
- * sin mantener el prefijo del código del padre.
- * 
- * Esta validación permite que los hijos siempre mantengan el código del padre como prefijo.
+ * @brief Excepción para prefijo de código inválido en centros de costo
+ *
+ * Se lanza cuando se intenta actualizar el código de un centro de costo hijo
+ * sin mantener el prefijo del código del padre, asegurando la jerarquía.
  */
 public class CostCenterInvalidCodePrefixException extends BaseBusinessException {
 

@@ -37,19 +37,11 @@ public abstract class AbstractMessageListener<T> {
         }
     }
 
-    /**
-     * Procesa el evento específico. Debe ser implementado por cada listener.
-     */
+ 
     protected abstract void processEvent(T event);
 
-    /**
-     * Valida si el evento es válido para procesamiento.
-     */
     protected abstract boolean isValidEvent(T event);
 
-    /**
-     * Retorna el tipo de entidad que maneja este listener (para logging).
-     */
     protected abstract String getEntityType();
 
   

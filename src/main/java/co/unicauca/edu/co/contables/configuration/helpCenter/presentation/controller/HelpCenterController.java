@@ -1,8 +1,8 @@
 package co.unicauca.edu.co.contables.configuration.helpCenter.presentation.controller;
 
 import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
+import co.unicauca.edu.co.contables.configuration.helpCenter.domain.enums.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.mapper.HelpCenterDomainMapper;
-import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.HelpCenter;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.services.IHelpCenterService;
 import co.unicauca.edu.co.contables.configuration.helpCenter.presentation.DTO.request.HelpCenterCreateReq;
@@ -22,6 +22,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * @brief Controlador REST para centro de ayuda
+ *
+ * Expone endpoints REST para gestionar operaciones CRUD de registros del centro de ayuda,
+ * incluyendo búsqueda, filtrado por módulo y obtención de módulos disponibles.
+ */
 @RestController
 @RequestMapping("/api/config/help-center")
 @RequiredArgsConstructor

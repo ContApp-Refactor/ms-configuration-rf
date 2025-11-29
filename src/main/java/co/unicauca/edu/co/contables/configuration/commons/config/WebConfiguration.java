@@ -6,6 +6,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * @brief Configuración web de Spring para multi-tenancy
+ *
+ * Implementa WebMvcConfigurer para registrar interceptores web,
+ * específicamente el TenantInterceptor que maneja la multi-tenancy
+ * en las solicitudes HTTP.
+ */
 @RequiredArgsConstructor
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {

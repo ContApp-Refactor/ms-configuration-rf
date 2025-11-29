@@ -3,7 +3,10 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenter
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
 /**
- * Excepción para cuando un centro de costo ya existe (por código o nombre) dentro de una empresa.
+ * @brief Excepción para centro de costo ya existente
+ *
+ * Se lanza cuando un centro de costo ya existe (por código o nombre)
+ * dentro de una empresa, evitando duplicados.
  */
 public class CostCentersAlreadyExistsException extends BaseBusinessException {
 

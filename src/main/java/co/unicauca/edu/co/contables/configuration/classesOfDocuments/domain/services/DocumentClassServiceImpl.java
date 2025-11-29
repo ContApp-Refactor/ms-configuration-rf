@@ -21,6 +21,13 @@ import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardiz
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.repository.DocumentTypeRepository;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * @brief Implementación del servicio de dominio para clases de documento
+ *
+ * Clase que implementa la lógica de negocio para gestionar clases de documento,
+ * incluyendo operaciones CRUD, validaciones de unicidad, cambios de estado
+ * y consultas paginadas con filtros.
+ */
 @Service
 @RequiredArgsConstructor
 public class DocumentClassServiceImpl implements IDocumentClassService {

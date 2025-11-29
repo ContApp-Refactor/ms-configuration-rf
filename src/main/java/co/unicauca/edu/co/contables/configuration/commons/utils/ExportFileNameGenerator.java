@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Clase utilitaria para generar nombres de archivos de exportación.
+ * @brief Clase utilitaria para generar nombres de archivos de exportación.
  * Centraliza la lógica de generación de nombres para mantener consistencia
  * en toda la aplicación.
  */

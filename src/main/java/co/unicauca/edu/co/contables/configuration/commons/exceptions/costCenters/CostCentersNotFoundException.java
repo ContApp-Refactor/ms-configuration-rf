@@ -3,7 +3,10 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenter
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
 /**
- * Excepción para cuando un centro de costo no es encontrado.
+ * @brief Excepción para centro de costo no encontrado
+ *
+ * Se lanza cuando un centro de costo no es encontrado en las operaciones
+ * del sistema, con soporte para identificación por ID o nombre.
  */
 public class CostCentersNotFoundException extends BaseBusinessException {
     

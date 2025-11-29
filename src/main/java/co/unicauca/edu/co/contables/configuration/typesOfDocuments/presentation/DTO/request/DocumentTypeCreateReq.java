@@ -3,6 +3,7 @@ package co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+/** @brief DTO de solicitud para crear tipos de documentos */
 @Getter
 @Setter
 @NoArgsConstructor

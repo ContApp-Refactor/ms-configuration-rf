@@ -5,9 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de respuesta para información de módulos de documentos.
- */
+/** @brief DTO de respuesta para módulos de documentos */
 @Data
 @Builder
 @NoArgsConstructor

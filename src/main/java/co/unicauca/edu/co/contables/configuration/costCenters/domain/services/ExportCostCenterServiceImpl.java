@@ -17,7 +17,10 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Implementación del servicio de exportación de centros de costo a Excel.
+ * @brief Implementación del servicio de exportación de centros de costo
+ *
+ * Implementación del servicio de exportación de centros de costo a Excel,
+ * generando archivos XLSX con formato y estilos apropiados.
  */
 @Slf4j
 @Service

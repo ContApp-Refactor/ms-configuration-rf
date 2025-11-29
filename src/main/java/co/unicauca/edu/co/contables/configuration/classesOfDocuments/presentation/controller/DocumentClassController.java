@@ -16,7 +16,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
-
+/**
+ * @brief Controlador REST para clases de documento
+ *
+ * Expone endpoints REST para gestionar operaciones CRUD de clases de documento,
+ * incluyendo creación, actualización, consulta paginada, cambio de estado y eliminación.
+ */
 @RestController
 @RequestMapping("/api/config/document-classes")
 @RequiredArgsConstructor

@@ -4,6 +4,12 @@ import lombok.*;
 
 import java.util.List;
 
+/**
+ * @brief Modelo de dominio para centro de costo
+ *
+ * Modelo de dominio que representa un centro de costo en la lógica de negocio,
+ * con soporte para jerarquía, estado y contador de uso.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

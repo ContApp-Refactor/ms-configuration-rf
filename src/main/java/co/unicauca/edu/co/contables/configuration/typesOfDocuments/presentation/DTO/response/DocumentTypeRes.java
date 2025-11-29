@@ -2,6 +2,7 @@ package co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation
 
 import lombok.*;
 
+/** @brief DTO de respuesta para tipos de documentos */
 @Getter
 @Setter
 @NoArgsConstructor

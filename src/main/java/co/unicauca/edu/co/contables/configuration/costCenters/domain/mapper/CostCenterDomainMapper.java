@@ -8,6 +8,12 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
 
+/**
+ * @brief Mapeador de dominio para centros de costo
+ *
+ * Mapeador MapStruct que convierte entre modelos de dominio y DTOs
+ * de presentación para centros de costo.
+ */
 @Mapper(componentModel = "spring")
 public interface CostCenterDomainMapper {
 

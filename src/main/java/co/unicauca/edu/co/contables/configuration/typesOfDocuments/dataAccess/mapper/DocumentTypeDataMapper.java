@@ -2,10 +2,11 @@ package co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.m
 
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.dataAccess.entity.DocumentClassEntity;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.entity.DocumentTypeEntity;
-import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentModule;
+import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.enums.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentType;
 import org.mapstruct.*;
 
+/** @brief Mapper de datos para convertir entre entidades y modelos de dominio de tipos de documentos */
 @Mapper(componentModel = "spring")
 public interface DocumentTypeDataMapper {
 

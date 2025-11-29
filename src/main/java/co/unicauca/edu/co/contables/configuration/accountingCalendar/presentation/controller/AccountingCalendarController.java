@@ -14,6 +14,12 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * @brief Controlador REST para el calendario contable
+ *
+ * Expone endpoints REST para gestionar operaciones CRUD y por lotes
+ * del calendario contable, incluyendo creación, consulta y eliminación.
+ */
 @RestController
 @RequestMapping("/api/config/accounting-calendar")
 @RequiredArgsConstructor

@@ -3,6 +3,12 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.accounting
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.ErrorCodeDefinition;
 import lombok.Getter;
 
+/**
+ * @brief Códigos de error para excepciones de calendario contable
+ *
+ * Enumeración que define los códigos de error y mensajes asociados
+ * para las excepciones relacionadas con operaciones de calendario contable.
+ */
 @Getter
 public enum AccountingCalendarErrorCode implements ErrorCodeDefinition {
     NOT_FOUND("ACCOUNTING_CALENDAR_NOT_FOUND", "Calendario contable no encontrado"),

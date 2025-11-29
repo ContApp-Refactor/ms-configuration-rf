@@ -9,13 +9,14 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
 
+/** @brief Configuración de tareas asíncronas con soporte para multitenancy */
 @Configuration
 @EnableAsync
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 public class AsyncConfig implements AsyncConfigurer {
 
 /**
- * Devuelve un ejecutor de grupo de hilos que decora cada tarea con
+ * @brief Devuelve un ejecutor de grupo de hilos que decora cada tarea con
  * TenantAwareTaskDecorator. Esto significa que cada tarea tendrá
  * el identificador de inquilino establecido antes de ser ejecutada y
  * restablecido después de que termine.

@@ -8,6 +8,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.TenantId;
 
+/**
+ * @brief Entidad JPA para clases de documento
+ *
+ * Representa la tabla 'classes_of_documents' en la base de datos, almacenando
+ * información de clases de documento asociadas a una empresa específica.
+ * Incluye índices para optimizar consultas por empresa y nombre.
+ */
 @Entity
 @Table(
     name = "classes_of_documents",

@@ -7,6 +7,12 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
 
+/**
+ * @brief Mapeador de datos para centros de costo
+ *
+ * Mapeador MapStruct que convierte entre entidades JPA y modelos de dominio
+ * para centros de costo, manejando relaciones jerárquicas.
+ */
 @Mapper(componentModel = "spring")
 public interface CostCenterDataMapper {
 

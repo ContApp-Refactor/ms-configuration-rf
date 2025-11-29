@@ -3,7 +3,10 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.documentCl
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
 /**
- * Excepción para cuando se intenta eliminar o editar una clase de documento que está siendo utilizada por tipos de documentos.
+ * @brief Excepción para clase de documento en uso
+ *
+ * Se lanza cuando se intenta eliminar o editar una clase de documento
+ * que está siendo utilizada por tipos de documentos.
  */
 public class DocumentClassInUseException extends BaseBusinessException {
 

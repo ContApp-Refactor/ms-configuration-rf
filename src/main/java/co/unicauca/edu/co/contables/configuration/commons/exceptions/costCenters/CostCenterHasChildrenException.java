@@ -3,7 +3,10 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenter
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
 /**
- * Excepción para cuando se intenta eliminar un centro de costo que tiene centros de costo hijos.
+ * @brief Excepción para centro de costo con hijos
+ *
+ * Se lanza cuando se intenta eliminar un centro de costo que tiene
+ * centros de costo hijos asociados, impidiendo la eliminación.
  */
 public class CostCenterHasChildrenException extends BaseBusinessException {
 

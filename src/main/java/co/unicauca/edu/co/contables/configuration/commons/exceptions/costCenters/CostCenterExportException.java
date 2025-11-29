@@ -3,7 +3,10 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenter
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
 /**
- * Excepción lanzada cuando ocurre un error durante la exportación de centros de costo.
+ * @brief Excepción para errores en exportación de centros de costo
+ *
+ * Se lanza cuando ocurre un error durante la exportación de centros de costo,
+ * permitiendo mensajes personalizados y manejo de causas.
  */
 public class CostCenterExportException extends BaseBusinessException {
     

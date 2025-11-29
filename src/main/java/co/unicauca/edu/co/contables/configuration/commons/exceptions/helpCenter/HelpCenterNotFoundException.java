@@ -2,6 +2,12 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.helpCenter
 
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
+/**
+ * @brief Excepción para registro de ayuda no encontrado
+ *
+ * Se lanza cuando un registro de ayuda no es encontrado en las operaciones
+ * del sistema, con soporte para identificación por ID.
+ */
 public class HelpCenterNotFoundException extends BaseBusinessException {
     
     public HelpCenterNotFoundException() {

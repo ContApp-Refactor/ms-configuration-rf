@@ -3,7 +3,10 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTy
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
 
 /**
- * Excepción lanzada cuando se intenta usar un módulo inválido.
+ * @brief Excepción para módulo inválido
+ *
+ * Se lanza cuando se intenta usar un módulo inválido o inexistente
+ * en las operaciones del sistema.
  */
 public class InvalidModuleException extends BaseBusinessException {
 

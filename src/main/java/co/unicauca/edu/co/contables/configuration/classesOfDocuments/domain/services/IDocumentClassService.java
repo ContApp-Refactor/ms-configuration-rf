@@ -6,6 +6,12 @@ import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.mode
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassCreateReq;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassUpdateReq;
 
+/**
+ * @brief Interfaz del servicio de dominio para clases de documento
+ *
+ * Define las operaciones de negocio para gestionar clases de documento,
+ * incluyendo creación, actualización, consulta, eliminación y búsquedas paginadas.
+ */
 public interface IDocumentClassService {
 
 	DocumentClass create(DocumentClassCreateReq request);

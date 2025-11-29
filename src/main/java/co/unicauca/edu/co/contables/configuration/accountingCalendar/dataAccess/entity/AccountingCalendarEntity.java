@@ -6,6 +6,13 @@ import lombok.*;
 
 import java.time.LocalDate;
 
+/**
+ * @brief Entidad JPA para el calendario contable
+ *
+ * Representa la tabla 'accounting_calendar' en la base de datos, almacenando
+ * fechas contables asociadas a una empresa específica. Incluye índices para
+ * optimizar consultas por empresa y fecha, y soporte para multi-tenancy.
+ */
 @Entity
 @Table(
     name = "accounting_calendar",

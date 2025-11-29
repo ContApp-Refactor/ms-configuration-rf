@@ -5,6 +5,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * @brief DTO de respuesta para clases de documento
+ *
+ * Representa la estructura de datos enviada como respuesta en las operaciones
+ * de clases de documento, incluyendo ID, nombre, empresa y estado.
+ */
 @Getter
 @Setter
 @AllArgsConstructor

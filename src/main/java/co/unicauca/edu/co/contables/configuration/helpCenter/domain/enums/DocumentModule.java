@@ -1,10 +1,12 @@
-package co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models;
+package co.unicauca.edu.co.contables.configuration.helpCenter.domain.enums;
 
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.InvalidModuleException;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.helpCenter.InvalidModuleException;
 import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
 import lombok.Getter;
 
 /**
+ * @brief Enumeración de módulos de documentos
+ *
  * Enumeración de módulos permitidos para tipos de documentos.
  * Cada módulo tiene un ID único y un nombre.
  */
@@ -18,7 +20,8 @@ public enum DocumentModule {
     CARTERA(5, "Cartera"),
     CONTABLE_COMERCIAL(6, "Contable comercial"),
     CONTABLE_CARTERA(7, "Contable cartera"),
-    ESTADOS_FINANCIEROS(8, "Estados financieros");
+    ESTADOS_FINANCIEROS(8, "Estados financieros"),
+    CONFIGURACION(9, "Configuración");
 
     private final Integer id;
     private final String name;

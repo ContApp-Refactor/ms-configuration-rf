@@ -24,6 +24,12 @@ import java.util.List;
 import java.util.ArrayList;
 import org.springframework.data.domain.PageImpl;
 
+/**
+ * @brief Implementación del servicio de centros de costo
+ *
+ * Implementación principal del servicio de centros de costo que maneja
+ * operaciones CRUD, jerarquía, validaciones y lógica de negocio.
+ */
 @Service
 @RequiredArgsConstructor
 public class CostCenterServiceImpl implements ICostCenterService {

@@ -4,7 +4,10 @@ import co.unicauca.edu.co.contables.configuration.commons.exceptions.ErrorCodeDe
 import lombok.Getter;
 
 /**
- * Códigos de error específicos del dominio de Centros de Costo.
+ * @brief Códigos de error para excepciones de centros de costo
+ *
+ * Enumeración que define los códigos de error y mensajes asociados
+ * para las excepciones relacionadas con operaciones de centros de costo.
  */
 @Getter
 public enum CostCentersErrorCode implements ErrorCodeDefinition {

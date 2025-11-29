@@ -9,9 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Base64;
 
-/**
- * Componente para decodificar tokens JWT y extraer información específica.
- */
+/** @brief Componente para decodificar tokens JWT y extraer información específica */
 @Component
 @Slf4j
 public class JwtDecoder {

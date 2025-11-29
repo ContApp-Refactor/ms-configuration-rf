@@ -3,6 +3,8 @@ package co.unicauca.edu.co.contables.configuration.commons.exceptions;
 import lombok.Getter;
 
 /**
+ * @brief Catálogo de errores núcleo de la aplicación
+ *
  * Catálogo de errores núcleo y comunes a toda la aplicación.
  */
 @Getter

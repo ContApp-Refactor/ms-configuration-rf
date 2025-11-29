@@ -1,9 +1,15 @@
 package co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.entity;
 
-import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.DocumentModule;
+import co.unicauca.edu.co.contables.configuration.helpCenter.domain.enums.DocumentModule;
 import jakarta.persistence.*;
 import lombok.*;
 
+/**
+ * @brief Entidad JPA para registros del centro de ayuda
+ *
+ * Entidad JPA que representa un registro de ayuda en la base de datos,
+ * con índices optimizados para búsquedas por módulo y nombre.
+ */
 @Entity
 @Table(
     name = "help_center",

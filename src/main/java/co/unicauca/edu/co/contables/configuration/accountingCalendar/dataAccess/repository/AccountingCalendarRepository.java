@@ -9,6 +9,13 @@ import java.util.Optional;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * @brief Repositorio para el acceso a datos del calendario contable
+ *
+ * Interfaz que proporciona operaciones de acceso a datos para la entidad AccountingCalendarEntity,
+ * incluyendo consultas personalizadas para filtrar por empresa y rango de fechas.
+ * Extiende JpaRepository para operaciones CRUD básicas.
+ */
 public interface AccountingCalendarRepository extends JpaRepository<AccountingCalendarEntity, Long> {
 
     boolean existsByIdEnterpriseAndDate(String idEnterprise, LocalDate date);

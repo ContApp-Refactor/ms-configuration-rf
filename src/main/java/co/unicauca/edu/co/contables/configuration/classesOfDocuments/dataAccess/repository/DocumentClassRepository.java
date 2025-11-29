@@ -8,6 +8,13 @@ import java.util.Optional;
 
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.dataAccess.entity.DocumentClassEntity;
 
+/**
+ * @brief Repositorio para el acceso a datos de clases de documento
+ *
+ * Interfaz que proporciona operaciones de acceso a datos para la entidad DocumentClassEntity,
+ * incluyendo consultas personalizadas para filtrar por empresa, estado y búsqueda por nombre.
+ * Extiende JpaRepository para operaciones CRUD básicas.
+ */
 public interface DocumentClassRepository extends JpaRepository<DocumentClassEntity, Long> {
     boolean existsByNameAndIdEnterprise(String name, String idEnterprise);
 
@@ -22,14 +29,14 @@ public interface DocumentClassRepository extends JpaRepository<DocumentClassEnti
     Optional<DocumentClassEntity> findByIdAndIdEnterpriseAndStatus(Long id, String idEnterprise, Boolean status);
 
     /**
-     * Cuenta el total de clases de documento por empresa
+     * @brief Cuenta el total de clases de documento por empresa
      * @param idEnterprise ID de la empresa
      * @return Número total de clases de documento
      */
     long countByIdEnterprise(String idEnterprise);
 
     /**
-     * Cuenta el total de clases de documento filtradas por estado
+     * @brief Cuenta el total de clases de documento filtradas por estado
      * @param idEnterprise ID de la empresa
      * @param status Estado de la clase de documento
      * @return Número total de clases de documento con el estado especificado
@@ -37,7 +44,7 @@ public interface DocumentClassRepository extends JpaRepository<DocumentClassEnti
     long countByIdEnterpriseAndStatus(String idEnterprise, Boolean status);
 
     /**
-     * Busca clases de documento por empresa y nombre (búsqueda parcial case-insensitive)
+     * @brief Busca clases de documento por empresa y nombre (búsqueda parcial case-insensitive)
      * @param idEnterprise ID de la empresa
      * @param name Término de búsqueda
      * @param pageable Configuración de paginación
@@ -46,7 +53,7 @@ public interface DocumentClassRepository extends JpaRepository<DocumentClassEnti
     Page<DocumentClassEntity> findByIdEnterpriseAndNameContainingIgnoreCase(String idEnterprise, String name, Pageable pageable);
 
     /**
-     * Cuenta clases de documento por empresa y nombre (búsqueda parcial case-insensitive)
+     * @brief Cuenta clases de documento por empresa y nombre (búsqueda parcial case-insensitive)
      * @param idEnterprise ID de la empresa
      * @param name Término de búsqueda
      * @return Número total de clases de documento que coinciden con la búsqueda

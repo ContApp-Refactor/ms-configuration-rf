@@ -5,6 +5,12 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
+/**
+ * @brief DTO de solicitud para crear por año
+ *
+ * Estructura de datos para solicitudes de creación de registros del calendario
+ * contable en lote para un año completo de una empresa.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
+/** @brief Repositorio JPA para la gestión de tipos de documentos */
 public interface DocumentTypeRepository extends JpaRepository<DocumentTypeEntity, Long> {
 
     boolean existsByPrefixAndIdEnterprise(String prefix, String idEnterprise);
@@ -23,14 +24,8 @@ public interface DocumentTypeRepository extends JpaRepository<DocumentTypeEntity
     
     List<DocumentTypeEntity> findAllByModuleAndIdEnterprise(String module, String idEnterprise);
 
-    // Método para verificar si una clase de documento está siendo usada por tipos
     boolean existsByDocumentClassId(Long documentClassId);
-
-    /**
-     * Cuenta el total de tipos de documento por empresa
-     * @param idEnterprise ID de la empresa
-     * @return Número total de tipos de documento
-     */
+   
     long countByIdEnterprise(String idEnterprise);
 
     /**

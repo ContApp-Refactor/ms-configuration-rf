@@ -5,6 +5,12 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
+/**
+ * @brief DTO de solicitud para crear por mes
+ *
+ * Estructura de datos para solicitudes de creación de registros del calendario
+ * contable en lote para un mes específico de una empresa.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -7,6 +7,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * @brief DTO de solicitud para actualizar clases de documento
+ *
+ * Estructura de datos para solicitudes de actualización de clases de documento,
+ * incluyendo validaciones de obligatoriedad para ID, empresa y nombre.
+ */
 @Getter
 @Setter
 @AllArgsConstructor

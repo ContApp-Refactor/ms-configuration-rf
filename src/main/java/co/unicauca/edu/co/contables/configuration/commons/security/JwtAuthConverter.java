@@ -16,11 +16,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.stereotype.Component;
 
-/**
- * Convierte un {@link Jwt} en un {@link AbstractAuthenticationToken} y expone
- * utilidades para obtener datos del JWT. Implementa {@link IJwtUtils} para que
- * otros componentes (como el interceptor de tenant) puedan obtener el id.
- */
+/** @brief Convierte JWT en tokens de autenticación y expone utilidades para obtener datos del JWT */
 @Component
 public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationToken>, IJwtUtils {
 
