@@ -1,4 +1,4 @@
-package co.unicauca.edu.co.contables.configuration.commons.security;
+package co.unicauca.edu.co.contables.configuration.unit.commons.security;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +11,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import co.unicauca.edu.co.contables.configuration.commons.security.JwtAuthConverter;
 
 import java.time.Instant;
 import java.util.*;

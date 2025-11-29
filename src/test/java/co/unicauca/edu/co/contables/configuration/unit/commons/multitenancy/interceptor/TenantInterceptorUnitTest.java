@@ -1,4 +1,4 @@
-package co.unicauca.edu.co.contables.configuration.commons.multitenancy.interceptor;
+package co.unicauca.edu.co.contables.configuration.unit.commons.multitenancy.interceptor;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.web.context.request.WebRequest;
 
+import co.unicauca.edu.co.contables.configuration.commons.multitenancy.interceptor.TenantInterceptor;
 import co.unicauca.edu.co.contables.configuration.commons.multitenancy.utils.TenantContext;
 import co.unicauca.edu.co.contables.configuration.commons.security.IJwtUtils;
 

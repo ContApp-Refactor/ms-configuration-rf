@@ -1,4 +1,4 @@
-package co.unicauca.edu.co.contables.configuration.commons.exceptions;
+package co.unicauca.edu.co.contables.configuration.unit.commons.exceptions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -32,6 +32,11 @@ import org.springframework.web.context.request.WebRequest;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.BaseBusinessException;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.ErrorCode;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.ErrorCodeDefinition;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.ErrorResponse;
+import co.unicauca.edu.co.contables.configuration.commons.exceptions.GlobalExceptionHandler;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Path;

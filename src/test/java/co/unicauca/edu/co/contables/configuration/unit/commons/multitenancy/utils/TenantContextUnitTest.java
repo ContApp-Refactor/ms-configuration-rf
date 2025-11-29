@@ -1,9 +1,10 @@
-package co.unicauca.edu.co.contables.configuration.commons.multitenancy.utils;
+package co.unicauca.edu.co.contables.configuration.unit.commons.multitenancy.utils;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import co.unicauca.edu.co.contables.configuration.commons.multitenancy.utils.TenantContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
