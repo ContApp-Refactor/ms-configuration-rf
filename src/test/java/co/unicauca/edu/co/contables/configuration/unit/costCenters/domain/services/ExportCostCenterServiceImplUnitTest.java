@@ -65,10 +65,13 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe exportar todos los centros de costo cuando status es null")
     void testExportCostCentersAllWhenStatusIsNull() throws IOException {
+        // Arrange
         when(costCenterRepository.findAllByIdEnterprise(ENTERPRISE_ID)).thenReturn(List.of(entity, entityInactive));
 
+        // Act
         Resource result = service.exportCostCenters(ENTERPRISE_ID, null);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.contentLength() > 0);
         verify(costCenterRepository).findAllByIdEnterprise(ENTERPRISE_ID);
@@ -78,10 +81,13 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe exportar solo centros de costo activos cuando status es true")
     void testExportCostCentersActiveOnly() throws IOException {
+        // Arrange
         when(costCenterRepository.findAllByIdEnterpriseAndStatus(ENTERPRISE_ID, true)).thenReturn(List.of(entity));
 
+        // Act
         Resource result = service.exportCostCenters(ENTERPRISE_ID, true);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.contentLength() > 0);
         verify(costCenterRepository).findAllByIdEnterpriseAndStatus(ENTERPRISE_ID, true);
@@ -91,10 +97,13 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe exportar solo centros de costo inactivos cuando status es false")
     void testExportCostCentersInactiveOnly() throws IOException {
+        // Arrange
         when(costCenterRepository.findAllByIdEnterpriseAndStatus(ENTERPRISE_ID, false)).thenReturn(List.of(entityInactive));
 
+        // Act
         Resource result = service.exportCostCenters(ENTERPRISE_ID, false);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.contentLength() > 0);
         verify(costCenterRepository).findAllByIdEnterpriseAndStatus(ENTERPRISE_ID, false);
@@ -103,8 +112,10 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe lanzar excepción cuando no hay datos con status null")
     void testExportCostCentersThrowsExceptionWhenNoDataWithNullStatus() {
+        // Arrange
         when(costCenterRepository.findAllByIdEnterprise(ENTERPRISE_ID)).thenReturn(Collections.emptyList());
 
+        // Act & Assert
         assertThrows(CostCenterExportNoDataException.class, () -> service.exportCostCenters(ENTERPRISE_ID, null));
 
         verify(costCenterRepository).findAllByIdEnterprise(ENTERPRISE_ID);
@@ -113,8 +124,10 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe lanzar excepción cuando no hay centros activos")
     void testExportCostCentersThrowsExceptionWhenNoActiveData() {
+        // Arrange
         when(costCenterRepository.findAllByIdEnterpriseAndStatus(ENTERPRISE_ID, true)).thenReturn(Collections.emptyList());
 
+        // Act & Assert
         assertThrows(CostCenterExportNoDataException.class, () -> service.exportCostCenters(ENTERPRISE_ID, true));
 
         verify(costCenterRepository).findAllByIdEnterpriseAndStatus(ENTERPRISE_ID, true);
@@ -123,8 +136,10 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe lanzar excepción cuando no hay centros inactivos")
     void testExportCostCentersThrowsExceptionWhenNoInactiveData() {
+        // Arrange
         when(costCenterRepository.findAllByIdEnterpriseAndStatus(ENTERPRISE_ID, false)).thenReturn(Collections.emptyList());
 
+        // Act & Assert
         assertThrows(CostCenterExportNoDataException.class, () -> service.exportCostCenters(ENTERPRISE_ID, false));
 
         verify(costCenterRepository).findAllByIdEnterpriseAndStatus(ENTERPRISE_ID, false);
@@ -133,10 +148,13 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe generar archivo Excel válido")
     void testExportCostCentersGeneratesValidExcelFile() throws IOException {
+        // Arrange
         when(costCenterRepository.findAllByIdEnterprise(ENTERPRISE_ID)).thenReturn(List.of(entity));
 
+        // Act
         Resource result = service.exportCostCenters(ENTERPRISE_ID, null);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.exists());
         assertTrue(result.isReadable());
@@ -153,6 +171,7 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe exportar múltiples centros de costo correctamente")
     void testExportCostCentersMultipleEntities() throws IOException {
+        // Arrange
         CostCenterEntity entity2 = CostCenterEntity.builder()
                 .id(3L)
                 .idEnterprise(ENTERPRISE_ID)
@@ -172,8 +191,10 @@ class ExportCostCenterServiceImplUnitTest {
         when(costCenterRepository.findAllByIdEnterpriseAndStatus(ENTERPRISE_ID, true))
                 .thenReturn(List.of(entity, entity2, entity3));
 
+        // Act
         Resource result = service.exportCostCenters(ENTERPRISE_ID, true);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.contentLength() > 0);
     }
@@ -181,6 +202,7 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe manejar centro de costo con nombre largo")
     void testExportCostCentersWithLongName() throws IOException {
+        // Arrange
         CostCenterEntity entityLongName = CostCenterEntity.builder()
                 .id(5L)
                 .idEnterprise(ENTERPRISE_ID)
@@ -191,8 +213,10 @@ class ExportCostCenterServiceImplUnitTest {
                 .build();
         when(costCenterRepository.findAllByIdEnterprise(ENTERPRISE_ID)).thenReturn(List.of(entityLongName));
 
+        // Act
         Resource result = service.exportCostCenters(ENTERPRISE_ID, null);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.contentLength() > 0);
     }
@@ -200,6 +224,7 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe manejar centro de costo con código corto")
     void testExportCostCentersWithShortCode() throws IOException {
+        // Arrange
         CostCenterEntity entityShortCode = CostCenterEntity.builder()
                 .id(6L)
                 .idEnterprise(ENTERPRISE_ID)
@@ -210,8 +235,10 @@ class ExportCostCenterServiceImplUnitTest {
                 .build();
         when(costCenterRepository.findAllByIdEnterprise(ENTERPRISE_ID)).thenReturn(List.of(entityShortCode));
 
+        // Act
         Resource result = service.exportCostCenters(ENTERPRISE_ID, null);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.contentLength() > 0);
     }
@@ -219,10 +246,13 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe incluir centros activos e inactivos cuando status es null")
     void testExportCostCentersIncludesBothStatuses() throws IOException {
+        // Arrange
         when(costCenterRepository.findAllByIdEnterprise(ENTERPRISE_ID)).thenReturn(List.of(entity, entityInactive));
 
+        // Act
         Resource result = service.exportCostCenters(ENTERPRISE_ID, null);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.contentLength() > 0);
         verify(costCenterRepository).findAllByIdEnterprise(ENTERPRISE_ID);
@@ -231,10 +261,13 @@ class ExportCostCenterServiceImplUnitTest {
     @Test
     @DisplayName("exportCostCenters - Debe generar recurso con contenido no vacío")
     void testExportCostCentersResourceNotEmpty() throws IOException {
+        // Arrange
         when(costCenterRepository.findAllByIdEnterpriseAndStatus(ENTERPRISE_ID, true)).thenReturn(List.of(entity));
 
+        // Act
         Resource result = service.exportCostCenters(ENTERPRISE_ID, true);
 
+        // Assert
         assertNotNull(result);
         assertNotNull(result.getInputStream());
         assertTrue(result.contentLength() > 100);

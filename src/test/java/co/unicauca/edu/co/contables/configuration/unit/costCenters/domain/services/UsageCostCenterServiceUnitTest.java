@@ -47,11 +47,14 @@ class UsageCostCenterServiceUnitTest {
     @Test
     @DisplayName("incrementUsageCount - Debe incrementar contador de uso cuando centro existe con usageCount 0")
     void testIncrementUsageCountFromZero() {
+        // Arrange
         when(costCenterService.findById(COST_CENTER_ID)).thenReturn(costCenter);
         doNothing().when(costCenterService).updateUsageCount(COST_CENTER_ID, 1);
 
+        // Act
         service.incrementUsageCount(COST_CENTER_ID);
 
+        // Assert
         verify(costCenterService).findById(COST_CENTER_ID);
         verify(costCenterService).updateUsageCount(COST_CENTER_ID, 1);
     }
@@ -59,12 +62,15 @@ class UsageCostCenterServiceUnitTest {
     @Test
     @DisplayName("incrementUsageCount - Debe incrementar contador de uso cuando ya tiene valor")
     void testIncrementUsageCountFromExistingValue() {
+        // Arrange
         costCenter.setUsageCount(5);
         when(costCenterService.findById(COST_CENTER_ID)).thenReturn(costCenter);
         doNothing().when(costCenterService).updateUsageCount(COST_CENTER_ID, 6);
 
+        // Act
         service.incrementUsageCount(COST_CENTER_ID);
 
+        // Assert
         verify(costCenterService).findById(COST_CENTER_ID);
         verify(costCenterService).updateUsageCount(COST_CENTER_ID, 6);
     }
@@ -72,12 +78,15 @@ class UsageCostCenterServiceUnitTest {
     @Test
     @DisplayName("incrementUsageCount - Debe incrementar a 1 cuando usageCount es null")
     void testIncrementUsageCountWhenUsageCountIsNull() {
+        // Arrange
         costCenter.setUsageCount(null);
         when(costCenterService.findById(COST_CENTER_ID)).thenReturn(costCenter);
         doNothing().when(costCenterService).updateUsageCount(COST_CENTER_ID, 1);
 
+        // Act
         service.incrementUsageCount(COST_CENTER_ID);
 
+        // Assert
         verify(costCenterService).findById(COST_CENTER_ID);
         verify(costCenterService).updateUsageCount(COST_CENTER_ID, 1);
     }
@@ -85,10 +94,13 @@ class UsageCostCenterServiceUnitTest {
     @Test
     @DisplayName("incrementUsageCount - No debe actualizar cuando centro de costo no existe")
     void testIncrementUsageCountWhenCostCenterNotFound() {
+        // Arrange
         when(costCenterService.findById(COST_CENTER_ID)).thenReturn(null);
 
+        // Act
         service.incrementUsageCount(COST_CENTER_ID);
 
+        // Assert
         verify(costCenterService).findById(COST_CENTER_ID);
         verify(costCenterService, never()).updateUsageCount(anyLong(), anyInt());
     }
@@ -96,10 +108,13 @@ class UsageCostCenterServiceUnitTest {
     @Test
     @DisplayName("incrementUsageCount - Debe manejar excepción en findById sin propagar")
     void testIncrementUsageCountHandlesExceptionInFindById() {
+        // Arrange
         when(costCenterService.findById(COST_CENTER_ID)).thenThrow(new RuntimeException("Error en búsqueda"));
 
+        // Act
         service.incrementUsageCount(COST_CENTER_ID);
 
+        // Assert
         verify(costCenterService).findById(COST_CENTER_ID);
         verify(costCenterService, never()).updateUsageCount(anyLong(), anyInt());
     }
@@ -107,11 +122,14 @@ class UsageCostCenterServiceUnitTest {
     @Test
     @DisplayName("incrementUsageCount - Debe manejar excepción en updateUsageCount sin propagar")
     void testIncrementUsageCountHandlesExceptionInUpdate() {
+        // Arrange
         when(costCenterService.findById(COST_CENTER_ID)).thenReturn(costCenter);
         doThrow(new RuntimeException("Error en actualización")).when(costCenterService).updateUsageCount(COST_CENTER_ID, 1);
 
+        // Act
         service.incrementUsageCount(COST_CENTER_ID);
 
+        // Assert
         verify(costCenterService).findById(COST_CENTER_ID);
         verify(costCenterService).updateUsageCount(COST_CENTER_ID, 1);
     }
@@ -119,18 +137,22 @@ class UsageCostCenterServiceUnitTest {
     @Test
     @DisplayName("incrementUsageCount - Debe incrementar correctamente con valor alto de usageCount")
     void testIncrementUsageCountWithHighValue() {
+        // Arrange
         costCenter.setUsageCount(999);
         when(costCenterService.findById(COST_CENTER_ID)).thenReturn(costCenter);
         doNothing().when(costCenterService).updateUsageCount(COST_CENTER_ID, 1000);
 
+        // Act
         service.incrementUsageCount(COST_CENTER_ID);
 
+        // Assert
         verify(costCenterService).updateUsageCount(COST_CENTER_ID, 1000);
     }
 
     @Test
     @DisplayName("incrementUsageCount - Debe llamar findById con el ID correcto")
     void testIncrementUsageCountCallsFindByIdWithCorrectId() {
+        // Arrange
         Long specificId = 123L;
         CostCenter specificCostCenter = CostCenter.builder()
                 .id(specificId)
@@ -143,8 +165,10 @@ class UsageCostCenterServiceUnitTest {
         when(costCenterService.findById(specificId)).thenReturn(specificCostCenter);
         doNothing().when(costCenterService).updateUsageCount(specificId, 11);
 
+        // Act
         service.incrementUsageCount(specificId);
 
+        // Assert
         verify(costCenterService).findById(specificId);
         verify(costCenterService).updateUsageCount(specificId, 11);
     }

@@ -112,6 +112,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("create - Debe crear centro de costo exitosamente sin padre")
     void testCreateSuccessWithoutParent() {
+        // Arrange
         when(repository.existsByCodeAndIdEnterprise(CODE, ID_ENTERPRISE)).thenReturn(false);
         when(repository.existsByNameAndIdEnterprise(anyString(), eq(ID_ENTERPRISE))).thenReturn(false);
         when(domainMapper.toDomain(createRequest)).thenReturn(domain);
@@ -119,8 +120,10 @@ class CostCenterServiceImplUnitTest {
         when(repository.save(entity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         CostCenter result = service.create(createRequest);
 
+        // Assert
         assertNotNull(result);
         assertEquals(ID, result.getId());
         verify(repository).save(entity);
@@ -129,6 +132,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("create - Debe crear centro de costo exitosamente con padre")
     void testCreateSuccessWithParent() {
+        // Arrange
         createRequest.setParentId(PARENT_ID);
         when(repository.existsByCodeAndIdEnterprise(CODE, ID_ENTERPRISE)).thenReturn(false);
         when(repository.existsByNameAndIdEnterprise(anyString(), eq(ID_ENTERPRISE))).thenReturn(false);
@@ -138,8 +142,10 @@ class CostCenterServiceImplUnitTest {
         when(repository.save(entity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         CostCenter result = service.create(createRequest);
 
+        // Assert
         assertNotNull(result);
         verify(repository).findByIdAndIdEnterprise(PARENT_ID, ID_ENTERPRISE);
         verify(repository).save(entity);
@@ -148,6 +154,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("create - Debe activar padre inactivo cuando se crea hijo")
     void testCreateActivatesInactiveParent() {
+        // Arrange
         createRequest.setParentId(PARENT_ID);
         parentEntity.setStatus(false);
         when(repository.existsByCodeAndIdEnterprise(CODE, ID_ENTERPRISE)).thenReturn(false);
@@ -158,8 +165,10 @@ class CostCenterServiceImplUnitTest {
         when(repository.save(any(CostCenterEntity.class))).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         service.create(createRequest);
 
+        // Assert
         assertTrue(parentEntity.getStatus());
         verify(repository, atLeast(2)).save(any(CostCenterEntity.class));
     }
@@ -167,8 +176,10 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("create - Debe lanzar excepción cuando código ya existe")
     void testCreateThrowsExceptionWhenCodeExists() {
+        // Arrange
         when(repository.existsByCodeAndIdEnterprise(CODE, ID_ENTERPRISE)).thenReturn(true);
 
+        // Act & Assert
         assertThrows(CostCentersAlreadyExistsException.class, () -> service.create(createRequest));
 
         verify(repository, never()).save(any());
@@ -177,9 +188,11 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("create - Debe lanzar excepción cuando nombre ya existe")
     void testCreateThrowsExceptionWhenNameExists() {
+        // Arrange
         when(repository.existsByCodeAndIdEnterprise(CODE, ID_ENTERPRISE)).thenReturn(false);
         when(repository.existsByNameAndIdEnterprise(anyString(), eq(ID_ENTERPRISE))).thenReturn(true);
 
+        // Act & Assert
         assertThrows(CostCentersAlreadyExistsException.class, () -> service.create(createRequest));
 
         verify(repository, never()).save(any());
@@ -188,6 +201,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("create - Debe lanzar excepción cuando padre no existe")
     void testCreateThrowsExceptionWhenParentNotFound() {
+        // Arrange
         createRequest.setParentId(PARENT_ID);
         when(repository.existsByCodeAndIdEnterprise(CODE, ID_ENTERPRISE)).thenReturn(false);
         when(repository.existsByNameAndIdEnterprise(anyString(), eq(ID_ENTERPRISE))).thenReturn(false);
@@ -195,6 +209,7 @@ class CostCenterServiceImplUnitTest {
         when(dataMapper.toEntity(domain)).thenReturn(entity);
         when(repository.findByIdAndIdEnterprise(PARENT_ID, ID_ENTERPRISE)).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(CostCentersNotFoundException.class, () -> service.create(createRequest));
 
         verify(repository, never()).save(any());
@@ -205,12 +220,15 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe actualizar centro de costo exitosamente")
     void testUpdateSuccess() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
         when(repository.save(entity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         CostCenter result = service.update(updateRequest);
 
+        // Assert
         assertNotNull(result);
         verify(repository).save(entity);
     }
@@ -218,8 +236,10 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe lanzar excepción cuando centro de costo no existe")
     void testUpdateThrowsExceptionWhenNotFound() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(CostCentersNotFoundException.class, () -> service.update(updateRequest));
 
         verify(repository, never()).save(any());
@@ -228,9 +248,11 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe lanzar excepción cuando centro de costo tiene movimientos")
     void testUpdateThrowsExceptionWhenInUse() {
+        // Arrange
         entity.setUsageCount(5);
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
 
+        // Act & Assert
         assertThrows(CostCenterInUseException.class, () -> service.update(updateRequest));
 
         verify(repository, never()).save(any());
@@ -239,10 +261,12 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe lanzar excepción cuando nuevo código ya existe")
     void testUpdateThrowsExceptionWhenNewCodeExists() {
+        // Arrange
         updateRequest.setCode("NUEVO");
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
         when(repository.existsByCodeAndIdEnterprise("NUEVO", ID_ENTERPRISE)).thenReturn(true);
 
+        // Act & Assert
         assertThrows(CostCentersAlreadyExistsException.class, () -> service.update(updateRequest));
 
         verify(repository, never()).save(any());
@@ -251,10 +275,12 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe lanzar excepción cuando nuevo nombre ya existe en otra entidad")
     void testUpdateThrowsExceptionWhenNewNameExists() {
+        // Arrange
         updateRequest.setName("Nuevo nombre");
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
         when(repository.existsByNameAndIdEnterpriseAndIdNot(anyString(), eq(ID_ENTERPRISE), eq(ID))).thenReturn(true);
 
+        // Act & Assert
         assertThrows(CostCentersAlreadyExistsException.class, () -> service.update(updateRequest));
 
         verify(repository, never()).save(any());
@@ -263,10 +289,12 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe lanzar excepción cuando código no mantiene prefijo del padre")
     void testUpdateThrowsExceptionWhenCodePrefixInvalid() {
+        // Arrange
         entity.setParent(parentEntity);
         updateRequest.setCode("2001");
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
 
+        // Act & Assert
         assertThrows(CostCenterInvalidCodePrefixException.class, () -> service.update(updateRequest));
 
         verify(repository, never()).save(any());
@@ -275,6 +303,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe actualizar códigos de hijos cuando código padre cambia")
     void testUpdateCascadesCodeChangeToChildren() {
+        // Arrange
         CostCenterEntity childEntity = CostCenterEntity.builder()
                 .id(3L)
                 .idEnterprise(ID_ENTERPRISE)
@@ -292,8 +321,10 @@ class CostCenterServiceImplUnitTest {
         when(repository.save(childEntity)).thenReturn(childEntity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         service.update(updateRequest);
 
+        // Assert
         assertEquals("200101", childEntity.getCode());
         verify(repository).save(childEntity);
     }
@@ -301,14 +332,17 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe asignar nuevo padre correctamente")
     void testUpdateWithNewParent() {
+        // Arrange
         updateRequest.setParentId(PARENT_ID);
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
         when(repository.findByIdAndIdEnterprise(PARENT_ID, ID_ENTERPRISE)).thenReturn(Optional.of(parentEntity));
         when(repository.save(entity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         service.update(updateRequest);
 
+        // Assert
         assertEquals(parentEntity, entity.getParent());
         verify(repository).save(entity);
     }
@@ -316,14 +350,17 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe remover padre cuando parentId es null")
     void testUpdateRemovesParentWhenNull() {
+        // Arrange
         entity.setParent(parentEntity);
         updateRequest.setParentId(null);
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
         when(repository.save(entity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         service.update(updateRequest);
 
+        // Assert
         assertNull(entity.getParent());
         verify(repository).save(entity);
     }
@@ -333,12 +370,15 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterpriseAndStatus - Debe retornar página de centros de costo")
     void testFindAllByEnterpriseAndStatusSuccess() {
+        // Arrange
         Page<CostCenterEntity> entityPage = new PageImpl<>(List.of(entity));
         when(repository.findAllByIdEnterpriseAndStatus(eq(ID_ENTERPRISE), eq(true), any(Pageable.class))).thenReturn(entityPage);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         Page<CostCenter> result = service.findAllByEnterpriseAndStatus(ID_ENTERPRISE, true, 0, 10);
 
+        // Assert
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         verify(repository).findAllByIdEnterpriseAndStatus(eq(ID_ENTERPRISE), eq(true), any(Pageable.class));
@@ -347,11 +387,14 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterpriseAndStatus - Debe retornar página vacía cuando no hay resultados")
     void testFindAllByEnterpriseAndStatusEmpty() {
+        // Arrange
         Page<CostCenterEntity> emptyPage = new PageImpl<>(Collections.emptyList());
         when(repository.findAllByIdEnterpriseAndStatus(eq(ID_ENTERPRISE), eq(true), any(Pageable.class))).thenReturn(emptyPage);
 
+        // Act
         Page<CostCenter> result = service.findAllByEnterpriseAndStatus(ID_ENTERPRISE, true, 0, 10);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
@@ -361,6 +404,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterpriseHierarchical - Debe retornar jerarquía completa")
     void testFindAllByEnterpriseHierarchicalSuccess() {
+        // Arrange
         CostCenterEntity childEntity = CostCenterEntity.builder()
                 .id(3L)
                 .idEnterprise(ID_ENTERPRISE)
@@ -377,8 +421,10 @@ class CostCenterServiceImplUnitTest {
         CostCenter childDomain = CostCenter.builder().id(3L).code("1001").name("Hijo").build();
         when(dataMapper.toDomain(childEntity)).thenReturn(childDomain);
 
+        // Act
         Page<CostCenter> result = service.findAllByEnterpriseHierarchical(ID_ENTERPRISE, 0, 10);
 
+        // Assert
         assertNotNull(result);
         assertEquals(2, result.getContent().size());
     }
@@ -386,11 +432,14 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterpriseHierarchical - Debe retornar página vacía cuando índice excede total")
     void testFindAllByEnterpriseHierarchicalEmptyWhenPageExceeds() {
+        // Arrange
         when(repository.findByIdEnterpriseAndParentIsNullOrderByCode(ID_ENTERPRISE)).thenReturn(List.of(entity));
         when(repository.findByParentId(ID)).thenReturn(Collections.emptyList());
 
+        // Act
         Page<CostCenter> result = service.findAllByEnterpriseHierarchical(ID_ENTERPRISE, 10, 10);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.getContent().isEmpty());
     }
@@ -398,10 +447,13 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterpriseHierarchical - Debe retornar página vacía cuando no hay raíces")
     void testFindAllByEnterpriseHierarchicalNoRoots() {
+        // Arrange
         when(repository.findByIdEnterpriseAndParentIsNullOrderByCode(ID_ENTERPRISE)).thenReturn(Collections.emptyList());
 
+        // Act
         Page<CostCenter> result = service.findAllByEnterpriseHierarchical(ID_ENTERPRISE, 0, 10);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.getContent().isEmpty());
     }
@@ -411,11 +463,14 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findById con empresa - Debe retornar centro de costo existente")
     void testFindByIdWithEnterpriseSuccess() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         CostCenter result = service.findById(ID, ID_ENTERPRISE);
 
+        // Assert
         assertNotNull(result);
         assertEquals(ID, result.getId());
     }
@@ -423,19 +478,24 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findById con empresa - Debe lanzar excepción cuando no existe")
     void testFindByIdWithEnterpriseNotFound() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(CostCentersNotFoundException.class, () -> service.findById(ID, ID_ENTERPRISE));
     }
 
     @Test
     @DisplayName("findById sin empresa - Debe retornar centro de costo existente")
     void testFindByIdWithoutEnterpriseSuccess() {
+        // Arrange
         when(repository.findById(ID)).thenReturn(Optional.of(entity));
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         CostCenter result = service.findById(ID);
 
+        // Assert
         assertNotNull(result);
         assertEquals(ID, result.getId());
     }
@@ -443,10 +503,13 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findById sin empresa - Debe retornar null cuando no existe")
     void testFindByIdWithoutEnterpriseReturnsNull() {
+        // Arrange
         when(repository.findById(ID)).thenReturn(Optional.empty());
 
+        // Act
         CostCenter result = service.findById(ID);
 
+        // Assert
         assertNull(result);
     }
 
@@ -455,13 +518,16 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("changeState - Debe activar centro de costo")
     void testChangeStateActivate() {
+        // Arrange
         entity.setStatus(false);
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
         when(repository.save(entity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         CostCenter result = service.changeState(ID, ID_ENTERPRISE, true);
 
+        // Assert
         assertNotNull(result);
         assertTrue(entity.getStatus());
         verify(repository).save(entity);
@@ -470,6 +536,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("changeState - Debe desactivar centro de costo y sus hijos")
     void testChangeStateDeactivateWithChildren() {
+        // Arrange
         CostCenterEntity childEntity = CostCenterEntity.builder()
                 .id(3L)
                 .idEnterprise(ID_ENTERPRISE)
@@ -485,8 +552,10 @@ class CostCenterServiceImplUnitTest {
         when(repository.findByParentId(3L)).thenReturn(Collections.emptyList());
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         service.changeState(ID, ID_ENTERPRISE, false);
 
+        // Assert
         assertFalse(entity.getStatus());
         assertFalse(childEntity.getStatus());
         verify(repository, times(2)).save(any(CostCenterEntity.class));
@@ -495,6 +564,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("changeState - Debe activar padre cuando se activa hijo")
     void testChangeStateActivatesParent() {
+        // Arrange
         entity.setParent(parentEntity);
         parentEntity.setStatus(false);
         entity.setStatus(false);
@@ -502,8 +572,10 @@ class CostCenterServiceImplUnitTest {
         when(repository.save(any(CostCenterEntity.class))).thenAnswer(inv -> inv.getArgument(0));
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         service.changeState(ID, ID_ENTERPRISE, true);
 
+        // Assert
         assertTrue(parentEntity.getStatus());
         verify(repository, atLeast(2)).save(any(CostCenterEntity.class));
     }
@@ -511,8 +583,10 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("changeState - Debe lanzar excepción cuando no existe")
     void testChangeStateThrowsExceptionWhenNotFound() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(CostCentersNotFoundException.class, () -> service.changeState(ID, ID_ENTERPRISE, true));
 
         verify(repository, never()).save(any());
@@ -523,12 +597,15 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("delete - Debe eliminar centro de costo exitosamente")
     void testDeleteSuccess() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
         when(repository.existsByParentId(ID)).thenReturn(false);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         CostCenter result = service.delete(ID, ID_ENTERPRISE);
 
+        // Assert
         assertNotNull(result);
         verify(repository).delete(entity);
     }
@@ -536,8 +613,10 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("delete - Debe lanzar excepción cuando no existe")
     void testDeleteThrowsExceptionWhenNotFound() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(CostCentersNotFoundException.class, () -> service.delete(ID, ID_ENTERPRISE));
 
         verify(repository, never()).delete(any());
@@ -546,9 +625,11 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("delete - Debe lanzar excepción cuando tiene movimientos")
     void testDeleteThrowsExceptionWhenInUse() {
+        // Arrange
         entity.setUsageCount(5);
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
 
+        // Act & Assert
         assertThrows(CostCenterInUseException.class, () -> service.delete(ID, ID_ENTERPRISE));
 
         verify(repository, never()).delete(any());
@@ -557,9 +638,11 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("delete - Debe lanzar excepción cuando tiene hijos")
     void testDeleteThrowsExceptionWhenHasChildren() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ID_ENTERPRISE)).thenReturn(Optional.of(entity));
         when(repository.existsByParentId(ID)).thenReturn(true);
 
+        // Act & Assert
         assertThrows(CostCenterHasChildrenException.class, () -> service.delete(ID, ID_ENTERPRISE));
 
         verify(repository, never()).delete(any());
@@ -570,11 +653,14 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findActiveLastLevelCostCenters - Debe retornar centros de costo auxiliares")
     void testFindActiveLastLevelCostCentersSuccess() {
+        // Arrange
         when(repository.findAuxiliaryCostCenters(ID_ENTERPRISE)).thenReturn(List.of(entity));
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         List<CostCenter> result = service.findActiveLastLevelCostCenters(ID_ENTERPRISE);
 
+        // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
     }
@@ -582,10 +668,13 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findActiveLastLevelCostCenters - Debe retornar lista vacía cuando no hay resultados")
     void testFindActiveLastLevelCostCentersEmpty() {
+        // Arrange
         when(repository.findAuxiliaryCostCenters(ID_ENTERPRISE)).thenReturn(Collections.emptyList());
 
+        // Act
         List<CostCenter> result = service.findActiveLastLevelCostCenters(ID_ENTERPRISE);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
@@ -595,20 +684,26 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("countAllByEnterprise - Debe retornar conteo correcto")
     void testCountAllByEnterpriseSuccess() {
+        // Arrange
         when(repository.countByIdEnterprise(ID_ENTERPRISE)).thenReturn(10L);
 
+        // Act
         long result = service.countAllByEnterprise(ID_ENTERPRISE);
 
+        // Assert
         assertEquals(10L, result);
     }
 
     @Test
     @DisplayName("countAllByEnterpriseAndStatus - Debe retornar conteo correcto")
     void testCountAllByEnterpriseAndStatusSuccess() {
+        // Arrange
         when(repository.countByIdEnterpriseAndStatus(ID_ENTERPRISE, true)).thenReturn(5L);
 
+        // Act
         long result = service.countAllByEnterpriseAndStatus(ID_ENTERPRISE, true);
 
+        // Assert
         assertEquals(5L, result);
     }
 
@@ -617,14 +712,17 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findByEnterpriseAndSearch - Debe retornar página de resultados")
     void testFindByEnterpriseAndSearchSuccess() {
+        // Arrange
         String search = "centro";
         Page<CostCenterEntity> entityPage = new PageImpl<>(List.of(entity));
         when(repository.findByIdEnterpriseAndCodeContainingIgnoreCaseOrIdEnterpriseAndNameContainingIgnoreCase(
                 eq(ID_ENTERPRISE), eq(search), eq(ID_ENTERPRISE), eq(search), any(Pageable.class))).thenReturn(entityPage);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         Page<CostCenter> result = service.findByEnterpriseAndSearch(ID_ENTERPRISE, search, 0, 10);
 
+        // Assert
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
     }
@@ -632,13 +730,16 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("findByEnterpriseAndSearch - Debe retornar página vacía sin resultados")
     void testFindByEnterpriseAndSearchEmpty() {
+        // Arrange
         String search = "noexiste";
         Page<CostCenterEntity> emptyPage = new PageImpl<>(Collections.emptyList());
         when(repository.findByIdEnterpriseAndCodeContainingIgnoreCaseOrIdEnterpriseAndNameContainingIgnoreCase(
                 eq(ID_ENTERPRISE), eq(search), eq(ID_ENTERPRISE), eq(search), any(Pageable.class))).thenReturn(emptyPage);
 
+        // Act
         Page<CostCenter> result = service.findByEnterpriseAndSearch(ID_ENTERPRISE, search, 0, 10);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
@@ -646,12 +747,15 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("countByEnterpriseAndSearch - Debe retornar conteo correcto")
     void testCountByEnterpriseAndSearchSuccess() {
+        // Arrange
         String search = "centro";
         when(repository.countByIdEnterpriseAndCodeContainingIgnoreCaseOrIdEnterpriseAndNameContainingIgnoreCase(
                 ID_ENTERPRISE, search, ID_ENTERPRISE, search)).thenReturn(3L);
 
+        // Act
         long result = service.countByEnterpriseAndSearch(ID_ENTERPRISE, search);
 
+        // Assert
         assertEquals(3L, result);
     }
 
@@ -660,11 +764,14 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("updateUsageCount - Debe actualizar contador de uso exitosamente")
     void testUpdateUsageCountSuccess() {
+        // Arrange
         when(repository.findById(ID)).thenReturn(Optional.of(entity));
         when(repository.save(entity)).thenReturn(entity);
 
+        // Act
         service.updateUsageCount(ID, 10);
 
+        // Assert
         assertEquals(10, entity.getUsageCount());
         verify(repository).save(entity);
     }
@@ -672,8 +779,10 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("updateUsageCount - Debe lanzar excepción cuando no existe")
     void testUpdateUsageCountThrowsExceptionWhenNotFound() {
+        // Arrange
         when(repository.findById(ID)).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(CostCentersNotFoundException.class, () -> service.updateUsageCount(ID, 10));
 
         verify(repository, never()).save(any());
@@ -684,6 +793,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("create - Debe activar jerarquía completa de padres inactivos")
     void testCreateActivatesEntireParentHierarchy() {
+        // Arrange
         CostCenterEntity grandParentEntity = CostCenterEntity.builder()
                 .id(4L)
                 .idEnterprise(ID_ENTERPRISE)
@@ -704,8 +814,10 @@ class CostCenterServiceImplUnitTest {
         when(repository.save(any(CostCenterEntity.class))).thenAnswer(inv -> inv.getArgument(0));
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         service.create(createRequest);
 
+        // Assert
         assertTrue(parentEntity.getStatus());
         assertTrue(grandParentEntity.getStatus());
     }
@@ -715,11 +827,13 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe validar código cuando cambia empresa")
     void testUpdateValidatesCodeWhenEnterpriseChanges() {
+        // Arrange
         String newEnterprise = "ENT-002";
         updateRequest.setIdEnterprise(newEnterprise);
         when(repository.findByIdAndIdEnterprise(ID, newEnterprise)).thenReturn(Optional.of(entity));
         when(repository.existsByCodeAndIdEnterprise(CODE, newEnterprise)).thenReturn(true);
 
+        // Act & Assert
         assertThrows(CostCentersAlreadyExistsException.class, () -> service.update(updateRequest));
 
         verify(repository, never()).save(any());
@@ -728,12 +842,14 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe validar nombre cuando cambia empresa")
     void testUpdateValidatesNameWhenEnterpriseChanges() {
+        // Arrange
         String newEnterprise = "ENT-002";
         updateRequest.setIdEnterprise(newEnterprise);
         when(repository.findByIdAndIdEnterprise(ID, newEnterprise)).thenReturn(Optional.of(entity));
         when(repository.existsByCodeAndIdEnterprise(CODE, newEnterprise)).thenReturn(false);
         when(repository.existsByNameAndIdEnterpriseAndIdNot(anyString(), eq(newEnterprise), eq(ID))).thenReturn(true);
 
+        // Act & Assert
         assertThrows(CostCentersAlreadyExistsException.class, () -> service.update(updateRequest));
 
         verify(repository, never()).save(any());
@@ -744,6 +860,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe actualizar códigos de nietos cuando código abuelo cambia")
     void testUpdateCascadesCodeChangeToGrandchildren() {
+        // Arrange
         CostCenterEntity childEntity = CostCenterEntity.builder()
                 .id(3L)
                 .idEnterprise(ID_ENTERPRISE)
@@ -771,8 +888,10 @@ class CostCenterServiceImplUnitTest {
         when(repository.findByParentId(4L)).thenReturn(Collections.emptyList());
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         service.update(updateRequest);
 
+        // Assert
         assertEquals("200101", childEntity.getCode());
         assertEquals("20010101", grandchildEntity.getCode());
     }
@@ -782,6 +901,7 @@ class CostCenterServiceImplUnitTest {
     @Test
     @DisplayName("changeState - Debe desactivar nietos recursivamente")
     void testChangeStateDeactivatesGrandchildrenRecursively() {
+        // Arrange
         CostCenterEntity childEntity = CostCenterEntity.builder()
                 .id(3L)
                 .idEnterprise(ID_ENTERPRISE)
@@ -807,8 +927,10 @@ class CostCenterServiceImplUnitTest {
         when(repository.findByParentId(4L)).thenReturn(Collections.emptyList());
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         service.changeState(ID, ID_ENTERPRISE, false);
 
+        // Assert
         assertFalse(entity.getStatus());
         assertFalse(childEntity.getStatus());
         assertFalse(grandchildEntity.getStatus());
