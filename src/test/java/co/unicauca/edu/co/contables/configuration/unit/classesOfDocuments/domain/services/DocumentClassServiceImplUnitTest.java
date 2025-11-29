@@ -78,6 +78,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("create - Debe crear clase de documento exitosamente")
     void testCreateSuccess() {
+        // Arrange
         DocumentClassCreateReq request = new DocumentClassCreateReq(ENTERPRISE_ID, NAME_LOWER);
         DocumentClass domainWithoutId = DocumentClass.builder()
                 .name(NAME_LOWER)
@@ -89,8 +90,10 @@ class DocumentClassServiceImplUnitTest {
         when(repository.save(entity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         DocumentClass result = service.create(request);
 
+        // Assert
         assertNotNull(result);
         assertEquals(ID, result.getId());
         assertEquals(NAME, result.getName());
@@ -101,9 +104,11 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("create - Debe lanzar excepción cuando el nombre ya existe")
     void testCreateThrowsExceptionWhenNameExists() {
+        // Arrange
         DocumentClassCreateReq request = new DocumentClassCreateReq(ENTERPRISE_ID, NAME_LOWER);
         when(repository.existsByNameAndIdEnterprise(NAME, ENTERPRISE_ID)).thenReturn(true);
 
+        // Act & Assert
         assertThrows(DocumentClassesAlreadyExistsException.class, 
                 () -> service.create(request));
 
@@ -114,6 +119,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("create - Debe estandarizar nombre a formato capitalizado")
     void testCreateStandardizesNameToCapitalized() {
+        // Arrange
         DocumentClassCreateReq request = new DocumentClassCreateReq(ENTERPRISE_ID, "  facturas  ");
         DocumentClass domainWithoutId = DocumentClass.builder()
                 .name("  facturas  ")
@@ -125,14 +131,17 @@ class DocumentClassServiceImplUnitTest {
         when(repository.save(entity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         service.create(request);
 
+        // Assert
         verify(repository).existsByNameAndIdEnterprise("Facturas", ENTERPRISE_ID);
     }
 
     @Test
     @DisplayName("update - Debe actualizar clase de documento exitosamente")
     void testUpdateSuccess() {
+        // Arrange
         DocumentClassUpdateReq request = new DocumentClassUpdateReq(ID, ENTERPRISE_ID, "recibos");
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.of(entity));
         when(documentTypeRepository.existsByDocumentClassIdAndIdEnterpriseAndUsageCountGreaterThan(ID, ENTERPRISE_ID, 0))
@@ -141,8 +150,10 @@ class DocumentClassServiceImplUnitTest {
         when(repository.save(entity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         DocumentClass result = service.update(request);
 
+        // Assert
         assertNotNull(result);
         verify(repository).findByIdAndIdEnterprise(ID, ENTERPRISE_ID);
         verify(repository).save(entity);
@@ -151,9 +162,11 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe lanzar excepción cuando no existe")
     void testUpdateThrowsExceptionWhenNotFound() {
+        // Arrange
         DocumentClassUpdateReq request = new DocumentClassUpdateReq(ID, ENTERPRISE_ID, NAME_LOWER);
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(DocumentClassesNotFoundException.class, 
                 () -> service.update(request));
 
@@ -164,11 +177,13 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe lanzar excepción cuando tiene tipos con movimientos contables")
     void testUpdateThrowsExceptionWhenHasDocumentTypesWithMovements() {
+        // Arrange
         DocumentClassUpdateReq request = new DocumentClassUpdateReq(ID, ENTERPRISE_ID, NAME_LOWER);
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.of(entity));
         when(documentTypeRepository.existsByDocumentClassIdAndIdEnterpriseAndUsageCountGreaterThan(ID, ENTERPRISE_ID, 0))
                 .thenReturn(true);
 
+        // Act & Assert
         assertThrows(DocumentClassInUseException.class, 
                 () -> service.update(request));
 
@@ -179,12 +194,14 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe lanzar excepción cuando el nuevo nombre ya existe")
     void testUpdateThrowsExceptionWhenNewNameExists() {
+        // Arrange
         DocumentClassUpdateReq request = new DocumentClassUpdateReq(ID, ENTERPRISE_ID, "recibos");
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.of(entity));
         when(documentTypeRepository.existsByDocumentClassIdAndIdEnterpriseAndUsageCountGreaterThan(ID, ENTERPRISE_ID, 0))
                 .thenReturn(false);
         when(repository.existsByNameAndIdEnterpriseAndIdNot("Recibos", ENTERPRISE_ID, ID)).thenReturn(true);
 
+        // Act & Assert
         assertThrows(DocumentClassesAlreadyExistsException.class, 
                 () -> service.update(request));
 
@@ -194,6 +211,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("update - Debe validar y guardar cuando el nombre cambia")
     void testUpdateValidatesAndSavesWhenNameChanges() {
+        // Arrange
         DocumentClassUpdateReq request = new DocumentClassUpdateReq(ID, ENTERPRISE_ID, NAME);
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.of(entity));
         when(documentTypeRepository.existsByDocumentClassIdAndIdEnterpriseAndUsageCountGreaterThan(ID, ENTERPRISE_ID, 0))
@@ -201,8 +219,10 @@ class DocumentClassServiceImplUnitTest {
         when(repository.save(entity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         DocumentClass result = service.update(request);
 
+        // Assert
         assertNotNull(result);
         verify(repository).save(entity);
     }
@@ -210,11 +230,14 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findById - Debe retornar clase de documento cuando existe")
     void testFindByIdSuccess() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.of(entity));
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         DocumentClass result = service.findById(ID, ENTERPRISE_ID);
 
+        // Assert
         assertNotNull(result);
         assertEquals(ID, result.getId());
         assertEquals(NAME, result.getName());
@@ -224,8 +247,10 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findById - Debe lanzar excepción cuando no existe")
     void testFindByIdThrowsExceptionWhenNotFound() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(DocumentClassesNotFoundException.class, 
                 () -> service.findById(ID, ENTERPRISE_ID));
 
@@ -235,14 +260,17 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterprise - Debe retornar página de clases de documento")
     void testFindAllByEnterpriseSuccess() {
+        // Arrange
         int page = 0;
         int size = 10;
         Page<DocumentClassEntity> entityPage = new PageImpl<>(List.of(entity));
         when(repository.findAllByIdEnterprise(eq(ENTERPRISE_ID), any(Pageable.class))).thenReturn(entityPage);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         Page<DocumentClass> result = service.findAllByEnterprise(ENTERPRISE_ID, page, size);
 
+        // Assert
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
         verify(repository).findAllByIdEnterprise(eq(ENTERPRISE_ID), any(Pageable.class));
@@ -251,13 +279,16 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterprise - Debe retornar página vacía cuando no hay datos")
     void testFindAllByEnterpriseReturnsEmptyPage() {
+        // Arrange
         int page = 0;
         int size = 10;
         Page<DocumentClassEntity> emptyPage = new PageImpl<>(Collections.emptyList());
         when(repository.findAllByIdEnterprise(eq(ENTERPRISE_ID), any(Pageable.class))).thenReturn(emptyPage);
 
+        // Act
         Page<DocumentClass> result = service.findAllByEnterprise(ENTERPRISE_ID, page, size);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.getContent().isEmpty());
     }
@@ -265,6 +296,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterprise con ordenamiento - Debe ordenar ascendente por defecto")
     void testFindAllByEnterpriseWithSortAscending() {
+        // Arrange
         int page = 0;
         int size = 10;
         String sortField = "name";
@@ -273,8 +305,10 @@ class DocumentClassServiceImplUnitTest {
         when(repository.findAllByIdEnterprise(eq(ENTERPRISE_ID), any(Pageable.class))).thenReturn(entityPage);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         Page<DocumentClass> result = service.findAllByEnterprise(ENTERPRISE_ID, page, size, sortField, sortOrder);
 
+        // Assert
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
     }
@@ -282,6 +316,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterprise con ordenamiento - Debe ordenar descendente cuando se especifica")
     void testFindAllByEnterpriseWithSortDescending() {
+        // Arrange
         int page = 0;
         int size = 10;
         String sortField = "name";
@@ -290,8 +325,10 @@ class DocumentClassServiceImplUnitTest {
         when(repository.findAllByIdEnterprise(eq(ENTERPRISE_ID), any(Pageable.class))).thenReturn(entityPage);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         Page<DocumentClass> result = service.findAllByEnterprise(ENTERPRISE_ID, page, size, sortField, sortOrder);
 
+        // Assert
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
     }
@@ -299,6 +336,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterpriseAndStatus - Debe filtrar por estado")
     void testFindAllByEnterpriseAndStatusSuccess() {
+        // Arrange
         int page = 0;
         int size = 10;
         Boolean status = true;
@@ -307,8 +345,10 @@ class DocumentClassServiceImplUnitTest {
                 .thenReturn(entityPage);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         Page<DocumentClass> result = service.findAllByEnterpriseAndStatus(ENTERPRISE_ID, status, page, size);
 
+        // Assert
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
         verify(repository).findAllByIdEnterpriseAndStatus(eq(ENTERPRISE_ID), eq(status), any(Pageable.class));
@@ -317,6 +357,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterpriseAndStatus - Debe filtrar por estado inactivo")
     void testFindAllByEnterpriseAndStatusInactive() {
+        // Arrange
         int page = 0;
         int size = 10;
         Boolean status = false;
@@ -337,8 +378,10 @@ class DocumentClassServiceImplUnitTest {
                 .thenReturn(entityPage);
         when(dataMapper.toDomain(inactiveEntity)).thenReturn(inactiveDomain);
 
+        // Act
         Page<DocumentClass> result = service.findAllByEnterpriseAndStatus(ENTERPRISE_ID, status, page, size);
 
+        // Assert
         assertNotNull(result);
         assertFalse(result.getContent().get(0).getStatus());
     }
@@ -346,6 +389,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("changeState - Debe cambiar estado a inactivo")
     void testChangeStateToInactive() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.of(entity));
         DocumentClassEntity updatedEntity = DocumentClassEntity.builder()
                 .id(ID)
@@ -362,8 +406,10 @@ class DocumentClassServiceImplUnitTest {
         when(repository.save(entity)).thenReturn(updatedEntity);
         when(dataMapper.toDomain(updatedEntity)).thenReturn(updatedDomain);
 
+        // Act
         DocumentClass result = service.changeState(ID, ENTERPRISE_ID, false);
 
+        // Assert
         assertNotNull(result);
         assertFalse(result.getStatus());
         verify(repository).findByIdAndIdEnterprise(ID, ENTERPRISE_ID);
@@ -373,6 +419,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("changeState - Debe cambiar estado a activo")
     void testChangeStateToActive() {
+        // Arrange
         DocumentClassEntity inactiveEntity = DocumentClassEntity.builder()
                 .id(ID)
                 .name(NAME)
@@ -383,8 +430,10 @@ class DocumentClassServiceImplUnitTest {
         when(repository.save(inactiveEntity)).thenReturn(entity);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         DocumentClass result = service.changeState(ID, ENTERPRISE_ID, true);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.getStatus());
     }
@@ -392,8 +441,10 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("changeState - Debe lanzar excepción cuando no existe")
     void testChangeStateThrowsExceptionWhenNotFound() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(DocumentClassesNotFoundException.class, 
                 () -> service.changeState(ID, ENTERPRISE_ID, false));
 
@@ -403,12 +454,15 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("Delete - Debe eliminar clase de documento exitosamente")
     void testDeleteSuccess() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.of(entity));
         when(documentTypeRepository.existsByDocumentClassId(ID)).thenReturn(false);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         DocumentClass result = service.Delete(ID, ENTERPRISE_ID);
 
+        // Assert
         assertNotNull(result);
         assertEquals(ID, result.getId());
         verify(repository).findByIdAndIdEnterprise(ID, ENTERPRISE_ID);
@@ -418,8 +472,10 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("Delete - Debe lanzar excepción cuando no existe")
     void testDeleteThrowsExceptionWhenNotFound() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(DocumentClassesNotFoundException.class, 
                 () -> service.Delete(ID, ENTERPRISE_ID));
 
@@ -429,9 +485,11 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("Delete - Debe lanzar excepción cuando tiene tipos de documento asociados")
     void testDeleteThrowsExceptionWhenHasDocumentTypes() {
+        // Arrange
         when(repository.findByIdAndIdEnterprise(ID, ENTERPRISE_ID)).thenReturn(Optional.of(entity));
         when(documentTypeRepository.existsByDocumentClassId(ID)).thenReturn(true);
 
+        // Act & Assert
         assertThrows(DocumentClassInUseException.class, 
                 () -> service.Delete(ID, ENTERPRISE_ID));
 
@@ -442,10 +500,13 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("countAllByEnterprise - Debe retornar conteo total")
     void testCountAllByEnterpriseSuccess() {
+        // Arrange
         when(repository.countByIdEnterprise(ENTERPRISE_ID)).thenReturn(5L);
 
+        // Act
         long result = service.countAllByEnterprise(ENTERPRISE_ID);
 
+        // Assert
         assertEquals(5L, result);
         verify(repository).countByIdEnterprise(ENTERPRISE_ID);
     }
@@ -453,20 +514,26 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("countAllByEnterprise - Debe retornar 0 cuando no hay datos")
     void testCountAllByEnterpriseReturnsZero() {
+        // Arrange
         when(repository.countByIdEnterprise(ENTERPRISE_ID)).thenReturn(0L);
 
+        // Act
         long result = service.countAllByEnterprise(ENTERPRISE_ID);
 
+        // Assert
         assertEquals(0L, result);
     }
 
     @Test
     @DisplayName("countAllByEnterpriseAndStatus - Debe retornar conteo filtrado por estado")
     void testCountAllByEnterpriseAndStatusSuccess() {
+        // Arrange
         when(repository.countByIdEnterpriseAndStatus(ENTERPRISE_ID, true)).thenReturn(3L);
 
+        // Act
         long result = service.countAllByEnterpriseAndStatus(ENTERPRISE_ID, true);
 
+        // Assert
         assertEquals(3L, result);
         verify(repository).countByIdEnterpriseAndStatus(ENTERPRISE_ID, true);
     }
@@ -474,16 +541,20 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("countAllByEnterpriseAndStatus - Debe contar inactivos")
     void testCountAllByEnterpriseAndStatusInactive() {
+        // Arrange
         when(repository.countByIdEnterpriseAndStatus(ENTERPRISE_ID, false)).thenReturn(2L);
 
+        // Act
         long result = service.countAllByEnterpriseAndStatus(ENTERPRISE_ID, false);
 
+        // Assert
         assertEquals(2L, result);
     }
 
     @Test
     @DisplayName("findByEnterpriseAndNameContaining - Debe buscar por nombre parcial")
     void testFindByEnterpriseAndNameContainingSuccess() {
+        // Arrange
         int page = 0;
         int size = 10;
         String search = "fact";
@@ -494,9 +565,11 @@ class DocumentClassServiceImplUnitTest {
                 .thenReturn(entityPage);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         Page<DocumentClass> result = service.findByEnterpriseAndNameContaining(
                 ENTERPRISE_ID, search, page, size, sortField, sortOrder);
 
+        // Assert
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
         verify(repository).findByIdEnterpriseAndNameContainingIgnoreCase(eq(ENTERPRISE_ID), eq(search), any(Pageable.class));
@@ -505,6 +578,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findByEnterpriseAndNameContaining - Debe retornar vacío cuando no encuentra")
     void testFindByEnterpriseAndNameContainingReturnsEmpty() {
+        // Arrange
         int page = 0;
         int size = 10;
         String search = "xyz";
@@ -514,9 +588,11 @@ class DocumentClassServiceImplUnitTest {
         when(repository.findByIdEnterpriseAndNameContainingIgnoreCase(eq(ENTERPRISE_ID), eq(search), any(Pageable.class)))
                 .thenReturn(emptyPage);
 
+        // Act
         Page<DocumentClass> result = service.findByEnterpriseAndNameContaining(
                 ENTERPRISE_ID, search, page, size, sortField, sortOrder);
 
+        // Assert
         assertNotNull(result);
         assertTrue(result.getContent().isEmpty());
     }
@@ -524,6 +600,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findByEnterpriseAndNameContaining - Debe ordenar descendente")
     void testFindByEnterpriseAndNameContainingWithDescOrder() {
+        // Arrange
         int page = 0;
         int size = 10;
         String search = "fact";
@@ -534,9 +611,11 @@ class DocumentClassServiceImplUnitTest {
                 .thenReturn(entityPage);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         Page<DocumentClass> result = service.findByEnterpriseAndNameContaining(
                 ENTERPRISE_ID, search, page, size, sortField, sortOrder);
 
+        // Assert
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
     }
@@ -544,11 +623,14 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("countByEnterpriseAndNameContaining - Debe contar resultados de búsqueda")
     void testCountByEnterpriseAndNameContainingSuccess() {
+        // Arrange
         String search = "fact";
         when(repository.countByIdEnterpriseAndNameContainingIgnoreCase(ENTERPRISE_ID, search)).thenReturn(3L);
 
+        // Act
         long result = service.countByEnterpriseAndNameContaining(ENTERPRISE_ID, search);
 
+        // Assert
         assertEquals(3L, result);
         verify(repository).countByIdEnterpriseAndNameContainingIgnoreCase(ENTERPRISE_ID, search);
     }
@@ -556,17 +638,21 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("countByEnterpriseAndNameContaining - Debe retornar 0 cuando no encuentra")
     void testCountByEnterpriseAndNameContainingReturnsZero() {
+        // Arrange
         String search = "xyz";
         when(repository.countByIdEnterpriseAndNameContainingIgnoreCase(ENTERPRISE_ID, search)).thenReturn(0L);
 
+        // Act
         long result = service.countByEnterpriseAndNameContaining(ENTERPRISE_ID, search);
 
+        // Assert
         assertEquals(0L, result);
     }
 
     @Test
     @DisplayName("update - Debe validar unicidad cuando cambia empresa")
     void testUpdateValidatesUniquenessWhenEnterpriseChanges() {
+        // Arrange
         String newEnterpriseId = "ENT-002";
         DocumentClassEntity entityOtherEnterprise = DocumentClassEntity.builder()
                 .id(ID)
@@ -580,6 +666,7 @@ class DocumentClassServiceImplUnitTest {
                 .thenReturn(false);
         when(repository.existsByNameAndIdEnterpriseAndIdNot(NAME, newEnterpriseId, ID)).thenReturn(true);
 
+        // Act & Assert
         assertThrows(DocumentClassesAlreadyExistsException.class, 
                 () -> service.update(request));
     }
@@ -587,6 +674,7 @@ class DocumentClassServiceImplUnitTest {
     @Test
     @DisplayName("findAllByEnterprise con paginación - Debe manejar múltiples páginas")
     void testFindAllByEnterpriseHandlesMultiplePages() {
+        // Arrange
         int page = 1;
         int size = 5;
         Page<DocumentClassEntity> entityPage = new PageImpl<>(
@@ -596,8 +684,10 @@ class DocumentClassServiceImplUnitTest {
         when(repository.findAllByIdEnterprise(eq(ENTERPRISE_ID), any(Pageable.class))).thenReturn(entityPage);
         when(dataMapper.toDomain(entity)).thenReturn(domain);
 
+        // Act
         Page<DocumentClass> result = service.findAllByEnterprise(ENTERPRISE_ID, page, size);
 
+        // Assert
         assertNotNull(result);
         assertEquals(1, result.getNumber());
         assertEquals(3, result.getTotalPages());

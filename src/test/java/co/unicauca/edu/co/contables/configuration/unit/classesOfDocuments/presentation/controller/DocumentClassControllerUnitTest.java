@@ -74,12 +74,15 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("create - Debe crear clase de documento y retornar 200 OK")
     void testCreateSuccess() {
+        // Arrange
         DocumentClassCreateReq request = new DocumentClassCreateReq(ENTERPRISE_ID, "facturas");
         when(service.create(request)).thenReturn(domain);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<DocumentClassRes> result = controller.create(request);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(ID, result.getBody().getId());
@@ -91,12 +94,15 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("update - Debe actualizar clase de documento y retornar 200 OK")
     void testUpdateSuccess() {
+        // Arrange
         DocumentClassUpdateReq request = new DocumentClassUpdateReq(ID, ENTERPRISE_ID, "recibos");
         when(service.update(request)).thenReturn(domain);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<DocumentClassRes> result = controller.update(request);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(ID, result.getBody().getId());
@@ -107,11 +113,14 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("getById - Debe retornar clase de documento cuando existe")
     void testGetByIdSuccess() {
+        // Arrange
         when(service.findById(ID, ENTERPRISE_ID)).thenReturn(domain);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<DocumentClassRes> result = controller.getById(ID, ENTERPRISE_ID);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(ID, result.getBody().getId());
@@ -122,6 +131,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("list - Debe retornar página de clases de documento sin filtro de búsqueda")
     void testListWithoutSearch() {
+        // Arrange
         int page = 0;
         int size = 10;
         Pageable pageable = PageRequest.of(page, size);
@@ -133,9 +143,11 @@ class DocumentClassControllerUnitTest {
                 .thenReturn(domainPage);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<Page<DocumentClassRes>> result = controller.list(
                 ENTERPRISE_ID, Optional.of(page), Optional.of(size), "name", "asc", null);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(1, result.getBody().getContent().size());
@@ -146,6 +158,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("list - Debe retornar página de clases de documento con filtro de búsqueda")
     void testListWithSearch() {
+        // Arrange
         int page = 0;
         int size = 10;
         String search = "fact";
@@ -158,9 +171,11 @@ class DocumentClassControllerUnitTest {
                 .thenReturn(domainPage);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<Page<DocumentClassRes>> result = controller.list(
                 ENTERPRISE_ID, Optional.of(page), Optional.of(size), "name", "asc", search);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(1, result.getBody().getContent().size());
@@ -171,6 +186,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("list - Debe retornar página vacía cuando no hay datos")
     void testListReturnsEmptyPage() {
+        // Arrange
         int page = 0;
         int size = 10;
         Pageable pageable = PageRequest.of(page, size);
@@ -181,9 +197,11 @@ class DocumentClassControllerUnitTest {
         when(service.findAllByEnterprise(ENTERPRISE_ID, page, size, "name", "asc"))
                 .thenReturn(emptyPage);
 
+        // Act
         ResponseEntity<Page<DocumentClassRes>> result = controller.list(
                 ENTERPRISE_ID, Optional.of(page), Optional.of(size), "name", "asc", null);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertTrue(result.getBody().getContent().isEmpty());
@@ -192,6 +210,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("list - Debe usar paginación flexible cuando no se especifican parámetros")
     void testListWithoutPaginationParams() {
+        // Arrange
         Pageable pageable = PageRequest.of(0, 5);
         Page<DocumentClass> domainPage = new PageImpl<>(List.of(domain));
         when(service.countAllByEnterprise(ENTERPRISE_ID)).thenReturn(5L);
@@ -201,9 +220,11 @@ class DocumentClassControllerUnitTest {
                 .thenReturn(domainPage);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<Page<DocumentClassRes>> result = controller.list(
                 ENTERPRISE_ID, Optional.empty(), Optional.empty(), "name", "asc", null);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         verify(paginationHelper).createFlexiblePageable(Optional.empty(), Optional.empty(), 5L);
     }
@@ -211,6 +232,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("list - Debe ordenar descendente cuando se especifica")
     void testListWithDescendingOrder() {
+        // Arrange
         int page = 0;
         int size = 10;
         String sortField = "name";
@@ -224,9 +246,11 @@ class DocumentClassControllerUnitTest {
                 .thenReturn(domainPage);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<Page<DocumentClassRes>> result = controller.list(
                 ENTERPRISE_ID, Optional.of(page), Optional.of(size), sortField, sortOrder, null);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         verify(service).findAllByEnterprise(ENTERPRISE_ID, page, size, sortField, sortOrder);
     }
@@ -234,6 +258,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("listActive - Debe retornar página de clases de documento activas")
     void testListActiveSuccess() {
+        // Arrange
         int page = 0;
         int size = 10;
         Pageable pageable = PageRequest.of(page, size);
@@ -245,9 +270,11 @@ class DocumentClassControllerUnitTest {
                 .thenReturn(domainPage);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<Page<DocumentClassRes>> result = controller.listActive(
                 ENTERPRISE_ID, Optional.of(page), Optional.of(size));
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(1, result.getBody().getContent().size());
@@ -258,6 +285,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("listActive - Debe retornar página vacía cuando no hay activos")
     void testListActiveReturnsEmptyPage() {
+        // Arrange
         int page = 0;
         int size = 10;
         Pageable pageable = PageRequest.of(page, size);
@@ -268,9 +296,11 @@ class DocumentClassControllerUnitTest {
         when(service.findAllByEnterpriseAndStatus(ENTERPRISE_ID, true, page, size))
                 .thenReturn(emptyPage);
 
+        // Act
         ResponseEntity<Page<DocumentClassRes>> result = controller.listActive(
                 ENTERPRISE_ID, Optional.of(page), Optional.of(size));
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertTrue(result.getBody().getContent().isEmpty());
     }
@@ -278,6 +308,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("listActive - Debe usar paginación flexible sin parámetros")
     void testListActiveWithoutPaginationParams() {
+        // Arrange
         Pageable pageable = PageRequest.of(0, 3);
         Page<DocumentClass> domainPage = new PageImpl<>(List.of(domain));
         when(service.countAllByEnterpriseAndStatus(ENTERPRISE_ID, true)).thenReturn(3L);
@@ -287,9 +318,11 @@ class DocumentClassControllerUnitTest {
                 .thenReturn(domainPage);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<Page<DocumentClassRes>> result = controller.listActive(
                 ENTERPRISE_ID, Optional.empty(), Optional.empty());
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         verify(paginationHelper).createFlexiblePageable(Optional.empty(), Optional.empty(), 3L);
     }
@@ -297,6 +330,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("changeState - Debe cambiar estado a inactivo y retornar 200 OK")
     void testChangeStateToInactive() {
+        // Arrange
         DocumentClass inactiveDomain = DocumentClass.builder()
                 .id(ID)
                 .name(NAME)
@@ -311,8 +345,10 @@ class DocumentClassControllerUnitTest {
         when(service.changeState(ID, ENTERPRISE_ID, false)).thenReturn(inactiveDomain);
         when(mapper.toRes(inactiveDomain)).thenReturn(inactiveResponse);
 
+        // Act
         ResponseEntity<DocumentClassRes> result = controller.changeState(ID, ENTERPRISE_ID, false);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertFalse(result.getBody().getStatus());
@@ -322,11 +358,14 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("changeState - Debe cambiar estado a activo y retornar 200 OK")
     void testChangeStateToActive() {
+        // Arrange
         when(service.changeState(ID, ENTERPRISE_ID, true)).thenReturn(domain);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<DocumentClassRes> result = controller.changeState(ID, ENTERPRISE_ID, true);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertTrue(result.getBody().getStatus());
@@ -336,11 +375,14 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("Delete - Debe eliminar clase de documento y retornar 200 OK")
     void testDeleteSuccess() {
+        // Arrange
         when(service.Delete(ID, ENTERPRISE_ID)).thenReturn(domain);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<DocumentClassRes> result = controller.Delete(ID, ENTERPRISE_ID);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(ID, result.getBody().getId());
@@ -351,6 +393,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("list - Debe ignorar búsqueda vacía y usar findAll")
     void testListIgnoresEmptySearch() {
+        // Arrange
         int page = 0;
         int size = 10;
         String search = "   ";
@@ -363,9 +406,11 @@ class DocumentClassControllerUnitTest {
                 .thenReturn(domainPage);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<Page<DocumentClassRes>> result = controller.list(
                 ENTERPRISE_ID, Optional.of(page), Optional.of(size), "name", "asc", search);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         verify(service).countAllByEnterprise(ENTERPRISE_ID);
         verify(service).findAllByEnterprise(ENTERPRISE_ID, page, size, "name", "asc");
@@ -375,6 +420,7 @@ class DocumentClassControllerUnitTest {
     @Test
     @DisplayName("list - Debe mapear múltiples dominios a respuestas")
     void testListMapsMultipleDomains() {
+        // Arrange
         int page = 0;
         int size = 10;
         Pageable pageable = PageRequest.of(page, size);
@@ -398,9 +444,11 @@ class DocumentClassControllerUnitTest {
         when(mapper.toRes(domain)).thenReturn(response);
         when(mapper.toRes(domain2)).thenReturn(response2);
 
+        // Act
         ResponseEntity<Page<DocumentClassRes>> result = controller.list(
                 ENTERPRISE_ID, Optional.of(page), Optional.of(size), "name", "asc", null);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(2, result.getBody().getContent().size());
         verify(mapper, times(2)).toRes(any(DocumentClass.class));

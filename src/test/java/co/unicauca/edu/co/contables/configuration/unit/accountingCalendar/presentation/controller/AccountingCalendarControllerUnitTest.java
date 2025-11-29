@@ -66,14 +66,17 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("create - Debe crear calendario contable y retornar 200 OK")
     void testCreateSuccess() {
+        // Arrange
         AccountingCalendarCreateReq request = new AccountingCalendarCreateReq();
         request.setIdEnterprise(ENTERPRISE_ID);
         request.setDate("2024-06-15");
         when(service.create(request)).thenReturn(domain);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<AccountingCalendarRes> result = controller.create(request);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(ID, result.getBody().getId());
@@ -85,11 +88,14 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("getById - Debe retornar calendario contable cuando existe")
     void testGetByIdSuccess() {
+        // Arrange
         when(service.findById(ID, ENTERPRISE_ID)).thenReturn(domain);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<AccountingCalendarRes> result = controller.getById(ID, ENTERPRISE_ID);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(ID, result.getBody().getId());
@@ -99,10 +105,13 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("delete - Debe eliminar calendario contable y retornar 204 No Content")
     void testDeleteSuccess() {
+        // Arrange
         doNothing().when(service).delete(ID, ENTERPRISE_ID);
 
+        // Act
         ResponseEntity<Void> result = controller.delete(ID, ENTERPRISE_ID);
 
+        // Assert
         assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
         assertNull(result.getBody());
         verify(service).delete(ID, ENTERPRISE_ID);
@@ -111,6 +120,7 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("openMonthBatch - Debe crear fechas del mes y retornar 200 OK")
     void testOpenMonthBatchSuccess() {
+        // Arrange
         AccountingCalendarCreateMonthReq request = new AccountingCalendarCreateMonthReq();
         request.setIdEnterprise(ENTERPRISE_ID);
         request.setYear(TEST_YEAR);
@@ -119,8 +129,10 @@ class AccountingCalendarControllerUnitTest {
         when(service.openMonthBatch(request)).thenReturn(domains);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<List<AccountingCalendarRes>> result = controller.openMonthBatch(request);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(1, result.getBody().size());
@@ -130,14 +142,17 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("openMonthBatch - Debe retornar lista vacía cuando no se crean fechas")
     void testOpenMonthBatchReturnsEmptyList() {
+        // Arrange
         AccountingCalendarCreateMonthReq request = new AccountingCalendarCreateMonthReq();
         request.setIdEnterprise(ENTERPRISE_ID);
         request.setYear(TEST_YEAR);
         request.setMonth(TEST_MONTH);
         when(service.openMonthBatch(request)).thenReturn(Collections.emptyList());
 
+        // Act
         ResponseEntity<List<AccountingCalendarRes>> result = controller.openMonthBatch(request);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertTrue(result.getBody().isEmpty());
@@ -146,14 +161,17 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("deleteByMonth - Debe eliminar fechas del mes y retornar 204 No Content")
     void testDeleteByMonthSuccess() {
+        // Arrange
         AccountingCalendarDeleteMonthReq request = new AccountingCalendarDeleteMonthReq();
         request.setIdEnterprise(ENTERPRISE_ID);
         request.setYear(TEST_YEAR);
         request.setMonth(TEST_MONTH);
         when(service.deleteByMonth(request)).thenReturn(30L);
 
+        // Act
         ResponseEntity<Void> result = controller.deleteByMonth(request);
 
+        // Assert
         assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
         assertNull(result.getBody());
         verify(service).deleteByMonth(request);
@@ -162,6 +180,7 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("openYearBatch - Debe crear fechas del año y retornar 200 OK")
     void testOpenYearBatchSuccess() {
+        // Arrange
         AccountingCalendarCreateYearReq request = new AccountingCalendarCreateYearReq();
         request.setIdEnterprise(ENTERPRISE_ID);
         request.setYear(TEST_YEAR);
@@ -169,8 +188,10 @@ class AccountingCalendarControllerUnitTest {
         when(service.openYearBatch(request)).thenReturn(domains);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<List<AccountingCalendarRes>> result = controller.openYearBatch(request);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(1, result.getBody().size());
@@ -180,13 +201,16 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("openYearBatch - Debe retornar lista vacía cuando no se crean fechas")
     void testOpenYearBatchReturnsEmptyList() {
+        // Arrange
         AccountingCalendarCreateYearReq request = new AccountingCalendarCreateYearReq();
         request.setIdEnterprise(ENTERPRISE_ID);
         request.setYear(TEST_YEAR);
         when(service.openYearBatch(request)).thenReturn(Collections.emptyList());
 
+        // Act
         ResponseEntity<List<AccountingCalendarRes>> result = controller.openYearBatch(request);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertTrue(result.getBody().isEmpty());
@@ -195,13 +219,16 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("deleteByYear - Debe eliminar fechas del año y retornar 204 No Content")
     void testDeleteByYearSuccess() {
+        // Arrange
         AccountingCalendarDeleteYearReq request = new AccountingCalendarDeleteYearReq();
         request.setIdEnterprise(ENTERPRISE_ID);
         request.setYear(TEST_YEAR);
         when(service.deleteByYear(request)).thenReturn(366L);
 
+        // Act
         ResponseEntity<Void> result = controller.deleteByYear(request);
 
+        // Assert
         assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
         assertNull(result.getBody());
         verify(service).deleteByYear(request);
@@ -210,12 +237,15 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("findAllByYear - Debe retornar lista de calendarios del año")
     void testFindAllByYearSuccess() {
+        // Arrange
         List<AccountingCalendar> domains = List.of(domain);
         when(service.findAllByEnterpriseAndYear(ENTERPRISE_ID, TEST_YEAR)).thenReturn(domains);
         when(mapper.toRes(domain)).thenReturn(response);
 
+        // Act
         ResponseEntity<List<AccountingCalendarRes>> result = controller.findAllByYear(ENTERPRISE_ID, TEST_YEAR);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(1, result.getBody().size());
@@ -225,10 +255,13 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("findAllByYear - Debe retornar lista vacía cuando no hay calendarios")
     void testFindAllByYearReturnsEmptyList() {
+        // Arrange
         when(service.findAllByEnterpriseAndYear(ENTERPRISE_ID, TEST_YEAR)).thenReturn(Collections.emptyList());
 
+        // Act
         ResponseEntity<List<AccountingCalendarRes>> result = controller.findAllByYear(ENTERPRISE_ID, TEST_YEAR);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertTrue(result.getBody().isEmpty());
@@ -237,11 +270,14 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("findExistingYears - Debe retornar lista de años existentes")
     void testFindExistingYearsSuccess() {
+        // Arrange
         List<Integer> years = List.of(2022, 2023, 2024);
         when(service.findExistingYearsByEnterprise(ENTERPRISE_ID)).thenReturn(years);
 
+        // Act
         ResponseEntity<List<Integer>> result = controller.findExistingYears(ENTERPRISE_ID);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(3, result.getBody().size());
@@ -252,10 +288,13 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("findExistingYears - Debe retornar lista vacía cuando no hay años")
     void testFindExistingYearsReturnsEmptyList() {
+        // Arrange
         when(service.findExistingYearsByEnterprise(ENTERPRISE_ID)).thenReturn(Collections.emptyList());
 
+        // Act
         ResponseEntity<List<Integer>> result = controller.findExistingYears(ENTERPRISE_ID);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertTrue(result.getBody().isEmpty());
@@ -264,10 +303,13 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("existsDate - Debe retornar true cuando la fecha existe")
     void testExistsDateReturnsTrue() {
+        // Arrange
         when(service.existsDate(ENTERPRISE_ID, TEST_DATE)).thenReturn(true);
 
+        // Act
         ResponseEntity<Boolean> result = controller.existsDate(ENTERPRISE_ID, TEST_DATE);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertTrue(result.getBody());
@@ -277,10 +319,13 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("existsDate - Debe retornar false cuando la fecha no existe")
     void testExistsDateReturnsFalse() {
+        // Arrange
         when(service.existsDate(ENTERPRISE_ID, TEST_DATE)).thenReturn(false);
 
+        // Act
         ResponseEntity<Boolean> result = controller.existsDate(ENTERPRISE_ID, TEST_DATE);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertFalse(result.getBody());
@@ -289,6 +334,7 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("openMonthBatch - Debe mapear múltiples dominios a respuestas")
     void testOpenMonthBatchMapsMultipleDomains() {
+        // Arrange
         AccountingCalendarCreateMonthReq request = new AccountingCalendarCreateMonthReq();
         request.setIdEnterprise(ENTERPRISE_ID);
         request.setYear(TEST_YEAR);
@@ -307,8 +353,10 @@ class AccountingCalendarControllerUnitTest {
         when(mapper.toRes(domain)).thenReturn(response);
         when(mapper.toRes(domain2)).thenReturn(response2);
 
+        // Act
         ResponseEntity<List<AccountingCalendarRes>> result = controller.openMonthBatch(request);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(2, result.getBody().size());
@@ -318,6 +366,7 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("openYearBatch - Debe mapear múltiples dominios a respuestas")
     void testOpenYearBatchMapsMultipleDomains() {
+        // Arrange
         AccountingCalendarCreateYearReq request = new AccountingCalendarCreateYearReq();
         request.setIdEnterprise(ENTERPRISE_ID);
         request.setYear(TEST_YEAR);
@@ -333,8 +382,10 @@ class AccountingCalendarControllerUnitTest {
         when(mapper.toRes(domain)).thenReturn(response);
         when(mapper.toRes(domain2)).thenReturn(response2);
 
+        // Act
         ResponseEntity<List<AccountingCalendarRes>> result = controller.openYearBatch(request);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(2, result.getBody().size());
         verify(mapper, times(2)).toRes(any(AccountingCalendar.class));
@@ -343,6 +394,7 @@ class AccountingCalendarControllerUnitTest {
     @Test
     @DisplayName("findAllByYear - Debe mapear múltiples dominios a respuestas")
     void testFindAllByYearMapsMultipleDomains() {
+        // Arrange
         AccountingCalendar domain2 = AccountingCalendar.builder()
                 .id(2L)
                 .idEnterprise(ENTERPRISE_ID)
@@ -355,8 +407,10 @@ class AccountingCalendarControllerUnitTest {
         when(mapper.toRes(domain)).thenReturn(response);
         when(mapper.toRes(domain2)).thenReturn(response2);
 
+        // Act
         ResponseEntity<List<AccountingCalendarRes>> result = controller.findAllByYear(ENTERPRISE_ID, TEST_YEAR);
 
+        // Assert
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(2, result.getBody().size());
         verify(mapper, times(2)).toRes(any(AccountingCalendar.class));
