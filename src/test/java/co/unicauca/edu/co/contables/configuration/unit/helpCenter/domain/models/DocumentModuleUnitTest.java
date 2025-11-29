@@ -1,7 +1,8 @@
 package co.unicauca.edu.co.contables.configuration.unit.helpCenter.domain.models;
 
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.helpCenter.InvalidModuleException;
-import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.DocumentModule;
+import co.unicauca.edu.co.contables.configuration.helpCenter.domain.enums.DocumentModule;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

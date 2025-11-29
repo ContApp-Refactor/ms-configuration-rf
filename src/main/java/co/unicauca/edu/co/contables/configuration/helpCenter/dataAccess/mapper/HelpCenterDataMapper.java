@@ -1,8 +1,9 @@
 package co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.mapper;
 
 import co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.entity.HelpCenterEntity;
+import co.unicauca.edu.co.contables.configuration.helpCenter.domain.enums.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.HelpCenter;
-import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.DocumentModule;
+
 import org.springframework.stereotype.Component;
 
 /**

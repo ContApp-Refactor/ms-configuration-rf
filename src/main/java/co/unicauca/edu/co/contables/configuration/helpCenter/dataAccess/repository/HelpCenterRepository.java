@@ -1,7 +1,8 @@
 package co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.repository;
 
 import co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.entity.HelpCenterEntity;
-import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.DocumentModule;
+import co.unicauca.edu.co.contables.configuration.helpCenter.domain.enums.DocumentModule;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

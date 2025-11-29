@@ -1,4 +1,4 @@
-package co.unicauca.edu.co.contables.configuration.helpCenter.domain.models;
+package co.unicauca.edu.co.contables.configuration.helpCenter.domain.enums;
 
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.helpCenter.InvalidModuleException;
 import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;

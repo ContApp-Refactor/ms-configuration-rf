@@ -7,11 +7,11 @@ import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardiz
 import co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.entity.HelpCenterEntity;
 import co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.mapper.HelpCenterDataMapper;
 import co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.repository.HelpCenterRepository;
+import co.unicauca.edu.co.contables.configuration.helpCenter.domain.enums.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.mapper.HelpCenterDomainMapper;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.HelpCenter;
 import co.unicauca.edu.co.contables.configuration.helpCenter.presentation.DTO.request.HelpCenterCreateReq;
 import co.unicauca.edu.co.contables.configuration.helpCenter.presentation.DTO.request.HelpCenterUpdateReq;
-import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.DocumentModule;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
