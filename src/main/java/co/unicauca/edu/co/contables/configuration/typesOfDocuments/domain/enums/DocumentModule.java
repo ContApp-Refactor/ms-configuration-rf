@@ -1,4 +1,4 @@
-package co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models;
+package co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.enums;
 
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.InvalidModuleException;
 import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;

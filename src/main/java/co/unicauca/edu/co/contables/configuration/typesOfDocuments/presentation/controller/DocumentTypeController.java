@@ -1,9 +1,9 @@
 package co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.controller;
 
 import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
-import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentType;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.services.IDocumentTypeService;
+import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.enums.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.mapper.DocumentTypeDomainMapper;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeCreateReq;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.presentation.DTO.request.DocumentTypeUpdateReq;
