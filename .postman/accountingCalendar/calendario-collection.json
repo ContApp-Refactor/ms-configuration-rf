@@ -1,0 +1,2494 @@
+{
+	"info": {
+		"_postman_id": "b5974cff-d126-4d7d-84d6-c780a2de716e",
+		"name": "CALENDARIO - INTEGRATION TEST",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30869581"
+	},
+	"item": [
+		{
+			"name": "1 Token",
+			"item": [
+				{
+					"name": "Token",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.collectionVariables.set(\"testRunId\", pm.variables.replaceIn(\"{{$randomUUID}}\"));",
+									"pm.collectionVariables.set(\"timestamp\", new Date().toISOString());",
+									"console.log(\"=== INICIO DE PRUEBA ===\");",
+									"console.log(\"Timestamp:\", pm.collectionVariables.get(\"timestamp\"));",
+									"console.log(\"Enterprise ID:\", pm.environment.get(\"enterpriseId\"));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set(\"tokenKeycloak\", jsonData.access_token);",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Access token is present\", function () {",
+									"    pm.expect(jsonData.access_token).to.not.be.null;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{keycloakUser}}\",\n    \"password\": \"{{keycloakPassword}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://contables.unicauca.edu.co/dev/api/keycloak/token/",
+							"protocol": "http",
+							"host": [
+								"contables",
+								"unicauca",
+								"edu",
+								"co"
+							],
+							"path": [
+								"dev",
+								"api",
+								"keycloak",
+								"token",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2 Integration",
+			"item": [
+				{
+					"name": "2.1 Casos correctos",
+					"item": [
+						{
+							"name": "Crear fecha día - 200",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code es 200 (OK)', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('La respuesta es JSON válido', function () {",
+											"    pm.response.to.be.json;",
+											"});",
+											"",
+											"pm.test('La respuesta contiene los datos del calendario', function () {",
+											"    const responseJson = pm.response.json();",
+											"    pm.expect(responseJson).to.have.property('id');",
+											"    pm.expect(responseJson).to.have.property('idEnterprise');",
+											"    pm.expect(responseJson).to.have.property('date');",
+											"    pm.expect(responseJson.date).to.equal('2025-06-15');",
+											"});",
+											"",
+											"const responseJson = pm.response.json();",
+											"pm.collectionVariables.set('calendarId_1', responseJson.id);",
+											"console.log('✓ Fecha individual creada con ID: ' + responseJson.id);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"date\": \"2025-06-15\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/config/accounting-calendar/create",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"accounting-calendar",
+										"create"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Abrir mes completo (Febrero 2025) - 200",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code es 200 (OK)', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('La respuesta es JSON válido', function () {",
+											"    pm.response.to.be.json;",
+											"});",
+											"",
+											"pm.test('La respuesta contiene los días del mes', function () {",
+											"    const responseJson = pm.response.json();",
+											"    pm.expect(responseJson).to.be.an('array');",
+											"    pm.expect(responseJson.length).to.equal(28);",
+											"});",
+											"",
+											"pm.test('Todas las fechas son de febrero 2025', function () {",
+											"    const responseJson = pm.response.json();",
+											"    responseJson.forEach(function(item) {",
+											"        pm.expect(item.date).to.include('2025-02');",
+											"    });",
+											"});",
+											"",
+											"console.log('✓ Mes de febrero 2025 abierto con ' + pm.response.json().length + ' días');"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 2025,\n  \"month\": 2\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/config/accounting-calendar/open-month",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"accounting-calendar",
+										"open-month"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Abrir año completo (2024) - 200",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code es 200 (OK)', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('La respuesta es JSON válido', function () {",
+											"    pm.response.to.be.json;",
+											"});",
+											"",
+											"pm.test('La respuesta contiene los días del año', function () {",
+											"    const responseJson = pm.response.json();",
+											"    pm.expect(responseJson).to.be.an('array');",
+											"    pm.expect(responseJson.length).to.equal(366);",
+											"});",
+											"",
+											"pm.test('Todas las fechas son de 2024', function () {",
+											"    const responseJson = pm.response.json();",
+											"    responseJson.forEach(function(item) {",
+											"        pm.expect(item.date).to.include('2024');",
+											"    });",
+											"});",
+											"",
+											"console.log('✓ Año 2024 abierto con ' + pm.response.json().length + ' días (bisiesto)');"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 2024\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/config/accounting-calendar/open-year",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"accounting-calendar",
+										"open-year"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Consultar fecha por ID - 200",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code es 200 (OK)', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('La respuesta es JSON válido', function () {",
+											"    pm.response.to.be.json;",
+											"});",
+											"",
+											"pm.test('La respuesta contiene los datos correctos', function () {",
+											"    const responseJson = pm.response.json();",
+											"    pm.expect(responseJson).to.have.property('id');",
+											"    pm.expect(responseJson).to.have.property('idEnterprise');",
+											"    pm.expect(responseJson).to.have.property('date');",
+											"    pm.expect(responseJson.id).to.equal(parseInt(pm.collectionVariables.get('calendarId_1')));",
+											"});",
+											"",
+											"console.log('✓ Fecha consultada correctamente');"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/accounting-calendar/findById/{{calendarId_1}}/{{enterpriseId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"accounting-calendar",
+										"findById",
+										"{{calendarId_1}}",
+										"{{enterpriseId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Listar fechas por año (2024) - 200",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code es 200 (OK)', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('La respuesta es JSON válido', function () {",
+											"    pm.response.to.be.json;",
+											"});",
+											"",
+											"pm.test('La respuesta es un array con fechas del año', function () {",
+											"    const responseJson = pm.response.json();",
+											"    pm.expect(responseJson).to.be.an('array');",
+											"    pm.expect(responseJson.length).to.be.at.least(1);",
+											"});",
+											"",
+											"pm.test('Todas las fechas son de 2024', function () {",
+											"    const responseJson = pm.response.json();",
+											"    responseJson.forEach(function(item) {",
+											"        pm.expect(item.date).to.include('2024');",
+											"    });",
+											"});",
+											"",
+											"console.log('✓ Listado de fechas 2024 correcto: ' + pm.response.json().length + ' registros');"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/accounting-calendar/year/{{enterpriseId}}?year=2024",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"accounting-calendar",
+										"year",
+										"{{enterpriseId}}"
+									],
+									"query": [
+										{
+											"key": "year",
+											"value": "2024"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Listar años disponibles - 200",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code es 200 (OK)', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('La respuesta es JSON válido', function () {",
+											"    pm.response.to.be.json;",
+											"});",
+											"",
+											"pm.test('La respuesta es un array de años', function () {",
+											"    const responseJson = pm.response.json();",
+											"    pm.expect(responseJson).to.be.an('array');",
+											"    pm.expect(responseJson.length).to.be.at.least(1);",
+											"});",
+											"",
+											"pm.test('Contiene los años creados (2024, 2025)', function () {",
+											"    const responseJson = pm.response.json();",
+											"    pm.expect(responseJson).to.include(2024);",
+											"    pm.expect(responseJson).to.include(2025);",
+											"});",
+											"",
+											"console.log('✓ Años disponibles: ' + pm.response.json().join(', '));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/accounting-calendar/years/{{enterpriseId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"accounting-calendar",
+										"years",
+										"{{enterpriseId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Verificar fecha existente (existe) - 200",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code es 200 (OK)', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('La respuesta indica que la fecha existe', function () {",
+											"    const responseJson = pm.response.json();",
+											"    pm.expect(responseJson).to.be.true;",
+											"});",
+											"",
+											"console.log('✓ Verificación correcta: fecha 2025-06-15 existe');"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/accounting-calendar/exists/{{enterpriseId}}?date=2025-06-15",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"accounting-calendar",
+										"exists",
+										"{{enterpriseId}}"
+									],
+									"query": [
+										{
+											"key": "date",
+											"value": "2025-06-15"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Verificar fecha no existente - 200",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code es 200 (OK)', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('La respuesta indica que la fecha no existe', function () {",
+											"    const responseJson = pm.response.json();",
+											"    pm.expect(responseJson).to.be.false;",
+											"});",
+											"",
+											"console.log('✓ Verificación correcta: fecha 2030-01-01 no existe');"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/accounting-calendar/exists/{{enterpriseId}}?date=2030-01-01",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"accounting-calendar",
+										"exists",
+										"{{enterpriseId}}"
+									],
+									"query": [
+										{
+											"key": "date",
+											"value": "2030-01-01"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "2.2 Casos incorrectos",
+					"item": [
+						{
+							"name": "Crear",
+							"item": [
+								{
+									"name": "Crear fecha - Sin token - 401",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 401 (Unauthorized)', function () {",
+													"    pm.response.to.have.status(401);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: sin token de autenticación');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "noauth"
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"date\": \"2025-07-01\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear fecha - Sin idEnterprise - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica campo requerido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('identerprise');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: idEnterprise es requerido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"date\": \"2025-07-01\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear fecha - idEnterprise vacío - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: idEnterprise no puede estar vacío');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"\",\n  \"date\": \"2025-07-01\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear fecha - Sin date - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica campo requerido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('date');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: date es requerido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear fecha - Formato fecha inválido (DD-MM-YYYY) - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica formato incorrecto', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('fecha');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: formato DD-MM-YYYY no es válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"date\": \"15-07-2025\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear fecha - Formato fecha inválido (texto) - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: texto no es formato de fecha válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"date\": \"fecha-invalida\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear fecha - Body vacío - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: body vacío no es válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir mes - Sin token - 401",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 401 (Unauthorized)', function () {",
+													"    pm.response.to.have.status(401);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: sin token de autenticación');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "noauth"
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 2025,\n  \"month\": 7\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-month",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-month"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir mes - Sin idEnterprise - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica campo requerido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('identerprise');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: idEnterprise es requerido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"year\": 2025,\n  \"month\": 7\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-month",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-month"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir mes - Año menor a 2000 - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica año inválido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('year');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: año menor a 2000 no es válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 1999,\n  \"month\": 7\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-month",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-month"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir mes - Año mayor a 9999 - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica año inválido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('year');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: año mayor a 9999 no es válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 10000,\n  \"month\": 7\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-month",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-month"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir mes - Mes menor a 1 - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica mes inválido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('month');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: mes 0 no es válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 2025,\n  \"month\": 0\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-month",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-month"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir mes - Mes mayor a 12 - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica mes inválido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('month');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: mes 13 no es válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 2025,\n  \"month\": 13\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-month",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-month"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir mes - Body vacío - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: body vacío no es válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-month",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-month"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir año - Sin token - 401",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 401 (Unauthorized)', function () {",
+													"    pm.response.to.have.status(401);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: sin token de autenticación');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "noauth"
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 2026\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-year",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-year"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir año - Sin idEnterprise - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica campo requerido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('identerprise');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: idEnterprise es requerido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"year\": 2026\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-year",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-year"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir año - Año menor a 2000 - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica año inválido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('year');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: año menor a 2000 no es válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 1999\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-year",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-year"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir año - Año mayor a 9999 - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test('El mensaje indica año inválido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.include('year');",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: año mayor a 9999 no es válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 10000\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-year",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-year"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Abrir año - Body vacío - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: body vacío no es válido');",
+													"console.log('=== FIN DE CASOS INCORRECTOS DE CREAR ===');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/open-year",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"open-year"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Consultar",
+							"item": [
+								{
+									"name": "Consultar por ID - Sin token - 401",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 401 (Unauthorized)', function () {",
+													"    pm.response.to.have.status(401);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: sin token de autenticación');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "noauth"
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/findById/1/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"findById",
+												"1",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Consultar por ID - ID inexistente - 404",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 404 (Not Found)', function () {",
+													"    pm.response.to.have.status(404);",
+													"});",
+													"",
+													"pm.test('El mensaje indica que no se encontró', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(JSON.stringify(responseJson).toLowerCase()).to.satisfy(function(msg) {",
+													"        return msg.includes('no') || msg.includes('not') || msg.includes('encontr');",
+													"    });",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: ID 999999 no existe');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/findById/999999/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"findById",
+												"999999",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Consultar por ID - enterpriseId inexistente - 404",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 404 (Not Found)', function () {",
+													"    pm.response.to.have.status(404);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: enterpriseId inexistente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/findById/1/empresa-inexistente-12345",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"findById",
+												"1",
+												"empresa-inexistente-12345"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar por año - Sin token - 401",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 401 (Unauthorized)', function () {",
+													"    pm.response.to.have.status(401);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: sin token de autenticación');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "noauth"
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/year/{{enterpriseId}}?year=2024",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"year",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "year",
+													"value": "2024"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar por año - Sin parámetro year - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: parámetro year es requerido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/year/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"year",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar por año - Año como texto inválido - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: año debe ser un número válido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/year/{{enterpriseId}}?year=invalido",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"year",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "year",
+													"value": "invalido"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar años disponibles - Sin token - 401",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 401 (Unauthorized)', function () {",
+													"    pm.response.to.have.status(401);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: sin token de autenticación');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "noauth"
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/years/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"years",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Verificar existencia - Sin token - 401",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 401 (Unauthorized)', function () {",
+													"    pm.response.to.have.status(401);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: sin token de autenticación');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "noauth"
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/exists/{{enterpriseId}}?date=2025-01-01",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"exists",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "date",
+													"value": "2025-01-01"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Verificar existencia - Sin parámetro date - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: parámetro date es requerido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/exists/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"exists",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Verificar existencia - Formato fecha inválido - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: formato de fecha inválido');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/exists/{{enterpriseId}}?date=01-01-2025",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"exists",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "date",
+													"value": "01-01-2025"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Verificar existencia - Fecha como texto inválido - 400",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 400 (Bad Request)', function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"console.log('✓ Rechazado correctamente: texto no es una fecha válida');",
+													"console.log('=== FIN DE CASOS INCORRECTOS DE CONSULTAR ===');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/accounting-calendar/exists/{{enterpriseId}}?date=fecha-invalida",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"accounting-calendar",
+												"exists",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "date",
+													"value": "fecha-invalida"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "3 Tear Down",
+			"item": [
+				{
+					"name": "Eliminar fecha individual por ID - 204",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 204 (No Content)', function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"console.log('✓ Fecha individual eliminada correctamente');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/accounting-calendar/delete/{{calendarId_1}}/{{enterpriseId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"accounting-calendar",
+								"delete",
+								"{{calendarId_1}}",
+								"{{enterpriseId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verificar eliminación de fecha - 200 false",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 (OK)', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('La fecha ya no existe', function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.be.false;",
+									"});",
+									"",
+									"console.log('✓ Verificación correcta: fecha eliminada ya no existe');"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/accounting-calendar/exists/{{enterpriseId}}?date=2025-06-15",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"accounting-calendar",
+								"exists",
+								"{{enterpriseId}}"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2025-06-15"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar mes completo (Febrero 2025) - 204",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 204 (No Content)', function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"console.log('✓ Mes de febrero 2025 eliminado correctamente');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 2025,\n  \"month\": 2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/config/accounting-calendar/delete-month",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"accounting-calendar",
+								"delete-month"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar año completo (2024) - 204",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 204 (No Content)', function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"console.log('✓ Año 2024 eliminado correctamente');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"year\": 2024\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/config/accounting-calendar/delete-year",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"accounting-calendar",
+								"delete-year"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verificar listado vacío tras eliminaciones - 200",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 (OK)', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('La respuesta es un array vacío o sin 2024', function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.be.an('array');",
+									"    pm.expect(responseJson).to.not.include(2024);",
+									"});",
+									"",
+									"console.log('✓ Verificación correcta: año 2024 ya no aparece en la lista');",
+									"console.log('=== FIN DE CASOS CORRECTOS DE CALENDARIO ===');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/accounting-calendar/years/{{enterpriseId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"accounting-calendar",
+								"years",
+								"{{enterpriseId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "testRunId",
+			"value": ""
+		},
+		{
+			"key": "timestamp",
+			"value": ""
+		},
+		{
+			"key": "tokenKeycloak",
+			"value": ""
+		},
+		{
+			"key": "calendarId_1",
+			"value": ""
+		}
+	]
+}

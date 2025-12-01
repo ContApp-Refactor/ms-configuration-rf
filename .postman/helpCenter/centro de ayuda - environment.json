@@ -1,0 +1,58 @@
+{
+	"id": "c15ad620-bb21-4840-8028-617c03e3f28e",
+	"name": "environment - Centro de Ayuda",
+	"values": [
+		{
+			"key": "baseUrlRabbit",
+			"value": "localhost:15672",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "enterpriseId",
+			"value": "d9a1a122-662e-47b4-852e-2769b124e025",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "Username",
+			"value": "guest",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "Password",
+			"value": "guest",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "baseUrl",
+			"value": "localhost:8080",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "keycloakUser",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "keycloakPassword",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"color": null,
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2025-12-01T20:21:32.832Z",
+	"_postman_exported_using": "Postman/11.73.5"
+}
