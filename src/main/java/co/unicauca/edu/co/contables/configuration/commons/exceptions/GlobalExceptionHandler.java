@@ -223,6 +223,32 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * @brief Maneja excepciones de argumento ilegal
+     *
+     * Maneja errores cuando se pasa un argumento inválido, como índices de paginación negativos.
+     * @param ex la excepción de argumento ilegal
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
+            IllegalArgumentException ex, WebRequest request) {
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(ex.getMessage())
+                .code(ErrorCode.GENERIC_ERROR.getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, status);
+    }
+
+    /**
      * @brief Mapea estado HTTP desde código de error
      *
      * Mapea un código de error a un estado HTTP apropiado basado en patrones del código.
