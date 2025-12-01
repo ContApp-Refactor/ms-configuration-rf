@@ -4,9 +4,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 
@@ -147,6 +149,66 @@ public class GlobalExceptionHandler {
             message = String.format("El campo '%s' tiene un formato inválido. Se esperaba un %s pero se recibió: '%s'", 
                     fieldName, targetType, value);
         }
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message)
+                .code(ErrorCode.GENERIC_ERROR.getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, status);
+    }
+
+    /**
+     * @brief Maneja errores de parámetros de solicitud faltantes
+     *
+     * Maneja errores cuando un parámetro requerido (@RequestParam) no está presente.
+     * @param ex la excepción de parámetro de solicitud faltante
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException ex, WebRequest request) {
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        String message = String.format("El parámetro '%s' de tipo '%s' es requerido", 
+                ex.getParameterName(), ex.getParameterType());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message)
+                .code(ErrorCode.GENERIC_ERROR.getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, status);
+    }
+
+    /**
+     * @brief Maneja errores de conversión de tipo de argumento
+     *
+     * Maneja errores cuando un parámetro no puede convertirse al tipo esperado.
+     * @param ex la excepción de tipo de argumento no coincidente
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex, WebRequest request) {
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        String paramName = ex.getName();
+        Object value = ex.getValue();
+        String requiredType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "desconocido";
+        
+        String message = String.format("El parámetro '%s' con valor '%s' no puede convertirse al tipo requerido '%s'", 
+                paramName, value, requiredType);
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
