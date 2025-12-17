@@ -34,13 +34,13 @@
 		},
 		{
 			"key": "keycloakUser",
-			"value": "",
+			"value": "test@contapp.com",
 			"type": "default",
 			"enabled": true
 		},
 		{
 			"key": "keycloakPassword",
-			"value": "",
+			"value": "12345",
 			"type": "default",
 			"enabled": true
 		},
