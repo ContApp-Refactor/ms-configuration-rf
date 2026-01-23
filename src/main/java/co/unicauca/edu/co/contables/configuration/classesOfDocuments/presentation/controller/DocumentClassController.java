@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -31,12 +32,14 @@ public class DocumentClassController {
     private final DocumentClassDomainMapper mapper;
     private final PaginationHelper paginationHelper;
 
+    @PreAuthorize("hasAuthority('Create_Document_Class')")
     @PostMapping("/create")
     public ResponseEntity<DocumentClassRes> create(@Valid @RequestBody DocumentClassCreateReq request) {
         DocumentClass created = service.create(request);
         return ResponseEntity.ok(mapper.toRes(created));
     }
 
+    @PreAuthorize("hasAuthority('Update_Document_Class')")
     @PutMapping("/update")
     public ResponseEntity<DocumentClassRes> update(@Valid @RequestBody DocumentClassUpdateReq request) {
         DocumentClass updated = service.update(request);
@@ -113,6 +116,7 @@ public class DocumentClassController {
         return ResponseEntity.ok(pageResult.map(mapper::toRes));
     }
 
+    @PreAuthorize("hasAuthority('Change_State_Document_Class')")
     @PatchMapping("/changeState/{id}/{enterpriseId}")
     public ResponseEntity<DocumentClassRes> changeState(
             @PathVariable Long id,
@@ -122,6 +126,7 @@ public class DocumentClassController {
         return ResponseEntity.ok(mapper.toRes(updated));
     }
 
+    @PreAuthorize("hasAuthority('Delete_Document_Class')")
     @DeleteMapping("/delete/{id}/{enterpriseId}")
     public ResponseEntity<DocumentClassRes> Delete(
             @PathVariable Long id,
