@@ -17,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,12 +40,14 @@ public class CostCenterController {
     private final CostCenterDomainMapper mapper;
     private final PaginationHelper paginationHelper;
 
+    @PreAuthorize("hasAuthority('Create_Cost_Center')")
     @PostMapping("/create")
     public ResponseEntity<CostCenterRes> create(@Valid @RequestBody CostCenterCreateReq request) {
         CostCenter created = service.create(request);
         return ResponseEntity.ok(mapper.toRes(created));
     }
 
+    @PreAuthorize("hasAuthority('Update_Cost_Center')")
     @PutMapping("/update")
     public ResponseEntity<CostCenterRes> update(@Valid @RequestBody CostCenterUpdateReq request) {
         CostCenter updated = service.update(request);
@@ -124,6 +127,7 @@ public class CostCenterController {
         return ResponseEntity.ok(mapped);
     }
 
+    @PreAuthorize("hasAuthority('Change_State_Cost_Center')")
     @PatchMapping("/changeState/{id}/{enterpriseId}")
     public ResponseEntity<CostCenterRes> changeState(
             @PathVariable Long id,
@@ -133,6 +137,7 @@ public class CostCenterController {
         return ResponseEntity.ok(mapper.toRes(updated));
     }
 
+    @PreAuthorize("hasAuthority('Delete_Cost_Center')")
     @DeleteMapping("/delete/{id}/{enterpriseId}")
     public ResponseEntity<CostCenterRes> delete(
             @PathVariable Long id,
@@ -167,6 +172,7 @@ public class CostCenterController {
      * @param companyName  Nombre de la empresa para el archivo (opcional)
      * @return Archivo Excel con los centros de costo
      */
+    @PreAuthorize("hasAuthority('Export_Cost_Center')")
     @GetMapping("/export/excel/{enterpriseId}")
     public ResponseEntity<Resource> exportCostCenters(
             @PathVariable String enterpriseId,

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,6 +32,7 @@ public class TagRestController {
     private final ITagDomainMapper tagDomainMapper;
     private final ITagService tagService;
 
+    @PreAuthorize("hasAuthority('Create_Tag')")
     @PostMapping("/create")
     public ResponseEntity<TagDTOResponse> createTag(@RequestBody TagDTORequest tagDTORequest) {
         Tag tag=tagDomainMapper.toDomain(tagDTORequest);
@@ -39,6 +41,7 @@ public class TagRestController {
         return objResponse;
     }
 
+    @PreAuthorize("hasAuthority('Update_Tag')")
     @PutMapping("/update/{idTag}")
     public ResponseEntity<TagDTOResponse> updateTag(@PathVariable Long idTag, @RequestBody TagDTORequest tagDTORequest) {
         Tag tagUpdate=tagDomainMapper.toDomain(tagDTORequest);
@@ -65,6 +68,7 @@ public class TagRestController {
         return ResponseEntity.ok(responseList);
     }
 
+    @PreAuthorize("hasAuthority('Delete_Tag')")
     @DeleteMapping("/deletetag/{idTag}")
    public ResponseEntity<Void> deleteTag(@PathVariable Long idTag) {
         boolean deleted = tagService.delete(idTag);
