@@ -32,7 +32,7 @@ public class TagRestController {
     private final ITagDomainMapper tagDomainMapper;
     private final ITagService tagService;
 
-    @PreAuthorize("hasAuthority('Create_Tag')")
+    @PreAuthorize("hasAuthority('NCT#C')")
     @PostMapping("/create")
     public ResponseEntity<TagDTOResponse> createTag(@RequestBody TagDTORequest tagDTORequest) {
         Tag tag=tagDomainMapper.toDomain(tagDTORequest);
@@ -41,7 +41,7 @@ public class TagRestController {
         return objResponse;
     }
 
-    @PreAuthorize("hasAuthority('Update_Tag')")
+    @PreAuthorize("hasAuthority('NCT#U')")
     @PutMapping("/update/{idTag}")
     public ResponseEntity<TagDTOResponse> updateTag(@PathVariable Long idTag, @RequestBody TagDTORequest tagDTORequest) {
         Tag tagUpdate=tagDomainMapper.toDomain(tagDTORequest);
@@ -68,7 +68,7 @@ public class TagRestController {
         return ResponseEntity.ok(responseList);
     }
 
-    @PreAuthorize("hasAuthority('Delete_Tag')")
+    @PreAuthorize("hasAuthority('NCT#D')")
     @DeleteMapping("/deletetag/{idTag}")
    public ResponseEntity<Void> deleteTag(@PathVariable Long idTag) {
         boolean deleted = tagService.delete(idTag);
