@@ -37,14 +37,14 @@ public class HelpCenterController {
     private final HelpCenterDomainMapper mapper;
     private final PaginationHelper paginationHelper;
 
-    @PreAuthorize("hasAuthority('Create_Help_Center')")
+    @PreAuthorize("hasAuthority('HC#C')")
     @PostMapping("/create")
     public ResponseEntity<HelpCenterRes> create(@Valid @RequestBody HelpCenterCreateReq request) {
         HelpCenter created = service.create(request);
         return ResponseEntity.ok(mapper.toRes(created));
     }
 
-    @PreAuthorize("hasAuthority('Update_Help_Center')")
+    @PreAuthorize("hasAuthority('HC#U')")
     @PutMapping("/update")
     public ResponseEntity<HelpCenterRes> update(@Valid @RequestBody HelpCenterUpdateReq request) {
         HelpCenter updated = service.update(request);
@@ -112,7 +112,7 @@ public class HelpCenterController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasAuthority('Change_State_Help_Center')")
+    @PreAuthorize("hasAuthority('HC#CS')")
     @PatchMapping("/changeState/{id}")
     public ResponseEntity<HelpCenterRes> changeState(
             @PathVariable Long id,
@@ -121,7 +121,7 @@ public class HelpCenterController {
         return ResponseEntity.ok(mapper.toRes(updated));
     }
 
-    @PreAuthorize("hasAuthority('Delete_Help_Center')")
+    @PreAuthorize("hasAuthority('HC#D')")
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<HelpCenterRes> delete(@PathVariable Long id) {
         HelpCenter deleted = service.delete(id);

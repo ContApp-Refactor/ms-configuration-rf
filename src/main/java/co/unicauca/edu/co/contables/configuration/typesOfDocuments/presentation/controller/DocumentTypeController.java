@@ -31,14 +31,14 @@ public class DocumentTypeController {
     private final DocumentTypeDomainMapper mapper;
     private final PaginationHelper paginationHelper;
 
-    @PreAuthorize("hasAuthority('Create_Document_Type')")
+    @PreAuthorize("hasAuthority('DT#C')")
     @PostMapping("/create")
     public ResponseEntity<DocumentTypeRes> create(@Valid @RequestBody DocumentTypeCreateReq request) {
         DocumentType created = service.create(request);
         return ResponseEntity.ok(mapper.toRes(created));
     }
 
-    @PreAuthorize("hasAuthority('Update_Document_Type')")
+    @PreAuthorize("hasAuthority('DT#U')")
     @PutMapping("/update")
     public ResponseEntity<DocumentTypeRes> update(@Valid @RequestBody DocumentTypeUpdateReq request) {
         DocumentType updated = service.update(request);
@@ -90,7 +90,7 @@ public class DocumentTypeController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasAuthority('Change_State_Document_Type')")
+    @PreAuthorize("hasAuthority('DT#CS')")
     @PatchMapping("/changeState/{id}/{enterpriseId}")
     public ResponseEntity<DocumentTypeRes> changeState(
             @PathVariable Long id,
@@ -100,7 +100,7 @@ public class DocumentTypeController {
         return ResponseEntity.ok(mapper.toRes(updated));
     }
 
-    @PreAuthorize("hasAuthority('Delete_Document_Type')")
+    @PreAuthorize("hasAuthority('DT#D')")
     @DeleteMapping("/delete/{id}/{enterpriseId}")
     public ResponseEntity<DocumentTypeRes> Delete(
             @PathVariable Long id,

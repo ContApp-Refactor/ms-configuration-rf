@@ -77,40 +77,60 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
     @SuppressWarnings("unchecked")
     private Collection<? extends GrantedAuthority> extractPermissions(Jwt jwt) {
         Map<String, Object> authorization = jwt.getClaim("authorization");
-        if (authorization == null || !authorization.containsKey("permissions")) {
+        if (authorization == null)
             return Set.of();
-        }
 
-        List<Map<String, Object>> permissions =
-                (List<Map<String, Object>>) authorization.get("permissions");
+        Object permsObj = authorization.get("permissions");
+        if (!(permsObj instanceof List<?> permissionsList))
+            return Set.of();
 
         Set<GrantedAuthority> authorities = new HashSet<>();
 
-        for (Map<String, Object> permission : permissions) {
-            Object rsnameObj = permission.get("rsname");
-            if (!(rsnameObj instanceof String rsnameRaw) || rsnameRaw.isBlank()) {
+        for (Object permObj : permissionsList) {
+            if (!(permObj instanceof Map<?, ?> permission))
                 continue;
-            }
-            String resourceName = rsnameRaw;
+
+            Object rsnameObj = permission.get("rsname");
+            if (!(rsnameObj instanceof String rsnameRaw))
+                continue;
+
+            String resourceName = rsnameRaw.trim();
+            if (resourceName.isEmpty())
+                continue;
+
+            // Siempre agrega el recurso "plano" (sirve para recursos sin scopes)
             authorities.add(new SimpleGrantedAuthority(resourceName));
+
+            // Si tiene scopes, agrega resource#scope por cada uno
+            Object scopesObj = permission.get("scopes");
+            if (scopesObj instanceof Collection<?> scopes) {
+                for (Object s : scopes) {
+                    if (s instanceof String scopeRaw) {
+                        String scope = scopeRaw.trim();
+                        if (!scope.isEmpty()) {
+                            authorities.add(new SimpleGrantedAuthority(resourceName + "#" + scope));
+                        }
+                    }
+                }
+            }
         }
 
         return authorities;
     }
 
-     /**
+    /**
      * Devuelve el valor del claim "sub" del JWT, que se
      * utiliza como identificador del usuario autenticado.
      * 
      * @return el identificador del usuario autenticado
      */
-     @Override
-     public String getId() {
-         return (String) jwtToken.getClaims().get("sub");
-     }
- 
-     @Override
-     public String getToken() {
-         return jwtToken.getTokenValue();
-     }
+    @Override
+    public String getId() {
+        return (String) jwtToken.getClaims().get("sub");
+    }
+
+    @Override
+    public String getToken() {
+        return jwtToken.getTokenValue();
+    }
 }

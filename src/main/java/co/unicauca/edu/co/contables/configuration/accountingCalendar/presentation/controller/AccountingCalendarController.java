@@ -29,7 +29,7 @@ public class AccountingCalendarController {
     private final IAccountingCalendarService service;
     private final AccountingCalendarDomainMapper mapper;
 
-    @PreAuthorize("hasAuthority('Open_Day_Accounting_Calendar')")
+    @PreAuthorize("hasAuthority('A_C#OD')")
     @PostMapping("/create")
     public ResponseEntity<AccountingCalendarRes> create(@Valid @RequestBody AccountingCalendarCreateReq req) {
         AccountingCalendar created = service.create(req);
@@ -41,35 +41,35 @@ public class AccountingCalendarController {
         return ResponseEntity.ok(mapper.toRes(service.findById(id, enterpriseId)));
     }
 
-    @PreAuthorize("hasAuthority('Delete_Day_Accounting_Calendar')")
+    @PreAuthorize("hasAuthority('A_C#CD')")
     @DeleteMapping("/delete/{id}/{enterpriseId}")
     public ResponseEntity<Void> delete(@PathVariable Long id, @PathVariable String enterpriseId) {
         service.delete(id, enterpriseId);
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize("hasAuthority('Open_Month_Accounting_Calendar')")
+    @PreAuthorize("hasAuthority('A_C#OM')")
     @PostMapping("/open-month")
     public ResponseEntity<List<AccountingCalendarRes>> openMonthBatch(@Valid @RequestBody AccountingCalendarCreateMonthReq req) {
         List<AccountingCalendar> created = service.openMonthBatch(req);
         return ResponseEntity.ok(created.stream().map(mapper::toRes).collect(Collectors.toList()));
     }
 
-    @PreAuthorize("hasAuthority('Delete_Month_Accounting_Calendar')")
+    @PreAuthorize("hasAuthority('A_C#CM')")
     @DeleteMapping("/delete-month")
     public ResponseEntity<Void> deleteByMonth(@Valid @RequestBody AccountingCalendarDeleteMonthReq req) {
         service.deleteByMonth(req);
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize("hasAuthority('Open_Year_Accounting_Calendar')")
+    @PreAuthorize("hasAuthority('A_C#OY')")
     @PostMapping("/open-year")
     public ResponseEntity<List<AccountingCalendarRes>> openYearBatch(@Valid @RequestBody AccountingCalendarCreateYearReq req) {
         List<AccountingCalendar> created = service.openYearBatch(req);
         return ResponseEntity.ok(created.stream().map(mapper::toRes).collect(Collectors.toList()));
     }
 
-    @PreAuthorize("hasAuthority('Delete_Year_Accounting_Calendar')")
+    @PreAuthorize("hasAuthority('A_C#CY')")
     @DeleteMapping("/delete-year")
     public ResponseEntity<Void> deleteByYear(@Valid @RequestBody AccountingCalendarDeleteYearReq req) {
         service.deleteByYear(req);
