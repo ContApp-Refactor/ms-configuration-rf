@@ -3,6 +3,8 @@ package co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.servi
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.dataAccess.entity.DocumentClassEntity;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.dataAccess.repository.DocumentClassRepository;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassesNotFoundException;
+import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassInactiveException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypeInUseException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypesAlreadyExistsException;
@@ -41,8 +43,9 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
     @Override
     @Transactional
+    @Auditable(operationType = OperationType.CREATE, affectedTable = "DOCUMENT_TYPE", moduleName = "TYPE_OF_DOCUMENTS")
     public DocumentType create(DocumentTypeCreateReq request) {
-        
+
         // Validar que el ID del módulo sea válido
         if (!DocumentModule.isValidId(request.getModuleId())) {
             throw new InvalidModuleException(request.getModuleId());
@@ -61,10 +64,12 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         }
 
         // Validar que la clase exista y esté activa
-        DocumentClassEntity docClass = documentClassRepository.findByIdAndIdEnterpriseAndStatus(request.getDocumentClassId(), request.getIdEnterprise(), true)
+        DocumentClassEntity docClass = documentClassRepository
+                .findByIdAndIdEnterpriseAndStatus(request.getDocumentClassId(), request.getIdEnterprise(), true)
                 .orElseGet(() -> {
                     // Verificar si existe pero está inactiva
-                    DocumentClassEntity inactiveClass = documentClassRepository.findByIdAndIdEnterprise(request.getDocumentClassId(), request.getIdEnterprise())
+                    DocumentClassEntity inactiveClass = documentClassRepository
+                            .findByIdAndIdEnterprise(request.getDocumentClassId(), request.getIdEnterprise())
                             .orElseThrow(DocumentClassesNotFoundException::new);
                     throw new DocumentClassInactiveException(inactiveClass.getName());
                 });
@@ -82,6 +87,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
     @Override
     @Transactional
+    @Auditable(operationType = OperationType.UPDATE, affectedTable = "DOCUMENT_TYPE", moduleName = "TYPE_OF_DOCUMENTS")
     public DocumentType update(DocumentTypeUpdateReq request) {
         // Validar que el ID del módulo sea válido
         if (!DocumentModule.isValidId(request.getModuleId())) {
@@ -101,7 +107,8 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
             throw new DocumentTypeInUseException(current.getPrefix(), true); // true indica operación de edición
         }
 
-        String targetEnterprise = request.getIdEnterprise() != null ? request.getIdEnterprise() : current.getIdEnterprise();
+        String targetEnterprise = request.getIdEnterprise() != null ? request.getIdEnterprise()
+                : current.getIdEnterprise();
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
         String standardizedPrefix = StringStandardizationUtils.standardizePrefix(request.getPrefix());
 
@@ -111,7 +118,8 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
         // Validar unicidad del prefijo si cambió
         if (prefixChanged || enterpriseChanged) {
-            if (repository.existsByPrefixAndIdEnterpriseAndIdNot(standardizedPrefix, targetEnterprise, current.getId())) {
+            if (repository.existsByPrefixAndIdEnterpriseAndIdNot(standardizedPrefix, targetEnterprise,
+                    current.getId())) {
                 throw new DocumentTypesAlreadyExistsException("prefijo", standardizedPrefix, targetEnterprise);
             }
         }
@@ -123,10 +131,12 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         }
 
         // Validar que la clase exista y esté activa
-        DocumentClassEntity docClass = documentClassRepository.findByIdAndIdEnterpriseAndStatus(request.getDocumentClassId(), targetEnterprise, true)
+        DocumentClassEntity docClass = documentClassRepository
+                .findByIdAndIdEnterpriseAndStatus(request.getDocumentClassId(), targetEnterprise, true)
                 .orElseGet(() -> {
                     // Verificar si existe pero está inactiva
-                    DocumentClassEntity inactiveClass = documentClassRepository.findByIdAndIdEnterprise(request.getDocumentClassId(), targetEnterprise)
+                    DocumentClassEntity inactiveClass = documentClassRepository
+                            .findByIdAndIdEnterprise(request.getDocumentClassId(), targetEnterprise)
                             .orElseThrow(DocumentClassesNotFoundException::new);
                     throw new DocumentClassInactiveException(inactiveClass.getName());
                 });
@@ -144,7 +154,8 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
     @Override
     @Transactional(readOnly = true)
     public DocumentType findById(Long id, String idEnterprise) {
-        return dataMapper.toDomain(repository.findByIdAndIdEnterprise(id, idEnterprise).orElseThrow(DocumentTypesNotFoundException::new));
+        return dataMapper.toDomain(
+                repository.findByIdAndIdEnterprise(id, idEnterprise).orElseThrow(DocumentTypesNotFoundException::new));
     }
 
     @Override
@@ -156,10 +167,10 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<DocumentType> findAllByEnterprise(String idEnterprise, int page, int size, String sortField, String sortOrder) {
-        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
-            Sort.by(sortField).descending() : 
-            Sort.by(sortField).ascending();
+    public Page<DocumentType> findAllByEnterprise(String idEnterprise, int page, int size, String sortField,
+            String sortOrder) {
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortField).descending()
+                : Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         return repository.findAllByIdEnterprise(idEnterprise, pageable).map(dataMapper::toDomain);
     }
@@ -171,11 +182,11 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
         if (!DocumentModule.isValidId(moduleId)) {
             throw new InvalidModuleException(moduleId);
         }
-        
+
         // Obtener el módulo por ID y estandarizar su nombre
         DocumentModule documentModule = DocumentModule.fromId(moduleId);
         String standardizedModule = StringStandardizationUtils.standardizeName(documentModule.getName());
-        
+
         return repository.findAllByModuleAndIdEnterprise(standardizedModule, idEnterprise)
                 .stream()
                 .map(dataMapper::toDomain)
@@ -184,6 +195,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
     @Override
     @Transactional
+    @Auditable(operationType = OperationType.INACTIVATE, affectedTable = "DOCUMENT_TYPE", moduleName = "TYPE_OF_DOCUMENTS", idArgIndex = 0, enterpriseIdArgIndex = 1)
     public DocumentType changeState(Long id, String idEnterprise, Boolean status) {
         DocumentTypeEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentTypesNotFoundException::new);
@@ -195,6 +207,7 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
     @Override
     @Transactional
+    @Auditable(operationType = OperationType.DELETE, affectedTable = "DOCUMENT_TYPE", moduleName = "TYPE_OF_DOCUMENTS", idArgIndex = 0, enterpriseIdArgIndex = 1)
     public DocumentType Delete(Long id, String idEnterprise) {
         DocumentTypeEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentTypesNotFoundException::new);
@@ -223,12 +236,13 @@ public class DocumentTypeServiceImpl implements IDocumentTypeService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<DocumentType> findByEnterpriseAndNameContaining(String idEnterprise, String search, int page, int size, String sortField, String sortOrder) {
-        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
-            Sort.by(sortField).descending() : 
-            Sort.by(sortField).ascending();
+    public Page<DocumentType> findByEnterpriseAndNameContaining(String idEnterprise, String search, int page, int size,
+            String sortField, String sortOrder) {
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortField).descending()
+                : Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        return repository.findByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search, pageable).map(dataMapper::toDomain);
+        return repository.findByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search, pageable)
+                .map(dataMapper::toDomain);
     }
 
     @Override
