@@ -16,6 +16,8 @@ import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentatio
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassUpdateReq;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassesAlreadyExistsException;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassesNotFoundException;
+import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
 import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassInUseException;
 import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.repository.DocumentTypeRepository;
@@ -24,9 +26,11 @@ import lombok.RequiredArgsConstructor;
 /**
  * @brief Implementación del servicio de dominio para clases de documento
  *
- * Clase que implementa la lógica de negocio para gestionar clases de documento,
- * incluyendo operaciones CRUD, validaciones de unicidad, cambios de estado
- * y consultas paginadas con filtros.
+ *        Clase que implementa la lógica de negocio para gestionar clases de
+ *        documento,
+ *        incluyendo operaciones CRUD, validaciones de unicidad, cambios de
+ *        estado
+ *        y consultas paginadas con filtros.
  */
 @Service
 @RequiredArgsConstructor
@@ -39,6 +43,7 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
 
     @Override
     @Transactional
+    @Auditable(operationType = OperationType.CREATE, affectedTable = "DOCUMENT_CLASS", moduleName = "CLASSES_OF_DOCUMENTS")
     public DocumentClass create(DocumentClassCreateReq request) {
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
 
@@ -54,18 +59,22 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
 
     @Override
     @Transactional
+    @Auditable(operationType = OperationType.UPDATE, affectedTable = "DOCUMENT_CLASS", moduleName = "CLASSES_OF_DOCUMENTS")
     public DocumentClass update(DocumentClassUpdateReq request) {
         DocumentClassEntity current = repository.findByIdAndIdEnterprise(request.getId(), request.getIdEnterprise())
                 .orElseThrow(DocumentClassesNotFoundException::new);
 
-        // Validar que no se pueda editar si tiene tipos de documento con registros contables
-        boolean hasDocumentTypesWithMovements = documentTypeRepository.existsByDocumentClassIdAndIdEnterpriseAndUsageCountGreaterThan(
-            current.getId(), current.getIdEnterprise(), 0);
+        // Validar que no se pueda editar si tiene tipos de documento con registros
+        // contables
+        boolean hasDocumentTypesWithMovements = documentTypeRepository
+                .existsByDocumentClassIdAndIdEnterpriseAndUsageCountGreaterThan(
+                        current.getId(), current.getIdEnterprise(), 0);
         if (hasDocumentTypesWithMovements) {
             throw new DocumentClassInUseException(current.getName(), true); // true = edición
         }
 
-        String targetEnterprise = request.getIdEnterprise() != null ? request.getIdEnterprise() : current.getIdEnterprise();
+        String targetEnterprise = request.getIdEnterprise() != null ? request.getIdEnterprise()
+                : current.getIdEnterprise();
 
         String standardizedName = StringStandardizationUtils.standardizeName(request.getName());
 
@@ -102,10 +111,10 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<DocumentClass> findAllByEnterprise(String idEnterprise, int page, int size, String sortField, String sortOrder) {
-        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
-            Sort.by(sortField).descending() : 
-            Sort.by(sortField).ascending();
+    public Page<DocumentClass> findAllByEnterprise(String idEnterprise, int page, int size, String sortField,
+            String sortOrder) {
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortField).descending()
+                : Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         return repository.findAllByIdEnterprise(idEnterprise, pageable).map(dataMapper::toDomain);
     }
@@ -118,6 +127,7 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
 
     @Override
     @Transactional
+    @Auditable(operationType = OperationType.INACTIVATE, affectedTable = "DOCUMENT_CLASS", moduleName = "CLASSES_OF_DOCUMENTS", idArgIndex = 0, enterpriseIdArgIndex = 1)
     public DocumentClass changeState(Long id, String idEnterprise, Boolean status) {
         DocumentClassEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentClassesNotFoundException::new);
@@ -129,16 +139,17 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
 
     @Override
     @Transactional
+    @Auditable(operationType = OperationType.DELETE, affectedTable = "DOCUMENT_CLASS", moduleName = "CLASSES_OF_DOCUMENTS", idArgIndex = 0, enterpriseIdArgIndex = 1)
     public DocumentClass Delete(Long id, String idEnterprise) {
         DocumentClassEntity current = repository.findByIdAndIdEnterprise(id, idEnterprise)
                 .orElseThrow(DocumentClassesNotFoundException::new);
 
-        // Validar que la clase de documento no esté siendo utilizada por tipos de documentos
+        // Validar que la clase de documento no esté siendo utilizada por tipos de
+        // documentos
         if (documentTypeRepository.existsByDocumentClassId(id)) {
             throw new DocumentClassInUseException(current.getName());
         }
 
-  
         repository.delete(current);
         return dataMapper.toDomain(current);
     }
@@ -157,12 +168,13 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<DocumentClass> findByEnterpriseAndNameContaining(String idEnterprise, String search, int page, int size, String sortField, String sortOrder) {
-        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? 
-            Sort.by(sortField).descending() : 
-            Sort.by(sortField).ascending();
+    public Page<DocumentClass> findByEnterpriseAndNameContaining(String idEnterprise, String search, int page, int size,
+            String sortField, String sortOrder) {
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortField).descending()
+                : Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        return repository.findByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search, pageable).map(dataMapper::toDomain);
+        return repository.findByIdEnterpriseAndNameContainingIgnoreCase(idEnterprise, search, pageable)
+                .map(dataMapper::toDomain);
     }
 
     @Override
@@ -172,5 +184,3 @@ public class DocumentClassServiceImpl implements IDocumentClassService {
     }
 
 }
-
-
