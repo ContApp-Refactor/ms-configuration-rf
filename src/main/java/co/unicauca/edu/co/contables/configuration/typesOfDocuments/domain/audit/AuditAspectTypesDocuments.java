@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
 import co.unicauca.edu.co.contables.configuration.commons.audit.aspect.BaseAuditAspect;
 import co.unicauca.edu.co.contables.configuration.commons.audit.builder.AuditEventBuilder;
 import co.unicauca.edu.co.contables.configuration.commons.audit.publisher.AuditEventPublisher;
@@ -25,26 +24,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AuditAspectTypesDocuments extends BaseAuditAspect {
 
-    private final AuditEventBuilder auditEventBuilder;
-    private final AuditEventPublisher auditEventPublisher;
     @Lazy
     private final IDocumentTypeService documentTypeService;
 
     public AuditAspectTypesDocuments(AuditEventBuilder auditEventBuilder, @Lazy AuditEventPublisher auditEventPublisher,
             IDocumentTypeService documentTypeService) {
-        this.auditEventBuilder = auditEventBuilder;
-        this.auditEventPublisher = auditEventPublisher;
+        super(auditEventBuilder, auditEventPublisher);
         this.documentTypeService = documentTypeService;
-    }
-
-    @Override
-    protected AuditEventBuilder getAuditEventBuilder() {
-        return auditEventBuilder;
-    }
-
-    @Override
-    protected AuditEventPublisher getAuditEventPublisher() {
-        return auditEventPublisher;
     }
 
     @Around("@annotation(auditable) && within(co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.services..*)")
@@ -60,36 +46,10 @@ public class AuditAspectTypesDocuments extends BaseAuditAspect {
                 String enterpriseId = (args[0] instanceof Long) ? (String) args[1]
                         : ((DocumentTypeUpdateReq) args[0]).getIdEnterprise();
                 yield Optional.ofNullable(documentTypeService.findById(id, enterpriseId))
-                        .map(this::documentTypeToMap)
+                        .map(this::entityToMap)
                         .orElse(null);
             }
             default -> null;
-        };
-    }
-
-    @Override
-    protected Map<String, Object> buildDataObject(OperationType operationType, Object[] args,
-            Object result, Map<String, Object> beforeData, Auditable auditable) {
-        return switch (operationType) {
-            case CREATE -> {
-                Map<String, Object> data = new LinkedHashMap<>();
-                if (result instanceof DocumentType d)
-                    data.put("entity", documentTypeToMap(d));
-                yield data;
-            }
-            case UPDATE -> {
-                Map<String, Object> afterData = fetchCurrentState(auditable, args);
-                yield Map.of("changes", buildDiff(beforeData, afterData));
-            }
-            case ACTIVATE, INACTIVATE -> {
-                if (beforeData != null) {
-                    yield Map.of("changes", buildDiff(
-                            Map.of("state", beforeData.get("state")),
-                            Map.of("state", !((Boolean) beforeData.get("state")))));
-                }
-                yield Map.of();
-            }
-            case DELETE -> Map.of("entity", beforeData != null ? beforeData : Map.of("id", args[0]));
         };
     }
 
@@ -113,7 +73,23 @@ public class AuditAspectTypesDocuments extends BaseAuditAspect {
         };
     }
 
-    private Map<String, Object> documentTypeToMap(DocumentType d) {
+    @Override
+    protected Map<String, Object> buildContext(Object[] args, Object result, Map<String, Object> beforeData) {
+        if (beforeData == null)
+            return Map.of();
+        Map<String, Object> context = new LinkedHashMap<>();
+        if (beforeData.get("prefix") != null)
+            context.put("prefix", beforeData.get("prefix"));
+        if (beforeData.get("name") != null)
+            context.put("name", beforeData.get("name"));
+        return context;
+    }
+
+    @Override
+    protected Map<String, Object> entityToMap(Object object) {
+        if (!(object instanceof DocumentType d)) {
+            return null;
+        }
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("id", d.getId());
         data.put("entId", d.getIdEnterprise());

@@ -25,27 +25,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AuditAspectClassesDocuments extends BaseAuditAspect {
 
-    private final AuditEventBuilder auditEventBuilder;
-    private final AuditEventPublisher auditEventPublisher;
     @Lazy
     private final IDocumentClassService documentClassService;
 
     public AuditAspectClassesDocuments(AuditEventBuilder auditEventBuilder,
             @Lazy AuditEventPublisher auditEventPublisher,
             IDocumentClassService documentClassService) {
-        this.auditEventBuilder = auditEventBuilder;
-        this.auditEventPublisher = auditEventPublisher;
+        super(auditEventBuilder, auditEventPublisher);
         this.documentClassService = documentClassService;
-    }
-
-    @Override
-    protected AuditEventBuilder getAuditEventBuilder() {
-        return auditEventBuilder;
-    }
-
-    @Override
-    protected AuditEventPublisher getAuditEventPublisher() {
-        return auditEventPublisher;
     }
 
     @Around("@annotation(auditable) && within(co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.services..*)")
@@ -61,36 +48,10 @@ public class AuditAspectClassesDocuments extends BaseAuditAspect {
                 String enterpriseId = (args[0] instanceof Long) ? (String) args[1]
                         : ((DocumentClassUpdateReq) args[0]).getIdEnterprise();
                 yield Optional.ofNullable(documentClassService.findById(id, enterpriseId))
-                        .map(this::documentClassToMap)
+                        .map(this::entityToMap)
                         .orElse(null);
             }
             default -> null;
-        };
-    }
-
-    @Override
-    protected Map<String, Object> buildDataObject(OperationType operationType, Object[] args,
-            Object result, Map<String, Object> beforeData, Auditable auditable) {
-        return switch (operationType) {
-            case CREATE -> {
-                Map<String, Object> data = new LinkedHashMap<>();
-                if (result instanceof DocumentClass d)
-                    data.put("entity", documentClassToMap(d));
-                yield data;
-            }
-            case UPDATE -> {
-                Map<String, Object> afterData = fetchCurrentState(auditable, args);
-                yield Map.of("changes", buildDiff(beforeData, afterData));
-            }
-            case ACTIVATE, INACTIVATE -> {
-                if (beforeData != null) {
-                    yield Map.of("changes", buildDiff(
-                            Map.of("state", beforeData.get("state")),
-                            Map.of("state", !((Boolean) beforeData.get("state")))));
-                }
-                yield Map.of();
-            }
-            case DELETE -> Map.of("entity", beforeData != null ? beforeData : Map.of("id", args[0]));
         };
     }
 
@@ -114,7 +75,21 @@ public class AuditAspectClassesDocuments extends BaseAuditAspect {
         };
     }
 
-    private Map<String, Object> documentClassToMap(DocumentClass documentClass) {
+    @Override
+    protected Map<String, Object> buildContext(Object[] args, Object result, Map<String, Object> beforeData) {
+        if (beforeData == null)
+            return Map.of();
+        Map<String, Object> context = new LinkedHashMap<>();
+        if (beforeData.get("name") != null)
+            context.put("name", beforeData.get("name"));
+        return context;
+    }
+
+    @Override
+    protected Map<String, Object> entityToMap(Object object) {
+        if (!(object instanceof DocumentClass documentClass)) {
+            return null;
+        }
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("id", documentClass.getId());
         data.put("entId", documentClass.getIdEnterprise());
