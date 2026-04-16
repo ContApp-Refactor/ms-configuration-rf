@@ -16,14 +16,64 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class BaseAuditAspect {
 
-    protected abstract AuditEventBuilder getAuditEventBuilder();
+    protected final AuditEventBuilder auditEventBuilder;
+    protected final AuditEventPublisher auditEventPublisher;
 
-    protected abstract AuditEventPublisher getAuditEventPublisher();
+    protected BaseAuditAspect(AuditEventBuilder auditEventBuilder,
+            AuditEventPublisher auditEventPublisher) {
+        this.auditEventBuilder = auditEventBuilder;
+        this.auditEventPublisher = auditEventPublisher;
+    }
 
     protected abstract Map<String, Object> fetchCurrentState(Auditable auditable, Object[] args);
 
-    protected abstract Map<String, Object> buildDataObject(OperationType operationType,
-            Object[] args, Object result, Map<String, Object> beforeData, Auditable auditable);
+    protected abstract Map<String, Object> entityToMap(Object object);
+
+    protected Map<String, Object> buildDataObject(OperationType operationType, Object[] args,
+            Object result, Map<String, Object> beforeData, Auditable auditable) {
+        return switch (operationType) {
+            case CREATE -> {
+                Map<String, Object> data = new LinkedHashMap<>();
+                if (result != null)
+                    data.put("entity", entityToMap(result));
+                yield data;
+            }
+            case UPDATE -> {
+                Map<String, Object> afterData = fetchCurrentState(auditable, args);
+                Map<String, Object> data = new LinkedHashMap<>();
+                Map<String, Object> context = buildContext(args, result, beforeData);
+                if (!context.isEmpty())
+                    data.put("context", context);
+                data.put("changes", buildDiff(beforeData, afterData));
+                yield data;
+            }
+            case ACTIVATE, INACTIVATE -> {
+                if (beforeData != null) {
+                    Boolean stateBefore = (Boolean) beforeData.get("state");
+                    Boolean stateAfter = entityToMap(result) != null
+                            ? (Boolean) entityToMap(result).get("state")
+                            : !stateBefore;
+                    if (Objects.equals(stateBefore, stateAfter)) {
+                        yield Map.of();
+                    }
+                    Map<String, Object> data = new LinkedHashMap<>();
+                    Map<String, Object> context = buildContext(args, result, beforeData);
+                    if (!context.isEmpty())
+                        data.put("context", context);
+                    data.put("changes", buildDiff(
+                            Map.of("state", beforeData.get("state")),
+                            Map.of("state", !((Boolean) beforeData.get("state")))));
+                    yield data;
+                }
+                yield Map.of();
+            }
+            case DELETE -> Map.of("entity", beforeData != null ? beforeData : Map.of("id", args[0]));
+        };
+    }
+
+    protected Map<String, Object> buildContext(Object[] args, Object result, Map<String, Object> beforeData) {
+        return Map.of();
+    }
 
     protected abstract String resolveEnterpriseId(Auditable auditable, Object[] args,
             Object result, Map<String, Object> beforeData);
@@ -43,7 +93,7 @@ public abstract class BaseAuditAspect {
         }
 
         try {
-            OperationType resolvedType = resolveFinalOperationType(auditable, beforeData);
+            OperationType resolvedType = resolveFinalOperationType(auditable, result, beforeData);
             String enterpriseId = resolveEnterpriseId(auditable, args, result, beforeData);
             String registerId = resolveRegisterId(auditable, args, result, beforeData);
             Map<String, Object> dataObject = buildDataObject(resolvedType, args, result, beforeData, auditable);
@@ -58,9 +108,9 @@ public abstract class BaseAuditAspect {
                     return result;
                 }
             }
-            OperationEventDto dto = getAuditEventBuilder().build(
-                    auditable, resolvedType, enterpriseId, registerId, dataObject);
-            getAuditEventPublisher().publish(dto);
+            OperationEventDto dto = this.auditEventBuilder.build(auditable, resolvedType, enterpriseId, registerId,
+                    dataObject);
+            this.auditEventPublisher.publish(dto);
 
         } catch (Exception e) {
             log.error("Error construyendo evento de auditoría [{}]: {}",
@@ -82,8 +132,14 @@ public abstract class BaseAuditAspect {
         }
     }
 
-    protected OperationType resolveFinalOperationType(Auditable auditable, Map<String, Object> beforeData) {
+    protected OperationType resolveFinalOperationType(Auditable auditable, Object result,
+            Map<String, Object> beforeData) {
         if (auditable.operationType() == OperationType.INACTIVATE) {
+            Map<String, Object> afterMap = entityToMap(result);
+            Boolean stateAfter = afterMap != null ? (Boolean) afterMap.get("state") : null;
+            if (stateAfter != null) {
+                return stateAfter ? OperationType.ACTIVATE : OperationType.INACTIVATE;
+            }
             boolean wasActive = beforeData != null && Boolean.TRUE.equals(beforeData.get("state"));
             return wasActive ? OperationType.INACTIVATE : OperationType.ACTIVATE;
         }

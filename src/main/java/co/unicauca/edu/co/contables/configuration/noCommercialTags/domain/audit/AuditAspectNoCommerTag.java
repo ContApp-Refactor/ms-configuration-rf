@@ -22,27 +22,13 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public class AuditAspectNoCommerTag extends BaseAuditAspect {
-
-    private final AuditEventBuilder auditEventBuilder;
-    private final AuditEventPublisher auditEventPublisher;
     @Lazy
     private final ITagService tagService;
 
     public AuditAspectNoCommerTag(AuditEventBuilder auditEventBuilder,
             AuditEventPublisher auditEventPublisher, @Lazy ITagService tagService) {
-        this.auditEventBuilder = auditEventBuilder;
-        this.auditEventPublisher = auditEventPublisher;
+        super(auditEventBuilder, auditEventPublisher);
         this.tagService = tagService;
-    }
-
-    @Override
-    protected AuditEventBuilder getAuditEventBuilder() {
-        return auditEventBuilder;
-    }
-
-    @Override
-    protected AuditEventPublisher getAuditEventPublisher() {
-        return auditEventPublisher;
     }
 
     @Around("@annotation(auditable) && within(co.unicauca.edu.co.contables.configuration.noCommercialTags.domain.services..*)")
@@ -57,42 +43,16 @@ public class AuditAspectNoCommerTag extends BaseAuditAspect {
                 if (auditable.operationType() == OperationType.DELETE) {
                     Long id = (Long) args[0];
                     yield tagService.getTagById(id)
-                            .map(this::tagToMap)
+                            .map(this::entityToMap)
                             .orElse(null);
                 }
                 Long id = (Long) args[0];
                 Tag tag = (Tag) args[1];
                 yield tagService.getTag(id, tag.getEnterpriseId())
-                        .map(this::tagToMap)
+                        .map(this::entityToMap)
                         .orElse(null);
             }
             default -> null;
-        };
-    }
-
-    @Override
-    protected Map<String, Object> buildDataObject(OperationType operationType, Object[] args, Object result,
-            Map<String, Object> beforeData, Auditable auditable) {
-        return switch (operationType) {
-            case CREATE -> {
-                Map<String, Object> data = new LinkedHashMap<>();
-                if (result instanceof Tag t)
-                    data.put("entity", tagToMap(t));
-                yield data;
-            }
-            case UPDATE -> {
-                Map<String, Object> afterData = fetchCurrentState(auditable, args);
-                yield Map.of("changes", buildDiff(beforeData, afterData));
-            }
-            case ACTIVATE, INACTIVATE -> {
-                if (beforeData != null) {
-                    yield Map.of("changes", buildDiff(
-                            Map.of("state", beforeData.get("state")),
-                            Map.of("state", !((Boolean) beforeData.get("state")))));
-                }
-                yield Map.of();
-            }
-            case DELETE -> Map.of("entity", beforeData != null ? beforeData : Map.of("id", args[0]));
         };
     }
 
@@ -114,7 +74,21 @@ public class AuditAspectNoCommerTag extends BaseAuditAspect {
         };
     }
 
-    private Map<String, Object> tagToMap(Tag tag) {
+    @Override
+    protected Map<String, Object> buildContext(Object[] args, Object result, Map<String, Object> beforeData) {
+        if (beforeData == null)
+            return Map.of();
+        Map<String, Object> context = new LinkedHashMap<>();
+        if (beforeData.get("title") != null)
+            context.put("title", beforeData.get("title"));
+        return context;
+    }
+
+    @Override
+    protected Map<String, Object> entityToMap(Object object) {
+        if (!(object instanceof Tag tag)) {
+            return null;
+        }
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("id", tag.getId());
         data.put("entId", tag.getEnterpriseId());
