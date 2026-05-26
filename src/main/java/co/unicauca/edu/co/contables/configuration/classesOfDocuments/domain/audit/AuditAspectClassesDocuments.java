@@ -14,7 +14,6 @@ import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.mode
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.services.IDocumentClassService;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassUpdateReq;
 import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
 import co.unicauca.edu.co.contables.configuration.commons.audit.aspect.BaseAuditAspect;
 import co.unicauca.edu.co.contables.configuration.commons.audit.builder.AuditEventBuilder;
 import co.unicauca.edu.co.contables.configuration.commons.audit.publisher.AuditEventPublisher;
