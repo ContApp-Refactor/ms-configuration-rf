@@ -9,6 +9,7 @@ import co.unicauca.edu.co.contables.configuration.commons.config.RabbitAuditPubl
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+//Publisher
 @Component
 @RequiredArgsConstructor
 @Slf4j
