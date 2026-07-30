@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
+/** @brief Configuración de seguridad para la aplicación con JWT y OAuth2 */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -22,7 +23,7 @@ public class SecurityConfig {
         return httpSecurity
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(http -> http
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/actuator/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/actuator/**", "/api/config/help-center/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

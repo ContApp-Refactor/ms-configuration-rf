@@ -4,6 +4,12 @@ import lombok.*;
 
 import java.util.List;
 
+/**
+ * @brief Modelo de dominio para centro de costo
+ *
+ * Modelo de dominio que representa un centro de costo en la lógica de negocio,
+ * con soporte para jerarquía, estado y contador de uso.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,6 +22,24 @@ public class CostCenter {
     private String name;
     private CostCenter parent;
     private List<CostCenter> children;
+    @Builder.Default
+    private Boolean status = true;
+
+    @Builder.Default
+    private Integer usageCount = 0;
+
+    /**
+     * @brief Incrementa el contador de uso del centro de costo
+     */
+    public void incrementUsageCount() {
+        this.usageCount = this.usageCount == null ? 1 : this.usageCount + 1;
+    }
+
+    /**
+     * @brief Verifica si el centro de costo está siendo usado
+     * @return true si el centro de costo tiene uso registrado
+     */
+    public boolean isInUse() {
+        return this.usageCount != null && this.usageCount > 0;
+    }
 }
-
-

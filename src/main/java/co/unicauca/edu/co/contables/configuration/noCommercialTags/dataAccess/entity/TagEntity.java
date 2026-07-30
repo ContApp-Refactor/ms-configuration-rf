@@ -1,6 +1,6 @@
 package co.unicauca.edu.co.contables.configuration.noCommercialTags.dataAccess.entity;
 
-import jakarta.annotation.Generated;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,6 +22,9 @@ public class TagEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name="enterpriseId", nullable=false)
+    private String enterpriseId;
 
     @Column(name="title", nullable = false)
     private String  title;

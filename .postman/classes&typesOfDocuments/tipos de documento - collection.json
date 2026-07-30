@@ -1,0 +1,5360 @@
+{
+	"info": {
+		"_postman_id": "c3c6f878-ca81-432b-b92d-77ca7c515335",
+		"name": "TIPOS DE DOCUMENTOS - INTEGRATION TEST",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30869581"
+	},
+	"item": [
+		{
+			"name": "1 Token",
+			"item": [
+				{
+					"name": "Token",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.collectionVariables.set(\"testRunId\", pm.variables.replaceIn(\"{{$randomUUID}}\"));",
+									"pm.collectionVariables.set(\"timestamp\", new Date().toISOString());",
+									"console.log(\"=== INICIO DE PRUEBA ===\");",
+									"console.log(\"Timestamp:\", pm.collectionVariables.get(\"timestamp\"));",
+									"console.log(\"Enterprise ID:\", pm.environment.get(\"enterpriseId\"));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set(\"tokenKeycloak\", jsonData.access_token);",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Access token is present\", function () {",
+									"    pm.expect(jsonData.access_token).to.not.be.null;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{keycloakUser}}\",\n    \"password\": \"{{keycloakPassword}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://contables.unicauca.edu.co/dev/api/keycloak/token/",
+							"protocol": "http",
+							"host": [
+								"contables",
+								"unicauca",
+								"edu",
+								"co"
+							],
+							"path": [
+								"dev",
+								"api",
+								"keycloak",
+								"token",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2 Integration",
+			"item": [
+				{
+					"name": "2.1 Clases de Documento",
+					"item": [
+						{
+							"name": "2.1.1 Casos correctos",
+							"item": [
+								{
+									"name": "Crear clase de documento 1 - 201",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta contiene la clase de documento creada', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson).to.have.property('name');",
+													"    pm.expect(responseJson).to.have.property('idEnterprise');",
+													"    pm.expect(responseJson).to.have.property('status');",
+													"    pm.expect(responseJson.status).to.be.true;",
+													"    pm.collectionVariables.set('documentClassId_1', responseJson.id);",
+													"});",
+													"",
+													"console.log('[CREAR] Clase de documento 1 creada correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Clase Test 1 - {{$randomUUID}}\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-classes/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-classes",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear clase de documento 2 - 201",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta contiene la clase de documento creada', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson).to.have.property('name');",
+													"    pm.expect(responseJson).to.have.property('idEnterprise');",
+													"    pm.expect(responseJson).to.have.property('status');",
+													"    pm.expect(responseJson.status).to.be.true;",
+													"    pm.collectionVariables.set('documentClassId_2', responseJson.id);",
+													"});",
+													"",
+													"console.log('[CREAR] Clase de documento 2 creada correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Clase Test 2 - {{$randomUUID}}\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-classes/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-classes",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Consultar clase por ID - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta contiene la clase de documento solicitada', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentClassId_1'));",
+													"    pm.expect(responseJson).to.have.property('name');",
+													"    pm.expect(responseJson).to.have.property('idEnterprise');",
+													"    pm.expect(responseJson).to.have.property('status');",
+													"});",
+													"",
+													"console.log('[CONSULTAR] Clase de documento consultada por ID correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-classes/findById/{{documentClassId_1}}/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-classes",
+												"findById",
+												"{{documentClassId_1}}",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar todas las clases - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta es una pagina con contenido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('content');",
+													"    pm.expect(responseJson.content).to.be.an('array');",
+													"    pm.expect(responseJson).to.have.property('page');",
+													"    pm.expect(responseJson.page).to.have.property('totalElements');",
+													"    pm.expect(responseJson.page).to.have.property('totalPages');",
+													"});",
+													"",
+													"console.log('[LISTAR] Clases de documento listadas correctamente');"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-classes/findAll/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-classes",
+												"findAll",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar clases con paginacion - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta es una pagina con contenido paginado', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('content');",
+													"    pm.expect(responseJson.content).to.be.an('array');",
+													"    pm.expect(responseJson.page).to.have.property('size');",
+													"    pm.expect(responseJson.page.size).to.eql(5);",
+													"    pm.expect(responseJson.page).to.have.property('number');",
+													"    pm.expect(responseJson.page.number).to.eql(0);",
+													"});",
+													"",
+													"console.log('[LISTAR] Clases de documento paginadas correctamente');"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-classes/findAll/{{enterpriseId}}?page=0&size=5",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-classes",
+												"findAll",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "page",
+													"value": "0"
+												},
+												{
+													"key": "size",
+													"value": "5"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar clases con busqueda - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta es una pagina con resultados de busqueda', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('content');",
+													"    pm.expect(responseJson.content).to.be.an('array');",
+													"});",
+													"",
+													"console.log('[BUSCAR] Clases de documento buscadas correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-classes/findAll/{{enterpriseId}}?search=Test",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-classes",
+												"findAll",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "search",
+													"value": "Test"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar clases activas - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta contiene solo clases activas', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('content');",
+													"    pm.expect(responseJson.content).to.be.an('array');",
+													"    responseJson.content.forEach(function(item) {",
+													"        pm.expect(item.status).to.be.true;",
+													"    });",
+													"});",
+													"",
+													"console.log('[LISTAR ACTIVAS] Clases de documento activas listadas correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-classes/findAllActive/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-classes",
+												"findAllActive",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar clase de documento - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta contiene la clase actualizada', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentClassId_1'));",
+													"    pm.expect(responseJson).to.have.property('name');",
+													"    pm.expect(responseJson.name.toLowerCase()).to.include('actualizada');",
+													"});",
+													"",
+													"console.log('[ACTUALIZAR] Clase de documento actualizada correctamente');"
+												]
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{documentClassId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Clase Actualizada - {{$randomUUID}}\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-classes/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-classes",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Desactivar clase de documento - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La clase de documento fue desactivada', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentClassId_1'));",
+													"    pm.expect(responseJson.status).to.be.false;",
+													"});",
+													"",
+													"console.log('[CAMBIAR ESTADO] Clase de documento desactivada correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-classes/changeState/{{documentClassId_1}}/{{enterpriseId}}?status=false",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-classes",
+												"changeState",
+												"{{documentClassId_1}}",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "status",
+													"value": "false"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Activar clase de documento - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La clase de documento fue activada', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentClassId_1'));",
+													"    pm.expect(responseJson.status).to.be.true;",
+													"});",
+													"",
+													"console.log('[CAMBIAR ESTADO] Clase de documento activada correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-classes/changeState/{{documentClassId_1}}/{{enterpriseId}}?status=true",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-classes",
+												"changeState",
+												"{{documentClassId_1}}",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "status",
+													"value": "true"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "2.1.2 Casos incorrectos",
+							"item": [
+								{
+									"name": "Crear",
+									"item": [
+										{
+											"name": "Crear con body vacio {} - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene errores de validacion para todos los campos', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"});",
+															"",
+															"console.log('[CREAR] Body {} rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear sin idEnterprise - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que idEnterprise es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors.idEnterprise.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[CREAR] idEnterprise null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"name\": \"Clase sin empresa\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear con idEnterprise vacio - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que idEnterprise es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors.idEnterprise.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[CREAR] idEnterprise vacio rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"\",\n  \"name\": \"Clase con empresa vacia\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear sin name - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que name es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors.name.toLowerCase()).to.include('obligatorio');",
+															"});",
+															"",
+															"console.log('[CREAR] name null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear con name vacio - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que name es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors.name.toLowerCase()).to.include('obligatorio');",
+															"});",
+															"",
+															"console.log('[CREAR] name vacio rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear con name solo espacios - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que name es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors.name.toLowerCase()).to.include('obligatorio');",
+															"});",
+															"",
+															"console.log('[CREAR] name con espacios rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"   \"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"create"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Consultar",
+									"item": [
+										{
+											"name": "Consultar con ID inexistente - 404",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 404 (Not Found)', function () {",
+															"    pm.response.to.have.status(404);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene mensaje de error', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('message');",
+															"    pm.expect(responseJson.message.toLowerCase()).to.include('no encontrad');",
+															"});",
+															"",
+															"console.log('[CONSULTAR] ID inexistente rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/findById/999999/{{enterpriseId}}",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"findById",
+														"999999",
+														"{{enterpriseId}}"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Consultar con enterpriseId inexistente - 404",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 404 (Not Found)', function () {",
+															"    pm.response.to.have.status(404);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene mensaje de error', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('message');",
+															"    pm.expect(responseJson.message.toLowerCase()).to.include('no encontrad');",
+															"});",
+															"",
+															"console.log('[CONSULTAR] enterpriseId inexistente rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/findById/{{documentClassId_1}}/empresa-inexistente",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"findById",
+														"{{documentClassId_1}}",
+														"empresa-inexistente"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Listar con paginacion negativa - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene mensaje de error', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('message');",
+															"});",
+															"",
+															"console.log('[LISTAR] Paginacion negativa rechazada correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/findAll/{{enterpriseId}}?page=-1&size=10",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"findAll",
+														"{{enterpriseId}}"
+													],
+													"query": [
+														{
+															"key": "page",
+															"value": "-1"
+														},
+														{
+															"key": "size",
+															"value": "10"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Listar con size negativo - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene mensaje de error', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('message');",
+															"});",
+															"",
+															"console.log('[LISTAR] Size negativo rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/findAll/{{enterpriseId}}?page=0&size=-5",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"findAll",
+														"{{enterpriseId}}"
+													],
+													"query": [
+														{
+															"key": "page",
+															"value": "0"
+														},
+														{
+															"key": "size",
+															"value": "-5"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Listar con size cero - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene mensaje de error', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('message');",
+															"});",
+															"",
+															"console.log('[LISTAR] Size cero rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/findAll/{{enterpriseId}}?page=0&size=0",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"findAll",
+														"{{enterpriseId}}"
+													],
+													"query": [
+														{
+															"key": "page",
+															"value": "0"
+														},
+														{
+															"key": "size",
+															"value": "0"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Listar activas con enterpriseId inexistente - 200 vacio",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 200 (OK)', function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"pm.test('La respuesta es una pagina vacia', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('content');",
+															"    pm.expect(responseJson.content).to.be.an('array');",
+															"    pm.expect(responseJson.content.length).to.eql(0);",
+															"});",
+															"",
+															"console.log('[LISTAR ACTIVAS] enterpriseId inexistente retorna lista vacia');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/findAllActive/empresa-inexistente",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"findAllActive",
+														"empresa-inexistente"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Listar todas con enterpriseId inexistente - 200 vacio",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 200 (OK)', function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"pm.test('La respuesta es una pagina vacia', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('content');",
+															"    pm.expect(responseJson.content).to.be.an('array');",
+															"    pm.expect(responseJson.content.length).to.eql(0);",
+															"});",
+															"",
+															"console.log('[LISTAR] enterpriseId inexistente retorna lista vacia');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/findAll/empresa-inexistente",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"findAll",
+														"empresa-inexistente"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Actualizar",
+									"item": [
+										{
+											"name": "Actualizar sin id - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que id es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('id');",
+															"    pm.expect(responseJson.fieldErrors.id.toLowerCase()).to.include('obligatorio');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR] id null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Clase sin ID\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar sin idEnterprise - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que idEnterprise es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors.idEnterprise.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR] idEnterprise null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentClassId_1}},\n  \"name\": \"Clase sin empresa\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con idEnterprise vacio - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que idEnterprise es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors.idEnterprise.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR] idEnterprise vacio rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentClassId_1}},\n  \"idEnterprise\": \"\",\n  \"name\": \"Clase con empresa vacia\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar sin name - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que name es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors.name.toLowerCase()).to.include('obligatorio');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR] name null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentClassId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con name vacio - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que name es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors.name.toLowerCase()).to.include('obligatorio');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR] name vacio rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentClassId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con ID inexistente - 404",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 404 (Not Found)', function () {",
+															"    pm.response.to.have.status(404);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene mensaje de error', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('message');",
+															"    pm.expect(responseJson.message.toLowerCase()).to.include('no encontrad');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR] ID inexistente rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": 999999,\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Clase con ID inexistente\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"update"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Cambiar Estado",
+									"item": [
+										{
+											"name": "Cambiar estado con ID inexistente - 404",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 404 (Not Found)', function () {",
+															"    pm.response.to.have.status(404);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene mensaje de error', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('message');",
+															"    pm.expect(responseJson.message.toLowerCase()).to.include('no encontrad');",
+															"});",
+															"",
+															"console.log('[CAMBIAR ESTADO] ID inexistente rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PATCH",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/changeState/999999/{{enterpriseId}}?status=false",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"changeState",
+														"999999",
+														"{{enterpriseId}}"
+													],
+													"query": [
+														{
+															"key": "status",
+															"value": "false"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Cambiar estado con enterpriseId inexistente - 404",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 404 (Not Found)', function () {",
+															"    pm.response.to.have.status(404);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene mensaje de error', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('message');",
+															"    pm.expect(responseJson.message.toLowerCase()).to.include('no encontrad');",
+															"});",
+															"",
+															"console.log('[CAMBIAR ESTADO] enterpriseId inexistente rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PATCH",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/changeState/{{documentClassId_1}}/empresa-inexistente?status=false",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"changeState",
+														"{{documentClassId_1}}",
+														"empresa-inexistente"
+													],
+													"query": [
+														{
+															"key": "status",
+															"value": "false"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Cambiar estado sin parametro status - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta indica error por parametro faltante', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('message');",
+															"});",
+															"",
+															"console.log('[CAMBIAR ESTADO] Sin parametro status rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PATCH",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-classes/changeState/{{documentClassId_1}}/{{enterpriseId}}",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-classes",
+														"changeState",
+														"{{documentClassId_1}}",
+														"{{enterpriseId}}"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "2.2 Tipos de Documento",
+					"item": [
+						{
+							"name": "2.2.1 Casos correctos",
+							"item": [
+								{
+									"name": "Crear tipo de documento 1 - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta contiene el tipo de documento creado', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson).to.have.property('name');",
+													"    pm.expect(responseJson).to.have.property('prefix');",
+													"    pm.expect(responseJson).to.have.property('idEnterprise');",
+													"    pm.expect(responseJson).to.have.property('documentClassId');",
+													"    pm.expect(responseJson).to.have.property('moduleId');",
+													"    pm.expect(responseJson).to.have.property('status');",
+													"    pm.expect(responseJson.status).to.be.true;",
+													"    pm.collectionVariables.set('documentTypeId_1', responseJson.id);",
+													"});",
+													"",
+													"console.log('[CREAR] Tipo de documento 1 creado correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Factura Venta Test - {{$randomUUID}}\",\n  \"prefix\": \"FV\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3,\n  \"currentCounter\": 1\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear tipo de documento 2 - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta contiene el tipo de documento creado', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson).to.have.property('name');",
+													"    pm.expect(responseJson).to.have.property('prefix');",
+													"    pm.expect(responseJson).to.have.property('idEnterprise');",
+													"    pm.expect(responseJson).to.have.property('documentClassId');",
+													"    pm.expect(responseJson).to.have.property('moduleId');",
+													"    pm.expect(responseJson).to.have.property('status');",
+													"    pm.expect(responseJson.status).to.be.true;",
+													"    pm.collectionVariables.set('documentTypeId_2', responseJson.id);",
+													"});",
+													"",
+													"console.log('[CREAR] Tipo de documento 2 creado correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Factura Compra Test - {{$randomUUID}}\",\n  \"prefix\": \"FC\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 4,\n  \"currentCounter\": 100\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Consultar tipo por ID - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta contiene el tipo de documento solicitado', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentTypeId_1'));",
+													"    pm.expect(responseJson).to.have.property('name');",
+													"    pm.expect(responseJson).to.have.property('prefix');",
+													"    pm.expect(responseJson).to.have.property('idEnterprise');",
+													"    pm.expect(responseJson).to.have.property('documentClassId');",
+													"    pm.expect(responseJson).to.have.property('moduleId');",
+													"    pm.expect(responseJson).to.have.property('status');",
+													"});",
+													"",
+													"console.log('[CONSULTAR] Tipo de documento consultado por ID correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/findById/{{documentTypeId_1}}/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"findById",
+												"{{documentTypeId_1}}",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar todos los tipos - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta es una pagina con contenido', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('content');",
+													"    pm.expect(responseJson.content).to.be.an('array');",
+													"    pm.expect(responseJson).to.have.property('page');",
+													"    pm.expect(responseJson.page).to.have.property('totalElements');",
+													"    pm.expect(responseJson.page).to.have.property('totalPages');",
+													"});",
+													"",
+													"console.log('[LISTAR] Tipos de documento listados correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/findAll/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"findAll",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar tipos con paginacion - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta es una pagina con contenido paginado', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('content');",
+													"    pm.expect(responseJson.content).to.be.an('array');",
+													"    pm.expect(responseJson.page).to.have.property('size');",
+													"    pm.expect(responseJson.page.size).to.eql(5);",
+													"    pm.expect(responseJson.page).to.have.property('number');",
+													"    pm.expect(responseJson.page.number).to.eql(0);",
+													"});",
+													"",
+													"console.log('[LISTAR] Tipos de documento paginados correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/findAll/{{enterpriseId}}?page=0&size=5",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"findAll",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "page",
+													"value": "0"
+												},
+												{
+													"key": "size",
+													"value": "5"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar tipos con ordenamiento - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta es una pagina con contenido ordenado', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('content');",
+													"    pm.expect(responseJson.content).to.be.an('array');",
+													"});",
+													"",
+													"console.log('[LISTAR] Tipos de documento ordenados correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/findAll/{{enterpriseId}}?sortBy=name&order=desc",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"findAll",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "sortBy",
+													"value": "name"
+												},
+												{
+													"key": "order",
+													"value": "desc"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar tipos con busqueda - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta es una pagina con resultados de busqueda', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('content');",
+													"    pm.expect(responseJson.content).to.be.an('array');",
+													"});",
+													"",
+													"console.log('[BUSCAR] Tipos de documento buscados correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/findAll/{{enterpriseId}}?search=Factura",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"findAll",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "search",
+													"value": "Factura"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar tipos por modulo - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta es un array de tipos por modulo', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.be.an('array');",
+													"});",
+													"",
+													"console.log('[LISTAR POR MODULO] Tipos de documento por modulo listados correctamente');"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/findAllByModule/{{enterpriseId}}?moduleId=2",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"findAllByModule",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "moduleId",
+													"value": "2"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Obtener todos los modulos - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta es un array de modulos', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.be.an('array');",
+													"    pm.expect(responseJson.length).to.be.above(0);",
+													"});",
+													"",
+													"console.log('[MODULOS] Modulos obtenidos correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/modules",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"modules"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar tipo de documento - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('La respuesta contiene el tipo actualizado', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentTypeId_1'));",
+													"    pm.expect(responseJson).to.have.property('name');",
+													"    pm.expect(responseJson.name.toLowerCase()).to.include('actualizado');",
+													"});",
+													"",
+													"console.log('[ACTUALIZAR] Tipo de documento actualizado correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Tipo Actualizado - {{$randomUUID}}\",\n  \"prefix\": \"TA\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3,\n  \"currentCounter\": 50\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Desactivar tipo de documento - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('El tipo de documento fue desactivado', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentTypeId_1'));",
+													"    pm.expect(responseJson.status).to.be.false;",
+													"});",
+													"",
+													"console.log('[CAMBIAR ESTADO] Tipo de documento desactivado correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/changeState/{{documentTypeId_1}}/{{enterpriseId}}?status=false",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"changeState",
+												"{{documentTypeId_1}}",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "status",
+													"value": "false"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Activar tipo de documento - 200",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('Status code es 200 (OK)', function () {",
+													"    pm.response.to.have.status(200);",
+													"});",
+													"",
+													"pm.test('El tipo de documento fue activado', function () {",
+													"    const responseJson = pm.response.json();",
+													"    pm.expect(responseJson).to.have.property('id');",
+													"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentTypeId_1'));",
+													"    pm.expect(responseJson.status).to.be.true;",
+													"});",
+													"",
+													"console.log('[CAMBIAR ESTADO] Tipo de documento activado correctamente');"
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/document-types/changeState/{{documentTypeId_1}}/{{enterpriseId}}?status=true",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"document-types",
+												"changeState",
+												"{{documentTypeId_1}}",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "status",
+													"value": "true"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "2.2.2 Casos incorrectos",
+							"item": [
+								{
+									"name": "Crear",
+									"item": [
+										{
+											"name": "Crear con body vacio {} - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene errores de validacion para todos los campos obligatorios', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('prefix');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('documentClassId');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('moduleId');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] Body {} rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear sin idEnterprise - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que idEnterprise es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors.idEnterprise.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] idEnterprise null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo sin empresa\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear con idEnterprise vacio - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que idEnterprise es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors.idEnterprise.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] idEnterprise vacio rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo con empresa vacia\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear sin prefix - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que prefix es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('prefix');",
+															"    pm.expect(responseJson.fieldErrors.prefix.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] prefix null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Tipo sin prefijo\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear con prefix vacio - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que prefix es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('prefix');",
+															"    pm.expect(responseJson.fieldErrors.prefix.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] prefix vacio rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"\",\n  \"name\": \"Tipo con prefijo vacio\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear con prefix mayor a 10 caracteres - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que prefix excede el limite', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('prefix');",
+															"    pm.expect(responseJson.fieldErrors.prefix.toLowerCase()).to.include('exceder');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] prefix mayor a 10 caracteres rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"PREFIJOMUYLARGOEXCEDE\",\n  \"name\": \"Tipo con prefijo largo\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear sin name - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que name es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors.name.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] name null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear con name vacio - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que name es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors.name.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] name vacio rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear sin documentClassId - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que documentClassId es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('documentClassId');",
+															"    pm.expect(responseJson.fieldErrors.documentClassId.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] documentClassId null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo sin clase documento\",\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear sin moduleId - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que moduleId es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('moduleId');",
+															"    pm.expect(responseJson.fieldErrors.moduleId.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] moduleId null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo sin modulo\",\n  \"documentClassId\": {{documentClassId_1}}\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear con moduleId menor a 1 - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que moduleId debe ser mayor a 0', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('moduleId');",
+															"    pm.expect(responseJson.fieldErrors.moduleId.toLowerCase()).to.include('mayor');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] moduleId menor a 1 rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo con modulo invalido\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 0\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear con moduleId mayor a 8 - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que moduleId debe estar entre 1 y 8', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('moduleId');",
+															"    pm.expect(responseJson.fieldErrors.moduleId.toLowerCase()).to.include('entre 1 y 8');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] moduleId mayor a 8 rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo con modulo fuera de rango\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 9\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Crear con moduleId negativo - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que moduleId debe ser mayor a 0', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('moduleId');",
+															"    pm.expect(responseJson.fieldErrors.moduleId.toLowerCase()).to.include('mayor');",
+															"});",
+															"",
+															"console.log('[CREAR TIPO] moduleId negativo rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo con modulo negativo\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": -1\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/create",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"create"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Consultar",
+									"item": [
+										{
+											"name": "Consultar por ID inexistente - 404",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 404 (Not Found)', function () {",
+															"    pm.response.to.have.status(404);",
+															"});",
+															"",
+															"pm.test('La respuesta indica que el tipo de documento no existe', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[CONSULTAR TIPO] ID inexistente rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/findById/999999/{{enterpriseId}}",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"findById",
+														"999999",
+														"{{enterpriseId}}"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Consultar por ID con enterpriseId incorrecto - 404",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 404 (Not Found)', function () {",
+															"    pm.response.to.have.status(404);",
+															"});",
+															"",
+															"pm.test('La respuesta indica que el tipo de documento no existe', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[CONSULTAR TIPO] ID con enterpriseId incorrecto rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/findById/{{documentTypeId_1}}/empresa-inexistente",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"findById",
+														"{{documentTypeId_1}}",
+														"empresa-inexistente"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Listar con page negativo - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta indica error de paginacion', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[CONSULTAR TIPO] page negativo rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/findAll/{{enterpriseId}}?page=-1&size=10",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"findAll",
+														"{{enterpriseId}}"
+													],
+													"query": [
+														{
+															"key": "page",
+															"value": "-1"
+														},
+														{
+															"key": "size",
+															"value": "10"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Listar con size negativo - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta indica error de paginacion', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[CONSULTAR TIPO] size negativo rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/findAll/{{enterpriseId}}?page=0&size=-5",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"findAll",
+														"{{enterpriseId}}"
+													],
+													"query": [
+														{
+															"key": "page",
+															"value": "0"
+														},
+														{
+															"key": "size",
+															"value": "-5"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Listar con size cero - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta indica error de paginacion', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[CONSULTAR TIPO] size cero rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/findAll/{{enterpriseId}}?page=0&size=0",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"findAll",
+														"{{enterpriseId}}"
+													],
+													"query": [
+														{
+															"key": "page",
+															"value": "0"
+														},
+														{
+															"key": "size",
+															"value": "0"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Listar por modulo con moduleId invalido - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta indica error', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[CONSULTAR TIPO] moduleId invalido rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/findAllByModule/{{enterpriseId}}?moduleId=99",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"findAllByModule",
+														"{{enterpriseId}}"
+													],
+													"query": [
+														{
+															"key": "moduleId",
+															"value": "99"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Listar por modulo sin moduleId - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta indica que moduleId es requerido', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[CONSULTAR TIPO] moduleId faltante rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/findAllByModule/{{enterpriseId}}",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"findAllByModule",
+														"{{enterpriseId}}"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Actualizar",
+									"item": [
+										{
+											"name": "Actualizar con body vacio {} - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta contiene errores de validacion para todos los campos obligatorios', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('id');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('prefix');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('documentClassId');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('moduleId');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] Body {} rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar sin id - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que id es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('id');",
+															"    pm.expect(responseJson.fieldErrors.id.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] id null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo sin id\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con id inexistente - 404",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 404 (Not Found)', function () {",
+															"    pm.response.to.have.status(404);",
+															"});",
+															"",
+															"pm.test('La respuesta indica que el tipo de documento no existe', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] id inexistente rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": 999999,\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo con id inexistente\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar sin idEnterprise - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que idEnterprise es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors.idEnterprise.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] idEnterprise null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo sin empresa\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con idEnterprise vacio - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que idEnterprise es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('idEnterprise');",
+															"    pm.expect(responseJson.fieldErrors.idEnterprise.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] idEnterprise vacio rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo con empresa vacia\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar sin prefix - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que prefix es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('prefix');",
+															"    pm.expect(responseJson.fieldErrors.prefix.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] prefix null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Tipo sin prefijo\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con prefix vacio - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que prefix es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('prefix');",
+															"    pm.expect(responseJson.fieldErrors.prefix.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] prefix vacio rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"\",\n  \"name\": \"Tipo con prefijo vacio\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con prefix mayor a 10 caracteres - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que prefix excede el limite', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('prefix');",
+															"    pm.expect(responseJson.fieldErrors.prefix.toLowerCase()).to.include('exceder');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] prefix mayor a 10 caracteres rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"PREFIJOMUYLARGOEXCEDE\",\n  \"name\": \"Tipo con prefijo largo\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar sin name - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que name es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors.name.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] name null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con name vacio - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que name es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('name');",
+															"    pm.expect(responseJson.fieldErrors.name.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] name vacio rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar sin documentClassId - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que documentClassId es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('documentClassId');",
+															"    pm.expect(responseJson.fieldErrors.documentClassId.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] documentClassId null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo sin clase documento\",\n  \"moduleId\": 3\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar sin moduleId - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que moduleId es obligatorio', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('moduleId');",
+															"    pm.expect(responseJson.fieldErrors.moduleId.toLowerCase()).to.include('obligatori');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] moduleId null rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo sin modulo\",\n  \"documentClassId\": {{documentClassId_1}}\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con moduleId menor a 1 - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que moduleId debe ser mayor a 0', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('moduleId');",
+															"    pm.expect(responseJson.fieldErrors.moduleId.toLowerCase()).to.include('mayor');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] moduleId menor a 1 rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo con modulo invalido\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 0\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con moduleId mayor a 8 - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que moduleId debe estar entre 1 y 8', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('moduleId');",
+															"    pm.expect(responseJson.fieldErrors.moduleId.toLowerCase()).to.include('entre 1 y 8');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] moduleId mayor a 8 rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo con modulo fuera de rango\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": 9\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Actualizar con moduleId negativo - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('El error de validacion indica que moduleId debe ser mayor a 0', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"    pm.expect(responseJson).to.have.property('fieldErrors');",
+															"    pm.expect(responseJson.fieldErrors).to.have.property('moduleId');",
+															"    pm.expect(responseJson.fieldErrors.moduleId.toLowerCase()).to.include('mayor');",
+															"});",
+															"",
+															"console.log('[ACTUALIZAR TIPO] moduleId negativo rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"id\": {{documentTypeId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"prefix\": \"FV\",\n  \"name\": \"Tipo con modulo negativo\",\n  \"documentClassId\": {{documentClassId_1}},\n  \"moduleId\": -1\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/update",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"update"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Cambiar Estado",
+									"item": [
+										{
+											"name": "Cambiar estado con ID inexistente - 404",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 404 (Not Found)', function () {",
+															"    pm.response.to.have.status(404);",
+															"});",
+															"",
+															"pm.test('La respuesta indica que el tipo de documento no existe', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[CAMBIAR ESTADO TIPO] ID inexistente rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PATCH",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/changeState/999999/{{enterpriseId}}?status=true",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"changeState",
+														"999999",
+														"{{enterpriseId}}"
+													],
+													"query": [
+														{
+															"key": "status",
+															"value": "true"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Cambiar estado con enterpriseId incorrecto - 404",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 404 (Not Found)', function () {",
+															"    pm.response.to.have.status(404);",
+															"});",
+															"",
+															"pm.test('La respuesta indica que el tipo de documento no existe', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[CAMBIAR ESTADO TIPO] enterpriseId incorrecto rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PATCH",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/changeState/{{documentTypeId_1}}/empresa-inexistente?status=true",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"changeState",
+														"{{documentTypeId_1}}",
+														"empresa-inexistente"
+													],
+													"query": [
+														{
+															"key": "status",
+															"value": "true"
+														}
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Cambiar estado sin parametro status - 400",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"pm.test('Status code es 400 (Bad Request)', function () {",
+															"    pm.response.to.have.status(400);",
+															"});",
+															"",
+															"pm.test('La respuesta indica que status es requerido', function () {",
+															"    const responseJson = pm.response.json();",
+															"    pm.expect(responseJson).to.have.property('error');",
+															"});",
+															"",
+															"console.log('[CAMBIAR ESTADO TIPO] status faltante rechazado correctamente');"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{tokenKeycloak}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PATCH",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/api/config/document-types/changeState/{{documentTypeId_1}}/{{enterpriseId}}",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"config",
+														"document-types",
+														"changeState",
+														"{{documentTypeId_1}}",
+														"{{enterpriseId}}"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "3 Tear Down",
+			"item": [
+				{
+					"name": "Eliminar tipo de documento 1 - 200",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 (OK)', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('El tipo de documento fue eliminado correctamente', function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.have.property('id');",
+									"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentTypeId_1'));",
+									"});",
+									"",
+									"console.log('[TEAR DOWN] Tipo de documento 1 eliminado correctamente');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/document-types/delete/{{documentTypeId_1}}/{{enterpriseId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"document-types",
+								"delete",
+								"{{documentTypeId_1}}",
+								"{{enterpriseId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar tipo de documento 2 - 200",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 (OK)', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('El tipo de documento fue eliminado correctamente', function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.have.property('id');",
+									"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentTypeId_2'));",
+									"});",
+									"",
+									"console.log('[TEAR DOWN] Tipo de documento 2 eliminado correctamente');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/document-types/delete/{{documentTypeId_2}}/{{enterpriseId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"document-types",
+								"delete",
+								"{{documentTypeId_2}}",
+								"{{enterpriseId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar clase de documento 1 - 200",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 (OK)', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('La clase de documento fue eliminada correctamente', function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.have.property('id');",
+									"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentClassId_1'));",
+									"});",
+									"",
+									"console.log('[TEAR DOWN] Clase de documento 1 eliminada correctamente');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/document-classes/delete/{{documentClassId_1}}/{{enterpriseId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"document-classes",
+								"delete",
+								"{{documentClassId_1}}",
+								"{{enterpriseId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar clase de documento 2 - 200",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 (OK)', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('La clase de documento fue eliminada correctamente', function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.have.property('id');",
+									"    pm.expect(responseJson.id).to.eql(pm.collectionVariables.get('documentClassId_2'));",
+									"});",
+									"",
+									"console.log('[TEAR DOWN] Clase de documento 2 eliminada correctamente');",
+									"console.log('=== FIN DE PRUEBAS ===');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/document-classes/delete/{{documentClassId_2}}/{{enterpriseId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"document-classes",
+								"delete",
+								"{{documentClassId_2}}",
+								"{{enterpriseId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "accountsHierarchy",
+			"value": ""
+		},
+		{
+			"key": "currentAccountIndex",
+			"value": ""
+		},
+		{
+			"key": "createdAccounts",
+			"value": ""
+		},
+		{
+			"key": "testRunId",
+			"value": ""
+		},
+		{
+			"key": "timestamp",
+			"value": ""
+		},
+		{
+			"key": "tokenKeycloak",
+			"value": ""
+		},
+		{
+			"key": "documentClassId_1",
+			"value": ""
+		},
+		{
+			"key": "documentClassId_2",
+			"value": ""
+		},
+		{
+			"key": "documentTypeId_1",
+			"value": ""
+		},
+		{
+			"key": "documentTypeId_2",
+			"value": ""
+		}
+	]
+}

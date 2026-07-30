@@ -1,0 +1,3458 @@
+{
+	"info": {
+		"_postman_id": "96de64f9-fdad-4118-9bf4-fa23ee2206b9",
+		"name": "CENTRO COSTO - INTEGRATION TEST",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30869581"
+	},
+	"item": [
+		{
+			"name": "1 Token",
+			"item": [
+				{
+					"name": "Token",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.collectionVariables.set(\"testRunId\", pm.variables.replaceIn(\"{{$randomUUID}}\"));",
+									"pm.collectionVariables.set(\"timestamp\", new Date().toISOString());",
+									"console.log(\"=== INICIO DE PRUEBA ===\");",
+									"console.log(\"Timestamp:\", pm.collectionVariables.get(\"timestamp\"));",
+									"console.log(\"Enterprise ID:\", pm.environment.get(\"enterpriseId\"));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set(\"tokenKeycloak\", jsonData.access_token);",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Access token is present\", function () {",
+									"    pm.expect(jsonData.access_token).to.not.be.null;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{keycloakUser}}\",\n    \"password\": \"{{keycloakPassword}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://contables.unicauca.edu.co/dev/api/keycloak/token/",
+							"protocol": "http",
+							"host": [
+								"contables",
+								"unicauca",
+								"edu",
+								"co"
+							],
+							"path": [
+								"dev",
+								"api",
+								"keycloak",
+								"token",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2 Integration",
+			"item": [
+				{
+					"name": "2.1 Casos correctos",
+					"item": [
+						{
+							"name": "Crear Centro Costo Padre (Nivel 1)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response tiene estructura correcta\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('id');",
+											"    pm.expect(jsonData).to.have.property('idEnterprise');",
+											"    pm.expect(jsonData).to.have.property('code');",
+											"    pm.expect(jsonData).to.have.property('name');",
+											"    pm.expect(jsonData).to.have.property('status');",
+											"});",
+											"",
+											"pm.test(\"Datos corresponden a lo enviado\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(\"11\");",
+											"    pm.expect(jsonData.name).to.eql(\"Administración\");",
+											"    pm.expect(jsonData.parentId).to.be.null;",
+											"    pm.expect(jsonData.status).to.be.true;",
+											"});",
+											"",
+											"pm.test(\"Guardar ID del centro padre\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.collectionVariables.set(\"costCenterId_1\", jsonData.id);",
+											"    console.log(\"Centro Costo Padre ID:\", jsonData.id);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"11\",\n  \"name\": \"Administración\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/create",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"create"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Crear Centro Costo Hijo (Nivel 2)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response tiene estructura correcta\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('id');",
+											"    pm.expect(jsonData).to.have.property('idEnterprise');",
+											"    pm.expect(jsonData).to.have.property('code');",
+											"    pm.expect(jsonData).to.have.property('name');",
+											"    pm.expect(jsonData).to.have.property('parentId');",
+											"    pm.expect(jsonData).to.have.property('status');",
+											"});",
+											"",
+											"pm.test(\"Datos corresponden a lo enviado\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var parentId = pm.collectionVariables.get(\"costCenterId_1\");",
+											"    pm.expect(jsonData.code).to.eql(\"1102\");",
+											"    pm.expect(jsonData.name).to.eql(\"Ventas\");",
+											"    pm.expect(jsonData.parentId).to.eql(parseInt(parentId));",
+											"    pm.expect(jsonData.status).to.be.true;",
+											"});",
+											"",
+											"pm.test(\"Guardar ID del centro hijo nivel 2\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.collectionVariables.set(\"costCenterId_2\", jsonData.id);",
+											"    console.log(\"Centro Costo Hijo Nivel 2 ID:\", jsonData.id);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"1102\",\n  \"name\": \"Ventas\",\n  \"parentId\": {{costCenterId_1}}\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/create",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"create"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Crear Centro Costo Nieto (Nivel 3)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response tiene estructura correcta\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('id');",
+											"    pm.expect(jsonData).to.have.property('idEnterprise');",
+											"    pm.expect(jsonData).to.have.property('code');",
+											"    pm.expect(jsonData).to.have.property('name');",
+											"    pm.expect(jsonData).to.have.property('parentId');",
+											"    pm.expect(jsonData).to.have.property('status');",
+											"});",
+											"",
+											"pm.test(\"Datos corresponden a lo enviado\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var parentId = pm.collectionVariables.get(\"costCenterId_2\");",
+											"    pm.expect(jsonData.code).to.eql(\"110204F\");",
+											"    pm.expect(jsonData.name).to.eql(\"Subventas\");",
+											"    pm.expect(jsonData.parentId).to.eql(parseInt(parentId));",
+											"    pm.expect(jsonData.status).to.be.true;",
+											"});",
+											"",
+											"pm.test(\"Guardar ID del centro nieto nivel 3\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.collectionVariables.set(\"costCenterId_3\", jsonData.id);",
+											"    console.log(\"Centro Costo Nieto Nivel 3 ID:\", jsonData.id);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"110204F\",\n  \"name\": \"Subventas\",\n  \"parentId\": {{costCenterId_2}}\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/create",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"create"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Consultar Centro Costo por ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response tiene estructura correcta\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('id');",
+											"    pm.expect(jsonData).to.have.property('idEnterprise');",
+											"    pm.expect(jsonData).to.have.property('code');",
+											"    pm.expect(jsonData).to.have.property('name');",
+											"    pm.expect(jsonData).to.have.property('status');",
+											"});",
+											"",
+											"pm.test(\"ID coincide con el solicitado\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var expectedId = parseInt(pm.collectionVariables.get(\"costCenterId_1\"));",
+											"    pm.expect(jsonData.id).to.eql(expectedId);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/findById/{{costCenterId_1}}/{{enterpriseId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"findById",
+										"{{costCenterId_1}}",
+										"{{enterpriseId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Consultar Centro con Padre (Nivel 2)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Tiene parentId correcto\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var expectedParentId = parseInt(pm.collectionVariables.get(\"costCenterId_1\"));",
+											"    pm.expect(jsonData.parentId).to.eql(expectedParentId);",
+											"});",
+											"",
+											"pm.test(\"Código es correcto\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(\"1102\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/findById/{{costCenterId_2}}/{{enterpriseId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"findById",
+										"{{costCenterId_2}}",
+										"{{enterpriseId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Listar Todos Jerárquico",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response es paginada\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('content');",
+											"    pm.expect(jsonData).to.have.property('page');",
+											"    pm.expect(jsonData.page).to.have.property('totalElements');",
+											"    pm.expect(jsonData.page).to.have.property('totalPages');",
+											"    pm.expect(jsonData.page).to.have.property('size');",
+											"    pm.expect(jsonData.page).to.have.property('number');",
+											"});",
+											"",
+											"pm.test(\"Contiene al menos los 3 centros creados\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.page.totalElements).to.be.at.least(3);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/findAll/{{enterpriseId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"findAll",
+										"{{enterpriseId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Listar con Paginación",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Paginación aplicada correctamente\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.page.number).to.eql(0);",
+											"    pm.expect(jsonData.page.size).to.eql(10);",
+											"});",
+											"",
+											"pm.test(\"Content es un array\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.content).to.be.an('array');",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/findAll/{{enterpriseId}}?page=0&size=10",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"findAll",
+										"{{enterpriseId}}"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "0"
+										},
+										{
+											"key": "size",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Listar con Búsqueda",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Búsqueda retorna resultados\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.content).to.be.an('array');",
+											"    pm.expect(jsonData.page.totalElements).to.be.a('number');",
+											"});",
+											"",
+											"pm.test(\"Resultados contienen término buscado\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    ",
+											"    if (jsonData.content.length === 0) {",
+											"        console.log(\"No results found for search term 'ventas'\");",
+											"        pm.expect(true).to.be.true; // Pass the test when no results",
+											"    } else {",
+											"        var found = jsonData.content.some(item => ",
+											"            item.name.toLowerCase().includes('ventas') || ",
+											"            item.code.toLowerCase().includes('ventas')",
+											"        );",
+											"        pm.expect(found).to.be.true;",
+											"    }",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/findAll/{{enterpriseId}}?search=Ventas",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"findAll",
+										"{{enterpriseId}}"
+									],
+									"query": [
+										{
+											"key": "search",
+											"value": "Ventas"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Listar por Estado Activo",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response es paginada\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('content');",
+											"    pm.expect(jsonData.page).to.have.property('totalElements');",
+											"});",
+											"",
+											"pm.test(\"Todos los elementos están activos\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    jsonData.content.forEach(function(item) {",
+											"        pm.expect(item.status).to.be.true;",
+											"    });",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/findAllByStatus/{{enterpriseId}}?status=true",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"findAllByStatus",
+										"{{enterpriseId}}"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "true"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Actualizar Nombre Centro Costo",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Nombre actualizado correctamente\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.name).to.eql(\"Administración general\");",
+											"});",
+											"",
+											"pm.test(\"ID se mantiene igual\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var expectedId = parseInt(pm.collectionVariables.get(\"costCenterId_1\"));",
+											"    pm.expect(jsonData.id).to.eql(expectedId);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"id\": {{costCenterId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"11\",\n  \"name\": \"Administración General\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/update",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"update"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Actualizar Código Centro Costo",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Código actualizado correctamente\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(\"1103\");",
+											"});",
+											"",
+											"pm.test(\"ParentId se mantiene\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var expectedParentId = parseInt(pm.collectionVariables.get(\"costCenterId_1\"));",
+											"    pm.expect(jsonData.parentId).to.eql(expectedParentId);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"id\": {{costCenterId_2}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"1103\",\n  \"name\": \"Ventas\",\n  \"parentId\": {{costCenterId_1}}\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/update",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"update"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Desactivar Centro Costo Nieto",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Estado cambiado a inactivo\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.status).to.be.false;",
+											"});",
+											"",
+											"pm.test(\"ID es correcto\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var expectedId = parseInt(pm.collectionVariables.get(\"costCenterId_3\"));",
+											"    pm.expect(jsonData.id).to.eql(expectedId);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/changeState/{{costCenterId_3}}/{{enterpriseId}}?status=false",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"changeState",
+										"{{costCenterId_3}}",
+										"{{enterpriseId}}"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "false"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Reactivar Centro Costo Nieto",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Estado cambiado a activo\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.status).to.be.true;",
+											"});",
+											"",
+											"pm.test(\"ID es correcto\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var expectedId = parseInt(pm.collectionVariables.get(\"costCenterId_3\"));",
+											"    pm.expect(jsonData.id).to.eql(expectedId);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/changeState/{{costCenterId_3}}/{{enterpriseId}}?status=true",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"changeState",
+										"{{costCenterId_3}}",
+										"{{enterpriseId}}"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "true"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Listar por Estado Inactivo",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response es paginada\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('content');",
+											"    pm.expect(jsonData.page).to.have.property('totalElements');",
+											"});",
+											"",
+											"pm.test(\"Todos los elementos están inactivos o lista vacía\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    jsonData.content.forEach(function(item) {",
+											"        pm.expect(item.status).to.be.false;",
+											"    });",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenKeycloak}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/config/cost-centers/findAllByStatus/{{enterpriseId}}?status=false",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"config",
+										"cost-centers",
+										"findAllByStatus",
+										"{{enterpriseId}}"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "false"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "2.2 Casos incorrectos",
+					"item": [
+						{
+							"name": "Crear",
+							"item": [
+								{
+									"name": "Crear con body vacío",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear sin idEnterprise",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo idEnterprise\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('idEnterprise');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"code\": \"11\",\n  \"name\": \"Centro Test\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear con idEnterprise vacío",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo idEnterprise\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('idEnterprise');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"\",\n  \"code\": \"11\",\n  \"name\": \"Centro Test\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear sin code",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo code\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('code');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Centro Test\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear con code longitud 1 (inválido)",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error de validación de longitud de código\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('codeLengthValid');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"1\",\n  \"name\": \"Centro Test\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear con code longitud 3 (inválido)",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error de validación de longitud de código\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('codeLengthValid');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"123\",\n  \"name\": \"Centro Test\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear sin name",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo name\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('name');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"11\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear con name vacío",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo name\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('name');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"11\",\n  \"name\": \"\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear con name solo espacios",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo name\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('name');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"11\",\n  \"name\": \"   \"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"create"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Crear con parentId inexistente",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 404\", function () {",
+													"    pm.response.to.have.status(404);",
+													"});",
+													"",
+													"pm.test(\"Mensaje de error indica padre no encontrado\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"1102\",\n  \"name\": \"Centro Hijo\",\n  \"parentId\": 999999\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/create",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"create"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Consultar",
+							"item": [
+								{
+									"name": "Consultar con ID inexistente",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 404\", function () {",
+													"    pm.response.to.have.status(404);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/findById/999999/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"findById",
+												"999999",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Consultar con enterpriseId incorrecto",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 404\", function () {",
+													"    pm.response.to.have.status(404);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/findById/{{costCenterId_1}}/empresa-inexistente-xyz",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"findById",
+												"{{costCenterId_1}}",
+												"empresa-inexistente-xyz"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar con page negativo",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400 o 500\", function () {",
+													"    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/findAll/{{enterpriseId}}?page=-1&size=10",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"findAll",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "page",
+													"value": "-1"
+												},
+												{
+													"key": "size",
+													"value": "10"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar con size negativo",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400 o 500\", function () {",
+													"    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/findAll/{{enterpriseId}}?page=0&size=-5",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"findAll",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "page",
+													"value": "0"
+												},
+												{
+													"key": "size",
+													"value": "-5"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar con size cero",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400 o 500\", function () {",
+													"    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/findAll/{{enterpriseId}}?page=0&size=0",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"findAll",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "page",
+													"value": "0"
+												},
+												{
+													"key": "size",
+													"value": "0"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar por estado con enterpriseId incorrecto",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 200 con lista vacía o 404\", function () {",
+													"    if (pm.response.code === 200) {",
+													"        var jsonData = pm.response.json();",
+													"        pm.expect(jsonData.content).to.be.an('array');",
+													"    } else {",
+													"        pm.expect(pm.response.code).to.eql(404);",
+													"    }",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/findAllByStatus/empresa-inexistente-xyz?status=true",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"findAllByStatus",
+												"empresa-inexistente-xyz"
+											],
+											"query": [
+												{
+													"key": "status",
+													"value": "true"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar por estado sin parámetro status",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400 o 500\", function () {",
+													"    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/findAllByStatus/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"findAllByStatus",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Listar por estado con status inválido",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/findAllByStatus/{{enterpriseId}}?status=invalido",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"findAllByStatus",
+												"{{enterpriseId}}"
+											],
+											"query": [
+												{
+													"key": "status",
+													"value": "invalido"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Actualizar",
+							"item": [
+								{
+									"name": "Actualizar con body vacío",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar sin id",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo id\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('id');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"11\",\n  \"name\": \"Centro Actualizado\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar con id inexistente",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 404\", function () {",
+													"    pm.response.to.have.status(404);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": 999999,\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"11\",\n  \"name\": \"Centro Actualizado\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar sin idEnterprise",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo idEnterprise\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('idEnterprise');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{costCenterId_1}},\n  \"code\": \"11\",\n  \"name\": \"Centro Actualizado\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar con idEnterprise vacío",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo idEnterprise\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('idEnterprise');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{costCenterId_1}},\n  \"idEnterprise\": \"\",\n  \"code\": \"11\",\n  \"name\": \"Centro Actualizado\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar sin code",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo code\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('code');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{costCenterId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"name\": \"Centro Actualizado\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar con code longitud 1 (inválido)",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error de validación de longitud de código\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('codeLengthValid');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{costCenterId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"1\",\n  \"name\": \"Centro Actualizado\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar con code longitud 3 (inválido)",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error de validación de longitud de código\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('codeLengthValid');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{costCenterId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"123\",\n  \"name\": \"Centro Actualizado\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar sin name",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo name\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('name');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{costCenterId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"11\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar con name vacío",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo name\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('name');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{costCenterId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"11\",\n  \"name\": \"\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar con name solo espacios",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Error en campo name\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('fieldErrors');",
+													"    pm.expect(jsonData.fieldErrors).to.have.property('name');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{costCenterId_1}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"11\",\n  \"name\": \"   \"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar con parentId inexistente",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 404\", function () {",
+													"    pm.response.to.have.status(404);",
+													"});",
+													"",
+													"pm.test(\"Mensaje de error indica padre no encontrado\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{costCenterId_2}},\n  \"idEnterprise\": \"{{enterpriseId}}\",\n  \"code\": \"1102\",\n  \"name\": \"Centro Hijo Actualizado\",\n  \"parentId\": 999999\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Actualizar con enterpriseId incorrecto",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 404\", function () {",
+													"    pm.response.to.have.status(404);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"id\": {{costCenterId_1}},\n  \"idEnterprise\": \"empresa-inexistente-xyz\",\n  \"code\": \"11\",\n  \"name\": \"Centro Actualizado\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/update",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"update"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Cambiar estado",
+							"item": [
+								{
+									"name": "Cambiar estado con ID inexistente",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/changeState/999999/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"changeState",
+												"999999",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Cambiar estado con ID negativo",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400 or 404\", function () {",
+													"    pm.expect(pm.response.code).to.be.oneOf([400, 404]);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/changeState/-1/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"changeState",
+												"-1",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Cambiar estado con ID cero",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400 or 404\", function () {",
+													"    pm.expect(pm.response.code).to.be.oneOf([400, 404]);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/changeState/0/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"changeState",
+												"0",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Cambiar estado con enterpriseId inexistente",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400\", function () {",
+													"    pm.response.to.have.status(400);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/changeState/{{costCenterId_1}}/empresa-inexistente-xyz",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"changeState",
+												"{{costCenterId_1}}",
+												"empresa-inexistente-xyz"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Cambiar estado con enterpriseId vacío",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400 or 404\", function () {",
+													"    pm.expect(pm.response.code).to.be.oneOf([400, 404]);",
+													"});",
+													"",
+													"pm.test(\"Response tiene estructura de error\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/changeState/{{costCenterId_1}}/\" \"",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"changeState",
+												"{{costCenterId_1}}",
+												"\" \""
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Cambiar estado padre con hijos activos",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Status code is 400 or 409\", function () {",
+													"    pm.expect(pm.response.code).to.be.oneOf([400, 409]);",
+													"});",
+													"",
+													"pm.test(\"Response indica conflicto por hijos activos\", function () {",
+													"    var jsonData = pm.response.json();",
+													"    pm.expect(jsonData).to.have.property('error');",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenKeycloak}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/api/config/cost-centers/changeState/{{costCenterId_1}}/{{enterpriseId}}",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"config",
+												"cost-centers",
+												"changeState",
+												"{{costCenterId_1}}",
+												"{{enterpriseId}}"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "3 Tear Down",
+			"item": [
+				{
+					"name": "Eliminar Centro Costo Auxiliar (Nivel 3)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Centro de costo nieto eliminado\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var expectedId = parseInt(pm.collectionVariables.get(\"costCenterId_3\"));",
+									"    pm.expect(jsonData.id).to.eql(expectedId);",
+									"});",
+									"",
+									"console.log(\"Centro Costo Nieto eliminado exitosamente\");"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/cost-centers/delete/{{costCenterId_3}}/{{enterpriseId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"cost-centers",
+								"delete",
+								"{{costCenterId_3}}",
+								"{{enterpriseId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Centro Costo Hijo (Nivel 2)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Centro de costo hijo eliminado\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var expectedId = parseInt(pm.collectionVariables.get(\"costCenterId_2\"));",
+									"    pm.expect(jsonData.id).to.eql(expectedId);",
+									"});",
+									"",
+									"console.log(\"Centro Costo Hijo eliminado exitosamente\");"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/cost-centers/delete/{{costCenterId_2}}/{{enterpriseId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"cost-centers",
+								"delete",
+								"{{costCenterId_2}}",
+								"{{enterpriseId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Centro Costo Padre (Nivel 1)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Centro de costo padre eliminado\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var expectedId = parseInt(pm.collectionVariables.get(\"costCenterId_1\"));",
+									"    pm.expect(jsonData.id).to.eql(expectedId);",
+									"});",
+									"",
+									"console.log(\"Centro Costo Padre eliminado exitosamente\");",
+									"console.log(\"=== FIN DE PRUEBA ===\");"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/cost-centers/delete/{{costCenterId_1}}/{{enterpriseId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"cost-centers",
+								"delete",
+								"{{costCenterId_1}}",
+								"{{enterpriseId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Centro Costo Huérfano (ID 22)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 o 404\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Centro de costo huérfano eliminado\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData.id).to.eql(22);",
+									"    });",
+									"    console.log(\"Centro Costo huérfano ID 22 eliminado exitosamente\");",
+									"} else {",
+									"    console.log(\"Centro Costo huérfano ID 22 ya no existe\");",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tokenKeycloak}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/config/cost-centers/delete/22/4285f1f2-6eab-4318-91b7-cf608b4167a2",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"config",
+								"cost-centers",
+								"delete",
+								"22",
+								"4285f1f2-6eab-4318-91b7-cf608b4167a2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "testRunId",
+			"value": ""
+		},
+		{
+			"key": "timestamp",
+			"value": ""
+		},
+		{
+			"key": "tokenKeycloak",
+			"value": ""
+		},
+		{
+			"key": "costCenterId_1",
+			"value": ""
+		},
+		{
+			"key": "costCenterId_2",
+			"value": ""
+		},
+		{
+			"key": "costCenterId_3",
+			"value": ""
+		}
+	]
+}

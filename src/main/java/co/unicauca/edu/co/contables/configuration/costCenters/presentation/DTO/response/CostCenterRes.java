@@ -2,6 +2,12 @@ package co.unicauca.edu.co.contables.configuration.costCenters.presentation.DTO.
 
 import lombok.*;
 
+/**
+ * @brief DTO de respuesta para centros de costo
+ *
+ * DTO que representa la respuesta de operaciones con centros de costo,
+ * incluyendo información jerárquica y estado.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,6 +19,6 @@ public class CostCenterRes {
     private String code;
     private String name;
     private Long parentId;
+    private Boolean status;
+    private Integer usageCount;
 }
-
-
