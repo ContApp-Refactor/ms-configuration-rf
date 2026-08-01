@@ -1,6 +1,6 @@
 services:
   ms-configuration-rf:
-    image: jeserna/ms-configuration-rf:v0.0.27
+    image: jeserna/ms-configuration-rf:v0.0.233
     container_name: ms-configuration-rf
     env_file:
       - ${SECRETS_DIR:-/opt/secrets}/common-configs.env
