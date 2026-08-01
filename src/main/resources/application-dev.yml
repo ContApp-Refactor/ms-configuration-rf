@@ -63,7 +63,7 @@ jwt:
     converter:
       principle-attribute: ${JWT_PRINCIPAL_ATTR:preferred_username}
       resource-id: ${JWT_RESOURCE_ID:microservices_client}
-
+ 
 management:
   endpoint:
     health:

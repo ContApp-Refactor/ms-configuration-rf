@@ -17,6 +17,8 @@ services:
       retries: 3
       start_period: 30s
       start_interval: 10s
+  ms-configuration-rf:
+    image: jeserna/ms-configuration-rf:v0.0.228
 networks:
   dokploy-network:
     external: true
