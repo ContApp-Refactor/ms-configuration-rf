@@ -1,12 +1,12 @@
 services:
-  replacemoa-rf:
-    image: jeserna/replacemoa-rf:v0.0.27
-    container_name: replacemoa-rf
+  ms-configuration-rf:
+    image: jeserna/ms-configuration-rf:v0.0.27
+    container_name: ms-configuration-rf
     env_file:
       - ${SECRETS_DIR:-/opt/secrets}/common-configs.env
       - ${SECRETS_DIR:-/opt/secrets}/rabbit-mq-secrets.env
       - ${SECRETS_DIR:-/opt/secrets}/db-secrets.env
-      - ${SECRETS_DIR:-/opt/secrets}/replacemoa-configs.env
+      - ${SECRETS_DIR:-/opt/secrets}/ms-configuration-configs.env
     restart: unless-stopped
     networks:
       - dokploy-network
