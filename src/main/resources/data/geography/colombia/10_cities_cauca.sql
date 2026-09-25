@@ -1,0 +1,50 @@
+-- ==============================================================================
+-- CIUDADES DE CAUCA - COLOMBIA
+-- Todos los municipios del departamento de Cauca
+-- ==============================================================================
+
+INSERT INTO cities (ci_code, st_code, co_code, ci_name) VALUES
+-- Cauca - Municipios
+('19001', '19', 'COL', 'Popayán'),
+('19022', '19', 'COL', 'Almaguer'),
+('19050', '19', 'COL', 'Argelia'),
+('19075', '19', 'COL', 'Balboa'),
+('19100', '19', 'COL', 'Bolívar'),
+('19110', '19', 'COL', 'Buenos Aires'),
+('19130', '19', 'COL', 'Cajibío'),
+('19137', '19', 'COL', 'Caldono'),
+('19142', '19', 'COL', 'Caloto'),
+('19212', '19', 'COL', 'Corinto'),
+('19256', '19', 'COL', 'El Tambo'),
+('19290', '19', 'COL', 'Florencia'),
+('19300', '19', 'COL', 'Guachené'),
+('19318', '19', 'COL', 'Guapí'),
+('19355', '19', 'COL', 'Inzá'),
+('19364', '19', 'COL', 'Jambaló'),
+('19392', '19', 'COL', 'La Sierra'),
+('19397', '19', 'COL', 'La Vega'),
+('19418', '19', 'COL', 'López'),
+('19450', '19', 'COL', 'Mercaderes'),
+('19455', '19', 'COL', 'Miranda'),
+('19473', '19', 'COL', 'Morales'),
+('19513', '19', 'COL', 'Padilla'),
+('19517', '19', 'COL', 'Páez'),
+('19532', '19', 'COL', 'Patía'),
+('19533', '19', 'COL', 'Piamonte'),
+('19548', '19', 'COL', 'Piendamó'),
+('19573', '19', 'COL', 'Puerto Tejada'),
+('19585', '19', 'COL', 'Puracé'),
+('19622', '19', 'COL', 'Rosas'),
+('19693', '19', 'COL', 'San Sebastián'),
+('19698', '19', 'COL', 'Santander de Quilichao'),
+('19701', '19', 'COL', 'Santa Rosa'),
+('19743', '19', 'COL', 'Silvia'),
+('19760', '19', 'COL', 'Sotará'),
+('19780', '19', 'COL', 'Suárez'),
+('19785', '19', 'COL', 'Sucre'),
+('19807', '19', 'COL', 'Timbío'),
+('19809', '19', 'COL', 'Timbiquí'),
+('19821', '19', 'COL', 'Toribío'),
+('19824', '19', 'COL', 'Totoró'),
+('19845', '19', 'COL', 'Villa Rica')
+ON CONFLICT (ci_code, st_code, co_code) DO NOTHING;

@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -32,7 +31,10 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
     private final JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
 
     @Value("${jwt.auth.converter.principle-attribute}")
-    private String principleAtrribute;
+    private String principleAttribute;
+
+    @Value("${jwt.auth.converter.resource-id}")
+    private String resourceId;
 
     private Jwt jwtToken;
 
@@ -44,9 +46,11 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
      */
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
-        Collection<GrantedAuthority> authorities = Stream
-                .concat(jwtGrantedAuthoritiesConverter.convert(jwt).stream(), extractPermissions(jwt).stream())
-                .toList();
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        authorities.addAll(jwtGrantedAuthoritiesConverter.convert(jwt));
+        authorities.addAll(extractResourceRoles(jwt));
+        authorities.addAll(extractRealmRolesAuthorities(jwt));
+        authorities.addAll(extractPermissions(jwt));
 
         this.jwtToken = jwt;
         return new JwtAuthenticationToken(jwt, authorities, getPrincipleName(jwt));
@@ -61,8 +65,8 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
     private String getPrincipleName(Jwt jwt) {
         String claimName = JwtClaimNames.SUB;
 
-        if (principleAtrribute != null) {
-            claimName = principleAtrribute;
+        if (principleAttribute != null) {
+            claimName = principleAttribute;
         }
 
         return jwt.getClaim(claimName);
@@ -116,6 +120,48 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
         }
 
         return authorities;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Collection<? extends GrantedAuthority> extractResourceRoles(Jwt jwt) {
+        if (resourceId == null) {
+            return Set.of();
+        }
+        Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
+        if (resourceAccess == null) {
+            return Set.of();
+        }
+        Object resourceObj = resourceAccess.get(resourceId);
+        if (!(resourceObj instanceof Map<?, ?> resource)) {
+            return Set.of();
+        }
+        Object rolesObj = ((Map<String, Object>) resource).get("roles");
+        if (!(rolesObj instanceof Collection<?> roles)) {
+            return Set.of();
+        }
+        return roles.stream()
+                .filter(String.class::isInstance)
+                .map(String.class::cast)
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                .toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Collection<? extends GrantedAuthority> extractRealmRolesAuthorities(Jwt jwt) {
+        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+        if (realmAccess == null) {
+            return Set.of();
+        }
+        Object rolesObj = realmAccess.get("roles");
+        if (!(rolesObj instanceof List<?> rolesList)) {
+            return Set.of();
+        }
+        return rolesList.stream()
+                .filter(String.class::isInstance)
+                .map(String.class::cast)
+                .filter(role -> !SYSTEM_ROLES.contains(role))
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                .toList();
     }
 
     /**

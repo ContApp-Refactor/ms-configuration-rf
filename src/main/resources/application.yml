@@ -5,7 +5,13 @@ spring:
   profiles:
     active:
     - ${PROFILE:dev}
+  jpa:
+    defer-datasource-initialization: true
+    show-sql: true
 
+  sql:
+    init:
+      mode: always
 logging:
   level:
     org:

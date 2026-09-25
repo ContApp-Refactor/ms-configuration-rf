@@ -4,10 +4,37 @@ spring:
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:root}
     driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
-
+    hikari:
+      connection-timeout: 20000  # 20 segundos para obtener conexión del pool
+      idle-timeout: 300000       # 5 minutos antes de cerrar conexiones idle
+      max-lifetime: 1200000      # 20 minutos máximo lifetime de conexión
+      maximum-pool-size: 20      # Máximo 20 conexiones
+      minimum-idle: 5            # Mínimo 5 conexiones idle
+      validation-timeout: 5000   # 5 segundos para validar conexión
+      leak-detection-threshold: 60000  # 60 segundos para detectar leaks
   jpa:
     hibernate:
       ddl-auto: ${DB_HIBERNATE_DDL_AUTO:create-drop}
+    properties:
+      hibernate:
+        jdbc:
+          batch-size: 1000
+        order-inserts: true
+        order-updates: true
+        batch-versioned-data: true
+        timeout: 30  # Timeout en segundos para consultas
+    open-in-view: false  # Importante para evitar problemas con EntityManager
+
+  transaction:
+    default-timeout: 30  # Timeout por defecto para transacciones en segundos
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 8MB
+      enabled: true
+      file-size-threshold: 2KB
+      resolve-lazily: false
 
   h2:
     console:
@@ -45,7 +72,13 @@ spring:
           
 server:
   port: ${PORT:0}
-
+  tomcat:
+    connection-timeout: 60000
+    max-connections: 10000
+    threads:
+      max: 200
+      min-spare: 10
+    max-http-form-post-size: 8MB
 eureka:
   instance:
     instance-id: "${spring.application.name}:${random.uuid}"
@@ -69,3 +102,18 @@ management:
     health:
       probes:
         enabled: true
+
+file-upload:
+  max-size: 5242880
+  allowed-extensions:
+    excel:
+      - ".xlsx"
+      - ".xls"
+    pdf:
+      - ".pdf"
+  allowed-mime-types:
+    excel:
+      - "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      - "application/vnd.ms-excel"
+    pdf:
+      - "application/pdf"
