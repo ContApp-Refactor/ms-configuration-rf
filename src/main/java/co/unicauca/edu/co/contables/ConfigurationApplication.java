@@ -1,4 +1,4 @@
-package co.unicauca.edu.co.contables.configuration;
+package co.unicauca.edu.co.contables;
 
 import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.config.FileUploadProperties;
 import org.springframework.boot.SpringApplication;
