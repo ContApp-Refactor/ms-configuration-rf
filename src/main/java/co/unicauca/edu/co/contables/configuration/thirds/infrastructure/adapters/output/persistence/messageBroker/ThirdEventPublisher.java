@@ -5,7 +5,7 @@ import co.unicauca.edu.co.contables.configuration.thirds.domain.model.Third;
 import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.adapters.output.persistence.messageBroker.dto.EventDto;
 import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.adapters.output.persistence.messageBroker.dto.ThirdUpdatedEventDto;
 import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.config.rabbitConfig.RabbitThirdsEventsConfig;
-import co.unicauca.edu.co.contables.configuration.commons.security.IJwtUtils;
+import co.unicauca.edu.co.contables.commons.security.IJwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

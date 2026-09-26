@@ -5,8 +5,8 @@ import co.unicauca.edu.co.contables.configuration.thirds.application.ports.outpu
 import co.unicauca.edu.co.contables.configuration.thirds.domain.exceptions.third.ThirdInUseException;
 import co.unicauca.edu.co.contables.configuration.thirds.domain.exceptions.third.ThirdNotFound;
 import co.unicauca.edu.co.contables.configuration.thirds.domain.model.Third;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
+import co.unicauca.edu.co.contables.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.commons.audit.annotation.OperationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -3,8 +3,8 @@ package co.unicauca.edu.co.contables.configuration.thirds.application.service.th
 import co.unicauca.edu.co.contables.configuration.thirds.application.ports.input.ChangeThirdStateUseCase;
 import co.unicauca.edu.co.contables.configuration.thirds.application.ports.output.ThirdOutputPort;
 import co.unicauca.edu.co.contables.configuration.thirds.domain.exceptions.third.ThirdStateNotChanged;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
+import co.unicauca.edu.co.contables.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.commons.audit.annotation.OperationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

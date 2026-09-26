@@ -13,10 +13,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
-import co.unicauca.edu.co.contables.configuration.commons.audit.builder.AuditEventBuilder;
-import co.unicauca.edu.co.contables.configuration.commons.audit.builder.OperationEventDto;
-import co.unicauca.edu.co.contables.configuration.commons.audit.publisher.AuditEventPublisher;
-import co.unicauca.edu.co.contables.configuration.commons.security.IJwtUtils;
+import co.unicauca.edu.co.contables.commons.audit.builder.AuditEventBuilder;
+import co.unicauca.edu.co.contables.commons.audit.builder.OperationEventDto;
+import co.unicauca.edu.co.contables.commons.audit.publisher.AuditEventPublisher;
+import co.unicauca.edu.co.contables.commons.security.IJwtUtils;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.audit.AuditAspectTypesDocuments;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.models.DocumentType;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.services.IDocumentTypeService;

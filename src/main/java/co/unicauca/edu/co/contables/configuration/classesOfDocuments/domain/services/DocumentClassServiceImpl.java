@@ -14,12 +14,12 @@ import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.mapp
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.models.DocumentClass;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassCreateReq;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassUpdateReq;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassesAlreadyExistsException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassesNotFoundException;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassInUseException;
-import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
+import co.unicauca.edu.co.contables.commons.exceptions.documentClasses.DocumentClassesAlreadyExistsException;
+import co.unicauca.edu.co.contables.commons.exceptions.documentClasses.DocumentClassesNotFoundException;
+import co.unicauca.edu.co.contables.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.commons.audit.annotation.OperationType;
+import co.unicauca.edu.co.contables.commons.exceptions.documentClasses.DocumentClassInUseException;
+import co.unicauca.edu.co.contables.commons.utils.StringStandardizationUtils;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.repository.DocumentTypeRepository;
 import lombok.RequiredArgsConstructor;
 

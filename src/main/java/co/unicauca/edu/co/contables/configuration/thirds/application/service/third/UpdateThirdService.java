@@ -15,8 +15,8 @@ import co.unicauca.edu.co.contables.configuration.thirds.domain.exceptions.typeI
 import co.unicauca.edu.co.contables.configuration.thirds.domain.model.*;
 import co.unicauca.edu.co.contables.configuration.thirds.domain.utils.StringNormalizer;
 import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.adapters.output.persistence.repository.ThirdRepository;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
+import co.unicauca.edu.co.contables.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.commons.audit.annotation.OperationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -8,9 +8,9 @@ import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.mode
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.services.DocumentClassServiceImpl;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassCreateReq;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassUpdateReq;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassInUseException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassesAlreadyExistsException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassesNotFoundException;
+import co.unicauca.edu.co.contables.commons.exceptions.documentClasses.DocumentClassInUseException;
+import co.unicauca.edu.co.contables.commons.exceptions.documentClasses.DocumentClassesAlreadyExistsException;
+import co.unicauca.edu.co.contables.commons.exceptions.documentClasses.DocumentClassesNotFoundException;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.repository.DocumentTypeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

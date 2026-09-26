@@ -15,7 +15,7 @@ import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.adapters
 import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.adapters.output.persistence.repository.ThirdTypeRepository;
 import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.adapters.output.persistence.repository.ThirdsAndTypesRepository;
 import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.adapters.output.persistence.repository.TypeIdRepository;
-import co.unicauca.edu.co.contables.configuration.commons.multitenancy.utils.TenantContext;
+import co.unicauca.edu.co.contables.commons.multitenancy.utils.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;

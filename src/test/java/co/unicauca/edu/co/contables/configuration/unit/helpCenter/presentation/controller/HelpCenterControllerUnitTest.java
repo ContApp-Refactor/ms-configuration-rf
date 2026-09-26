@@ -1,6 +1,6 @@
 package co.unicauca.edu.co.contables.configuration.unit.helpCenter.presentation.controller;
 
-import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
+import co.unicauca.edu.co.contables.commons.utils.PaginationHelper;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.enums.DocumentModule;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.mapper.HelpCenterDomainMapper;
 import co.unicauca.edu.co.contables.configuration.helpCenter.domain.models.HelpCenter;

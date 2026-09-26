@@ -3,8 +3,8 @@ package co.unicauca.edu.co.contables.configuration.thirds.application.service.ty
 import co.unicauca.edu.co.contables.configuration.thirds.application.ports.input.CreateTypeIdUseCase;
 import co.unicauca.edu.co.contables.configuration.thirds.application.ports.output.IdOutputPort;
 import co.unicauca.edu.co.contables.configuration.thirds.domain.model.TypeId;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
+import co.unicauca.edu.co.contables.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.commons.audit.annotation.OperationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -11,9 +11,9 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.web.context.request.WebRequest;
 
-import co.unicauca.edu.co.contables.configuration.commons.multitenancy.interceptor.TenantInterceptor;
-import co.unicauca.edu.co.contables.configuration.commons.multitenancy.utils.TenantContext;
-import co.unicauca.edu.co.contables.configuration.commons.security.IJwtUtils;
+import co.unicauca.edu.co.contables.commons.multitenancy.interceptor.TenantInterceptor;
+import co.unicauca.edu.co.contables.commons.multitenancy.utils.TenantContext;
+import co.unicauca.edu.co.contables.commons.security.IJwtUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

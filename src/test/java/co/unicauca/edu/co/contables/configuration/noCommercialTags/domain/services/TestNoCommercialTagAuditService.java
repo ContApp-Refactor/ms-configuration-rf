@@ -2,8 +2,8 @@ package co.unicauca.edu.co.contables.configuration.noCommercialTags.domain.servi
 
 import org.springframework.stereotype.Service;
 
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
+import co.unicauca.edu.co.contables.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.commons.audit.annotation.OperationType;
 import co.unicauca.edu.co.contables.configuration.noCommercialTags.domain.models.Tag;
 
 @Service

@@ -18,9 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.AmqpTemplate;
 
-import co.unicauca.edu.co.contables.configuration.commons.audit.builder.OperationEventDto;
-import co.unicauca.edu.co.contables.configuration.commons.audit.publisher.AuditEventPublisher;
-import co.unicauca.edu.co.contables.configuration.commons.config.RabbitAuditPublisherConfig;
+import co.unicauca.edu.co.contables.commons.audit.builder.OperationEventDto;
+import co.unicauca.edu.co.contables.commons.audit.publisher.AuditEventPublisher;
+import co.unicauca.edu.co.contables.commons.config.RabbitAuditPublisherConfig;
 
 @ExtendWith(MockitoExtension.class)
 class AuditEventPublisherTest {

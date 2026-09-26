@@ -7,7 +7,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 import com.rabbitmq.client.Channel;
 
-import co.unicauca.edu.co.contables.configuration.commons.config.base.AbstractMessageListener;
+import co.unicauca.edu.co.contables.commons.config.base.AbstractMessageListener;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.messageBroker.config.RabbitDocumentTypeUsedConfig;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.messageBroker.dto.EventDto;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.messageBroker.dto.DocumentTypeUsageDto;

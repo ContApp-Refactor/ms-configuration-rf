@@ -18,7 +18,7 @@ import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.ada
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.IEnterpriseSearchRestMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.ITaxLiabilityRestMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.ITaxPayerTypeRestMapper;
-import co.unicauca.edu.co.contables.configuration.commons.security.IJwtUtils;
+import co.unicauca.edu.co.contables.commons.security.IJwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

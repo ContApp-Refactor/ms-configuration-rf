@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import co.unicauca.edu.co.contables.configuration.commons.security.JwtDecoder;
+import co.unicauca.edu.co.contables.commons.security.JwtDecoder;
 
 import java.util.Base64;
 import static org.junit.jupiter.api.Assertions.*;

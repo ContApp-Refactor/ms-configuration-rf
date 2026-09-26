@@ -18,10 +18,10 @@ import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.mode
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.services.IDocumentClassService;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.services.TestClassesDocumentsAuditService;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassUpdateReq;
-import co.unicauca.edu.co.contables.configuration.commons.audit.builder.AuditEventBuilder;
-import co.unicauca.edu.co.contables.configuration.commons.audit.builder.OperationEventDto;
-import co.unicauca.edu.co.contables.configuration.commons.audit.publisher.AuditEventPublisher;
-import co.unicauca.edu.co.contables.configuration.commons.security.IJwtUtils;
+import co.unicauca.edu.co.contables.commons.audit.builder.AuditEventBuilder;
+import co.unicauca.edu.co.contables.commons.audit.builder.OperationEventDto;
+import co.unicauca.edu.co.contables.commons.audit.publisher.AuditEventPublisher;
+import co.unicauca.edu.co.contables.commons.security.IJwtUtils;
 
 @SpringBootTest(classes = {
         AuditAspectClassesDocuments.class,
