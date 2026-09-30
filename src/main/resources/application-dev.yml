@@ -107,7 +107,23 @@ jwt:
       principle-attribute: ${JWT_PRINCIPAL_ATTR:preferred_username}
       resource-id: ${JWT_RESOURCE_ID:microservices_client}
 
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+
 management:
+  health:
+    circuitbreakers:
+      enabled: true
   endpoint:
     health:
       probes:
@@ -127,3 +143,7 @@ file-upload:
       - "application/vnd.ms-excel"
     pdf:
       - "application/pdf"
+
+# URL base del monolito; los adaptadores migrados la usan para mapear
+# DTOs hacia otros módulos (ya no hay HTTP interno, ver T2.7).
+baseUrl: ${BASE_URL:http://localhost:8080}
