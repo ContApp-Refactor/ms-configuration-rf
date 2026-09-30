@@ -55,6 +55,16 @@ spring:
       channel:
         size: ${RABBITMQ_CHANNEL_POOL_SIZE:25}
         checkout-timeout: ${RABBITMQ_CHANNEL_CHECKOUT_TIMEOUT:5000}
+    # Retry y recuperación
+    template:
+      retry:
+        enabled: true
+        initial-interval: ${RABBITMQ_RETRY_INITIAL_INTERVAL:1000}
+        max-attempts: ${RABBITMQ_RETRY_MAX_ATTEMPTS:3}
+        max-interval: ${RABBITMQ_RETRY_MAX_INTERVAL:10000}
+        multiplier: ${RABBITMQ_RETRY_MULTIPLIER:2.0}
+      mandatory: true
+      receive-timeout: ${RABBITMQ_RECEIVE_TIMEOUT:5000}
     # Listener container
     listener:
       simple:

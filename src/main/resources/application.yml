@@ -21,3 +21,11 @@ logging:
           descriptor:
             sql:
               BasicBinder: TRACE
+
+springdoc:
+  swagger-ui:
+    path: ${SWAGGER_PATH:/swagger-ui.html}
+
+server:
+  error:
+    include-stacktrace: never
