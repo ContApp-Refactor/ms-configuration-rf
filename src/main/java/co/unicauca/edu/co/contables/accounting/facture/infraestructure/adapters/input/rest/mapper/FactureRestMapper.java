@@ -9,7 +9,7 @@ import co.unicauca.edu.co.contables.accounting.facture.infraestructure.adapters.
 import co.unicauca.edu.co.contables.accounting.facture.infraestructure.adapters.input.rest.data.response.FactureGetResponse;
 import co.unicauca.edu.co.contables.accounting.facture.infraestructure.adapters.input.rest.data.response.FactureListResponse;
 
-@Mapper
+@Mapper(componentModel = "spring")
 public interface FactureRestMapper {
     Facture toFacture(FactureCreateRequest factureCreateRequest);
 
