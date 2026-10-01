@@ -26,6 +26,10 @@ public class PayableAccountDefaultResolver {
                     + "en Maestros Generales antes de registrar facturas de compra.";
     static final String NO_ACTIVE_PAYABLE_MESSAGE =
             "La empresa no tiene configurada una Cuenta por Pagar activa en el catálogo de cuentas.";
+    static final String ENTERPRISE_REQUIRED_MESSAGE =
+            "El ID de la empresa es requerido para resolver la cuenta por pagar.";
+    static final String NULL_CATALOGUE_RESULT_MESSAGE =
+            "El puerto del catálogo de cuentas devolvió null";
 
     private final IAccountCatalogueSearchInputPort catalogueSearchInputPort;
 
@@ -37,6 +41,9 @@ public class PayableAccountDefaultResolver {
      * @param requestedAccountId cuenta explícita (API legacy); null para default automático
      */
     public Long resolveForPurchase(Long requestedAccountId, String enterpriseId) {
+        if (enterpriseId == null || enterpriseId.isBlank()) {
+            throw new IllegalArgumentException(ENTERPRISE_REQUIRED_MESSAGE);
+        }
         List<CatalogueAccount> accounts = loadAccounts(enterpriseId);
         if (accounts.isEmpty()) {
             throw new IllegalArgumentException(NO_VALID_CATALOGUE_MESSAGE);
@@ -142,21 +149,31 @@ public class PayableAccountDefaultResolver {
     }
 
     private List<CatalogueAccount> loadAccounts(String enterpriseId) {
+        List<AccountCatalogue> accounts = queryCatalogue(enterpriseId);
+        if (accounts == null) {
+            log.error("El puerto del catálogo devolvió null para la empresa {}", enterpriseId);
+            throw new IllegalStateException(NULL_CATALOGUE_RESULT_MESSAGE + " para la empresa " + enterpriseId);
+        }
+        List<CatalogueAccount> catalogue = new ArrayList<>();
+        for (AccountCatalogue account : accounts) {
+            catalogue.add(new CatalogueAccount(
+                    account.getId(),
+                    account.getCode(),
+                    account.getDescription(),
+                    account.getClassification() != null ? account.getClassification().getState() : null,
+                    account.getStatus()));
+        }
+        return catalogue;
+    }
+
+    /**
+     * Consulta el catálogo aislando los fallos del puerto. Un {@code null} de
+     * retorno no se trata aquí: viola el contrato del puerto y lo decide
+     * {@link #loadAccounts}, para no confundirlo con "catálogo sin configurar".
+     */
+    private List<AccountCatalogue> queryCatalogue(String enterpriseId) {
         try {
-            List<AccountCatalogue> accounts = catalogueSearchInputPort.getAllAccountsByEnterprise(enterpriseId);
-            if (accounts == null) {
-                return List.of();
-            }
-            List<CatalogueAccount> catalogue = new ArrayList<>();
-            for (AccountCatalogue account : accounts) {
-                catalogue.add(new CatalogueAccount(
-                        account.getId(),
-                        account.getCode(),
-                        account.getDescription(),
-                        account.getClassification() != null ? account.getClassification().getState() : null,
-                        account.getStatus()));
-            }
-            return catalogue;
+            return catalogueSearchInputPort.getAllAccountsByEnterprise(enterpriseId);
         } catch (Exception ex) {
             log.warn("No se pudo consultar catálogo para empresa {}: {}", enterpriseId, ex.getMessage());
             throw new IllegalStateException("No se pudo consultar el catálogo de cuentas para resolver CxP", ex);

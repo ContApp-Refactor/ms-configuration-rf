@@ -2,7 +2,10 @@ package co.unicauca.edu.co.contables.accounting.facture.application.service.skel
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import co.unicauca.edu.co.contables.accounting.catalogue.catalogue.application.input.IAccountCatalogueSearchInputPort;
@@ -154,6 +157,33 @@ class PayableAccountDefaultResolverUnitTest {
                         ClassificationEnum.CURRENTLIABILITIES, true));
 
         assertThat(resolver.resolveForPurchase(null, ENTERPRISE)).isEqualTo(21L);
+    }
+
+    @Test
+    void rejectsNullEnterpriseIdWithoutQueryingCatalogue() {
+        assertThatThrownBy(() -> resolver.resolveForPurchase(null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("empresa");
+
+        verify(catalogueSearch, never()).getAllAccountsByEnterprise(any());
+    }
+
+    @Test
+    void rejectsBlankEnterpriseIdWithoutQueryingCatalogue() {
+        assertThatThrownBy(() -> resolver.resolveForPurchase(null, "   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("empresa");
+
+        verify(catalogueSearch, never()).getAllAccountsByEnterprise(any());
+    }
+
+    @Test
+    void reportsNullPortResultAsContractViolationNotEmptyCatalogue() {
+        when(catalogueSearch.getAllAccountsByEnterprise(ENTERPRISE)).thenReturn(null);
+
+        assertThatThrownBy(() -> resolver.resolveForPurchase(null, ENTERPRISE))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("null");
     }
 
     private void stubCatalogue(AccountCatalogue... accounts) {
