@@ -1,10 +1,13 @@
 package co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest;
 
 import co.unicauca.edu.co.contables.configuration.enterprise.application.ports.input.IAddressSearchManagerPort;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Country;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Department;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.data.response.CitiesbyDepartmentResponse;
+import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.data.response.CountryResponse;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.data.response.DepartmentAddressResponse;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.ICitiesbyDepartmentRestMapper;
+import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.ICountryRestMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.IDepartmentRestMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,7 +25,7 @@ import java.util.List;
 
 /**
  * Controlador REST para gestionar las operaciones relacionadas con direcciones.
- * Proporciona endpoints para obtener información de departamentos y ciudades.
+ * Proporciona endpoints para obtener información de países, departamentos y ciudades.
  */
 @RequestMapping("/api/enterprises/address")
 @RestController
@@ -31,7 +34,34 @@ public class AddressController {
 
     private final IAddressSearchManagerPort addressSearchManagerPort;
     private final ICitiesbyDepartmentRestMapper citiesbyDepartmentRestMapper;
+    private final ICountryRestMapper countryRestMapper;
     private final IDepartmentRestMapper departmentRestMapper;
+
+    /**
+     * Obtiene todos los países disponibles en el sistema.
+     *
+     * @return ResponseEntity con la lista de países
+     */
+    @GetMapping("/countries")
+    @Operation(summary = "Obtener todos los países", 
+               description = "Recupera una lista de todos los países disponibles en el sistema.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", 
+                        description = "Países recuperados exitosamente", 
+                        content = @Content(mediaType = "application/json", 
+                        schema = @Schema(implementation = CountryResponse.class))),
+            @ApiResponse(responseCode = "500", 
+                        description = "Error interno al recuperar los países", 
+                        content = @Content)
+    })
+    public ResponseEntity<List<CountryResponse>> getAllCountries() {
+        // Recuperar la lista de países a través del puerto de gestión de
+        // direcciones
+        List<Country> countries = addressSearchManagerPort.getAllCountries();
+
+        // Mapear los países a un DTO y devolver la respuesta con estado HTTP 200
+        return ResponseEntity.ok(countryRestMapper.toCountryResponseList(countries));
+    }
 
     /**
      * Obtiene todos los departamentos disponibles en el sistema.

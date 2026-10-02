@@ -6,16 +6,19 @@ import co.unicauca.edu.co.contables.configuration.enterprise.application.ports.s
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.dto.EnterpriseInfoDto;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.enums.StateEnum;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Enterprise;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.EnterpriseType;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.TaxLiability;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.TaxPayerType;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.data.request.EnterpriseCreateRequest;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.data.request.UpdateInventoryConfigRequest;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.data.response.EnterpriseByIdResponse;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.data.response.EnterpriseCreateResponse;
+import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.data.response.EnterpriseTypeResponse;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.data.response.TaxLiabilityResponse;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.data.response.TaxPayerTypeResponse;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.IEnterpriseCreateRestMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.IEnterpriseSearchRestMapper;
+import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.IEnterpriseTypeRestMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.ITaxLiabilityRestMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.input.rest.mapper.interfaces.ITaxPayerTypeRestMapper;
 import co.unicauca.edu.co.contables.commons.security.IJwtUtils;
@@ -55,6 +58,9 @@ public class EnterpriseController {
     private final ITaxPayerTypeManagerPort taxPayerTypeManagerPort;
     private final ITaxPayerTypeRestMapper taxPayerTypeRestMapper;
 
+    private final IEnterpriseTypeManagerPort enterpriseTypeManagerPort;
+    private final IEnterpriseTypeRestMapper enterpriseTypeRestMapper;
+
     private final IEnterpriseSearchManagerPort enterpriseSearchManagerPort;
 
     private final IEnterpriseCreateMannegerPort enterpriseCreateMannegerPort;
@@ -93,6 +99,22 @@ public class EnterpriseController {
     public ResponseEntity<List<TaxPayerTypeResponse>> getTaxPayer() {
         List<TaxPayerType> taxPayerType = taxPayerTypeManagerPort.getAllTaxPayerTypes();
         return ResponseEntity.ok(taxPayerTypeRestMapper.toDomain(taxPayerType));
+    }
+
+    /**
+     * Obtiene todos los tipos de empresa.
+     *
+     * @return lista de tipos de empresa
+     */
+    @GetMapping("/enterprisetypes")
+    @Operation(summary = "Obtener todos los tipos de empresa", description = "Recupera una lista de todos los tipos de empresa disponibles.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Tipos de empresa recuperados exitosamente", content = @Content(mediaType = "application/json", schema = @Schema(implementation = EnterpriseTypeResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Error interno al recuperar los tipos de empresa", content = @Content)
+    })
+    public ResponseEntity<List<EnterpriseTypeResponse>> getAllEnterpriseTypes() {
+        List<EnterpriseType> enterpriseTypes = enterpriseTypeManagerPort.getAllEnterpriseTypes();
+        return ResponseEntity.ok(enterpriseTypeRestMapper.toEnterpriseTypeResponseList(enterpriseTypes));
     }
 
     /**

@@ -52,5 +52,17 @@ public class MapStructConfig {
     @Bean
     IEnterpriseSearchRestMapper mapStructMapperEnterpriseSearchRest(){return Mappers.getMapper(IEnterpriseSearchRestMapper.class);}
 
+    @Bean
+    ICountryMapper mapStructCountryMapper(){return Mappers.getMapper(ICountryMapper.class);}
+
+    @Bean
+    ICountryRestMapper mapStructCountryRestMapper(){return Mappers.getMapper(ICountryRestMapper.class);}
+
+    @Bean
+    IEnterpriseTypeMapper mapStructEnterpriseTypeMapper(){return Mappers.getMapper(IEnterpriseTypeMapper.class);}
+
+    @Bean
+    IEnterpriseTypeRestMapper mapStructEnterpriseTypeRestMapper(){return Mappers.getMapper(IEnterpriseTypeRestMapper.class);}
+
 }
 
