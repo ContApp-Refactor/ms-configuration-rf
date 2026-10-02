@@ -47,6 +47,11 @@ spring:
     password: ${RABBITMQ_PASSWORD:guest}
     connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:30000}
     requested-heartbeat: ${RABBITMQ_HEARTBEAT:30}
+    # Confirmaciones de publicación: las exigen los outbox publishers
+    # (treasury TreasuryOutboxMessenger y facture PurchaseInvoiceEventPublisher),
+    # que esperan CorrelationData.getFuture(). Sin esto el future nunca se cumple.
+    publisher-confirm-type: correlated
+    publisher-returns: true
     # Connection pool
     cache:
       connection:
@@ -55,6 +60,16 @@ spring:
       channel:
         size: ${RABBITMQ_CHANNEL_POOL_SIZE:25}
         checkout-timeout: ${RABBITMQ_CHANNEL_CHECKOUT_TIMEOUT:5000}
+    # Retry y recuperación
+    template:
+      retry:
+        enabled: true
+        initial-interval: ${RABBITMQ_RETRY_INITIAL_INTERVAL:1000}
+        max-attempts: ${RABBITMQ_RETRY_MAX_ATTEMPTS:3}
+        max-interval: ${RABBITMQ_RETRY_MAX_INTERVAL:10000}
+        multiplier: ${RABBITMQ_RETRY_MULTIPLIER:2.0}
+      mandatory: true
+      receive-timeout: ${RABBITMQ_RECEIVE_TIMEOUT:5000}
     # Listener container
     listener:
       simple:
@@ -97,7 +112,23 @@ jwt:
       principle-attribute: ${JWT_PRINCIPAL_ATTR:preferred_username}
       resource-id: ${JWT_RESOURCE_ID:microservices_client}
 
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+
 management:
+  health:
+    circuitbreakers:
+      enabled: true
   endpoint:
     health:
       probes:
@@ -117,3 +148,7 @@ file-upload:
       - "application/vnd.ms-excel"
     pdf:
       - "application/pdf"
+
+# URL base del monolito; los adaptadores migrados la usan para mapear
+# DTOs hacia otros módulos (ya no hay HTTP interno, ver T2.7).
+baseUrl: ${BASE_URL:http://localhost:8080}

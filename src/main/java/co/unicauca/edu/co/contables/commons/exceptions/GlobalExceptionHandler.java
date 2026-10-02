@@ -1,5 +1,7 @@
 package co.unicauca.edu.co.contables.commons.exceptions;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -9,6 +11,14 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+
+import co.unicauca.edu.co.contables.accounting.catalogue.catalogue.domain.utils.ImportConstants;
+import co.unicauca.edu.co.contables.accounting.catalogue.commons.exceptions.catalogue.AccountCatalogueErrorCode;
+import co.unicauca.edu.co.contables.accounting.catalogue.commons.exceptions.catalogue.AccountCatalogueHierarchyException;
+import co.unicauca.edu.co.contables.accounting.catalogue.commons.exceptions.catalogue.AccountCatalogueImportException;
+import co.unicauca.edu.co.contables.accounting.catalogue.commons.exceptions.catalogue.FileSizeExceededException;
+import co.unicauca.edu.co.contables.accounting.catalogue.commons.exceptions.catalogue.FileValidationException;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 
@@ -249,6 +259,195 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * @brief Maneja excepciones de tamaño de archivo excedido por Spring Boot.
+     *
+     * Esta excepción es lanzada por Spring antes de que llegue al controlador.
+     * Delega a FileSizeExceededException para reutilizar la lógica de formateo.
+     * @param ex la excepción de tamaño máximo de upload excedido
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException ex, WebRequest request) {
+
+        long maxSize = ImportConstants.MAX_FILE_SIZE;
+        FileSizeExceededException fileSizeException = new FileSizeExceededException(maxSize);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.PAYLOAD_TOO_LARGE.value())
+                .error("Payload Too Large")
+                .message(fileSizeException.getMessage())
+                .code(fileSizeException.getErrorCode().getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    /**
+     * @brief Maneja excepciones de tamaño de archivo excedido (custom).
+     *
+     * @param ex la excepción de tamaño de archivo excedido
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
+     */
+    @ExceptionHandler(FileSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleFileSizeExceededException(
+            FileSizeExceededException ex, WebRequest request) {
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.PAYLOAD_TOO_LARGE.value())
+                .error("File Too Large")
+                .message(ex.getMessage())
+                .code(ex.getErrorCode().getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    /**
+     * @brief Maneja excepciones específicas de importación del catálogo de cuentas.
+     *
+     * @param ex la excepción de importación
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
+     */
+    @ExceptionHandler(AccountCatalogueImportException.class)
+    public ResponseEntity<ErrorResponse> handleAccountCatalogueImportException(
+            AccountCatalogueImportException ex, WebRequest request) {
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Import Error")
+                .message(ex.getMessage())
+                .code(ex.getErrorCode().getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * @brief Maneja excepciones de validación de archivos.
+     *
+     * @param ex la excepción de validación de archivo
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
+     */
+    @ExceptionHandler(FileValidationException.class)
+    public ResponseEntity<ErrorResponse> handleFileValidationException(
+            FileValidationException ex, WebRequest request) {
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("File Validation Error")
+                .message(ex.getMessage())
+                .code(ex.getErrorCode().getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * @brief Maneja excepciones de jerarquía de cuentas.
+     *
+     * @param ex la excepción de jerarquía de cuentas
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
+     */
+    @ExceptionHandler(AccountCatalogueHierarchyException.class)
+    public ResponseEntity<ErrorResponse> handleAccountCatalogueHierarchyException(
+            AccountCatalogueHierarchyException ex, WebRequest request) {
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Hierarchy Error")
+                .message(ex.getMessage())
+                .code(ex.getErrorCode().getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * @brief Maneja excepciones de violación de integridad de datos (claves foráneas).
+     *
+     * @param ex la excepción de violación de integridad de datos
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex, WebRequest request) {
+
+        String errorMessage = ex.getMessage();
+
+        // Verificar si es una violación de clave foránea relacionada con Tax
+        if (errorMessage != null && errorMessage.contains("fkkndntrea9snpaq594re8whhmk")
+                && errorMessage.contains("table \"tax\"")) {
+
+            ErrorResponse errorResponse = ErrorResponse.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(HttpStatus.CONFLICT.value())
+                    .error("Data Integrity Violation")
+                    .message(AccountCatalogueErrorCode.ACCOUNT_ASSOCIATED_WITH_TAX.getMessage())
+                    .code(AccountCatalogueErrorCode.ACCOUNT_ASSOCIATED_WITH_TAX.getCode())
+                    .path(request.getDescription(false).replace("uri=", ""))
+                    .build();
+
+            return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
+
+        // Para otras violaciones de integridad, devolver error genérico
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("Data Integrity Violation")
+                .message("No se puede completar la operación debido a restricciones de integridad de datos")
+                .code(ErrorCode.GENERIC_ERROR.getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * @brief Maneja excepciones de referencia de propiedad inválida (campos de
+     * ordenamiento inexistentes).
+     *
+     * @param ex la excepción de referencia de propiedad
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con la respuesta de error estructurada
+     */
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ErrorResponse> handlePropertyReferenceException(
+            PropertyReferenceException ex, WebRequest request) {
+
+        String propertyName = ex.getPropertyName();
+        String message = String.format("El campo de ordenamiento '%s' no es válido", propertyName);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message(message)
+                .code(ErrorCode.GENERIC_ERROR.getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
      * @brief Mapea estado HTTP desde código de error
      *
      * Mapea un código de error a un estado HTTP apropiado basado en patrones del código.
@@ -265,6 +464,9 @@ public class GlobalExceptionHandler {
         }
         if (upper.endsWith("_ALREADY_EXISTS") || upper.contains("DUPLICATE") || upper.contains("ASSOCIATED")) {
             return HttpStatus.CONFLICT;
+        }
+        if (upper.contains("IMPORT") || upper.contains("HIERARCHY") || upper.contains("FILE")) {
+            return HttpStatus.BAD_REQUEST;
         }
         return HttpStatus.BAD_REQUEST;
     }
