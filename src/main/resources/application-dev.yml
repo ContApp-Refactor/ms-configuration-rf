@@ -14,7 +14,11 @@ spring:
       leak-detection-threshold: 60000  # 60 segundos para detectar leaks
   jpa:
     hibernate:
-      ddl-auto: ${DB_HIBERNATE_DDL_AUTO:create-drop}
+      # Nunca uses create-drop en dev: borra y recrea todas las tablas en cada
+      # arranque y en cada shutdown, destruyendo los datos de usuario y dejando
+      # solo las semillas de data.sql. Si hace falta un esquema limpio, borralo
+      # a mano con la base.
+      ddl-auto: ${DB_HIBERNATE_DDL_AUTO:update}
     properties:
       hibernate:
         jdbc:
