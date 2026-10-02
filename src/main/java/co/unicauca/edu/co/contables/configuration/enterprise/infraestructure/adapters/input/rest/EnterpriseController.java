@@ -26,6 +26,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -44,6 +45,7 @@ import java.util.UUID;
 @RestController
 @AllArgsConstructor
 @Validated
+@Slf4j
 @PreAuthorize("hasRole('admin_client') or hasRole('user_client') or hasRole('super_client')")
 public class EnterpriseController {
 
@@ -324,6 +326,7 @@ public class EnterpriseController {
             enterpriseUpdateManagerPort.deleteEnterprise(id);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
+            log.error("Error al eliminar permanentemente la empresa con id: {}", id, e);
             return ResponseEntity.status(500).build();
         }
     }
