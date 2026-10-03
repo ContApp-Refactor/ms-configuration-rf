@@ -4,6 +4,7 @@ import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.ada
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -26,4 +27,12 @@ public interface ISubjectRepository extends JpaRepository<SubjectEntity, UUID> {
      * @return true si existe una materia con el código, false en caso contrario
      */
     boolean existsByCode(String code);
+
+    /**
+     * Busca una materia por su código específico.
+     *
+     * @param code el código único de la materia
+     * @return la materia con ese código, o vacío si no existe
+     */
+    Optional<SubjectEntity> findByCode(String code);
 }

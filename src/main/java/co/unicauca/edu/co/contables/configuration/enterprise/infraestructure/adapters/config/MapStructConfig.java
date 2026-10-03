@@ -64,5 +64,11 @@ public class MapStructConfig {
     @Bean
     IEnterpriseTypeRestMapper mapStructEnterpriseTypeRestMapper(){return Mappers.getMapper(IEnterpriseTypeRestMapper.class);}
 
+    @Bean
+    ISubjectMapper mapStructSubjectMapper(){return Mappers.getMapper(ISubjectMapper.class);}
+
+    @Bean
+    ISubjectRestMapper mapStructSubjectRestMapper(){return Mappers.getMapper(ISubjectRestMapper.class);}
+
 }
 
