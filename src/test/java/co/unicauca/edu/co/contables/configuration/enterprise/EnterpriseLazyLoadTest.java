@@ -1,6 +1,8 @@
 package co.unicauca.edu.co.contables.configuration.enterprise;
 
+import co.unicauca.edu.co.contables.configuration.enterprise.application.ports.input.IAddressSearchManagerPort;
 import co.unicauca.edu.co.contables.configuration.enterprise.application.ports.input.IEnterpriseSearchManagerPort;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Department;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Enterprise;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.entity.*;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.repository.IEnterpriseRepository;
@@ -57,6 +59,9 @@ class EnterpriseLazyLoadTest {
 
     @Autowired
     private IEnterpriseSearchManagerPort enterpriseSearchManagerPort;
+
+    @Autowired
+    private IAddressSearchManagerPort addressSearchManagerPort;
 
     @Autowired
     private IEnterpriseRepository enterpriseRepository;
@@ -179,6 +184,61 @@ class EnterpriseLazyLoadTest {
             assertNotNull(enterprise.getTaxLiabilities(), "Tax liabilities should be loaded (not null)");
             assertTrue(enterprise.getTaxLiabilities().size() >= 1, "Should have at least one tax liability");
             assertEquals("IVA", enterprise.getTaxLiabilities().get(0).getName());
+        } finally {
+            TenantContext.clear();
+        }
+    }
+
+    /**
+     * Regression test for LazyInitializationException when loading the cities of a department.
+     *
+     * The bug: DepartmentEntity.cities is LAZY and spring.jpa.open-in-view=false, so with no
+     * @Transactional on getAllCities the EntityManager closes after findById(...) and the
+     * MapStruct mapper blows up when it walks the cities collection (HTTP 500 on
+     * GET /api/enterprises/address/cities/{id}).
+     *
+     * The ACT runs OUTSIDE any test-managed transaction, otherwise the test would pass for the
+     * wrong reason (the open transaction would keep the session alive).
+     */
+    @Test
+    void should_load_department_cities_without_lazy_initialization_exception() {
+        TenantContext.setTenantId("test-tenant");
+
+        try {
+            // ARRANGE: a department with two cities, committed outside the test transaction
+            Long departmentId = transactionTemplate.execute(status -> {
+                CountryEntity country = CountryEntity.builder()
+                        .name("Colombia")
+                        .build();
+                entityManager.persist(country);
+                entityManager.flush();
+
+                DepartmentEntity department = DepartmentEntity.builder()
+                        .name("Cauca")
+                        .country(country)
+                        .build();
+                department = departmentRepository.save(department);
+
+                entityManager.persist(CityEntity.builder()
+                        .name("Popayán")
+                        .department(department)
+                        .build());
+                entityManager.persist(CityEntity.builder()
+                        .name("Santander de Quilichao")
+                        .department(department)
+                        .build());
+                entityManager.flush();
+
+                return department.getId();
+            });
+
+            // ACT: fuera de cualquier transacción gestionada por el test
+            Department department = addressSearchManagerPort.getAllCities(departmentId);
+
+            // ASSERT: las ciudades se resolvieron dentro de la misma sesión
+            assertNotNull(department, "Department should be found");
+            assertNotNull(department.getCities(), "Cities should be loaded (not null)");
+            assertEquals(2, department.getCities().size(), "Both cities should be loaded");
         } finally {
             TenantContext.clear();
         }

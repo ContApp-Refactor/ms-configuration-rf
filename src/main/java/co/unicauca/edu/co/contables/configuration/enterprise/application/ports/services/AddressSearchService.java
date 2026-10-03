@@ -6,6 +6,7 @@ import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Count
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Department;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -47,6 +48,7 @@ public class AddressSearchService implements IAddressSearchManagerPort {
      * {@inheritDoc}
      */
     @Override
+    @Transactional(readOnly = true)
     public Department getAllCities(Long idDepartment) {
         return addressSearchOutputPort.getAllCities(idDepartment);
     }
