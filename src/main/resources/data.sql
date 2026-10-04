@@ -1203,3 +1203,8 @@ INSERT INTO city (id, department_id, name) VALUES (1120,32,'Cumaribo') ON CONFLI
 INSERT INTO city (id, department_id, name) VALUES (1121,32,'La Primavera') ON CONFLICT DO NOTHING;
 INSERT INTO city (id, department_id, name) VALUES (1122,32,'Puerto Carreño') ON CONFLICT DO NOTHING;
 INSERT INTO city (id, department_id, name) VALUES (1123,32,'Santa Rosalía') ON CONFLICT DO NOTHING;
+
+-- Modulo 5 (stock-rf): fila unica de stock migrada desde la base `stock`.
+INSERT INTO stock_entity (id, product_id, name, enterprise_id, quantity, price, state, last_modified_date, tenant_id)
+VALUES (1, 1, 'ACEITE OLIVA 300 ML', '55433c17-b40f-45a7-ba17-1a8dc71086e8', 0, 0.00, true, NULL, 'ebc7841e-c830-430a-8f66-0073254814d2')
+ON CONFLICT DO NOTHING;
