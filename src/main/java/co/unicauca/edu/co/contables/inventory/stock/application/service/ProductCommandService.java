@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import co.unicauca.edu.co.contables.inventory.stock.application.ports.input.IProductSyncCommandPort;
 import co.unicauca.edu.co.contables.inventory.stock.domain.model.Stock;
@@ -33,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ProductCommandService implements IProductSyncCommandPort {
 
     private final IStockCommandRepositoryPort productCommandRepositoryPort;
+    @Qualifier("productClientAdapter")
     private final IProductClientPort productClient;
     private final ISyncStateRepositoryPort syncStateRepository;
     private final IFormatterResultOutputPort formatterResultOutputPort;

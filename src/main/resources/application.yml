@@ -29,3 +29,10 @@ springdoc:
 server:
   error:
     include-stacktrace: never
+
+# Único cliente HTTP que sobrevivió a la migración (paso 7): peps llama al
+# microservicio inventory-weighted-average-rf, que sigue fuera del monolito.
+# Stock, products y config son llamadas in-process y ya no piden base-url.
+services:
+  kardex-external:
+    base-url: ${KARDEX_EXTERNAL_SERVICE_URL:http://inventory-weighted-average-rf:8080}

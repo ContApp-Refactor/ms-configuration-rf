@@ -3,7 +3,7 @@ package co.unicauca.edu.co.contables.inventory.stock.infrastructure.adapters.out
 import org.springframework.amqp.core.Message;
 import com.rabbitmq.client.Channel;
 import co.unicauca.edu.co.contables.inventory.stock.domain.port.IEventRecoveryActionPort;
-import co.unicauca.edu.co.contables.inventory.stock.domain.port.IMessageErrorHandlingPort;
+import co.unicauca.edu.co.contables.accounting.debt_payments.domain.ports.IMessageErrorHandlingPort;
 
 import lombok.extern.slf4j.Slf4j;
 

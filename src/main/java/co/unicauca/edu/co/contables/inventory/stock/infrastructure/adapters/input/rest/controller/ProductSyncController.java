@@ -9,6 +9,7 @@ import co.unicauca.edu.co.contables.inventory.stock.application.ports.input.IPro
 import co.unicauca.edu.co.contables.inventory.stock.infrastructure.adapters.input.rest.dto.ResponseDto;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RequestMapping("/api/stock/sync")
 public class ProductSyncController {
+    @Qualifier("productCommandService")
     private final IProductSyncCommandPort productCommandPort;
 
     /**

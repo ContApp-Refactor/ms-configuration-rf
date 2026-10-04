@@ -1,17 +1,24 @@
-{"properties": [
-  {
-    "name": "jwt.auth.converter.principle-attribute",
-    "type": "java.lang.String",
-    "description": "A description for 'jwt.auth.converter.principle-attribute'"
-  },
-  {
-    "name": "jwt.auth.converter.resource-id",
-    "type": "java.lang.String",
-    "description": "A description for 'jwt.auth.converter.resource-id'"
-  },
-  {
-    "name": "baseUrl",
-    "type": "java.lang.String",
-    "description": "A description for 'baseUrl'"
-  }
-]}
+{
+  "properties": [
+    {
+      "name": "jwt.auth.converter.principle-attribute",
+      "type": "java.lang.String",
+      "description": "A description for 'jwt.auth.converter.principle-attribute'"
+    },
+    {
+      "name": "jwt.auth.converter.resource-id",
+      "type": "java.lang.String",
+      "description": "A description for 'jwt.auth.converter.resource-id'"
+    },
+    {
+      "name": "baseUrl",
+      "type": "java.lang.String",
+      "description": "A description for 'baseUrl'"
+    },
+    {
+      "name": "services.kardex-external.base-url",
+      "type": "java.lang.String",
+      "description": "A description for 'services.kardex-external.base-url'"
+    }
+  ]
+}
