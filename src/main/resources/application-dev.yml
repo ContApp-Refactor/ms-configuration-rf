@@ -90,7 +90,9 @@ spring:
           jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8090/auth/realms/oauth2-realm/protocol/openid-connect/certs}
           
 server:
-  port: ${PORT:0}
+  # Default fijo en 8080: con 0 el puerto quedaba aleatorio y el paso final
+  # (FE apuntando al puerto del monolito) no era predecible.
+  port: ${PORT:8080}
   tomcat:
     connection-timeout: 60000
     max-connections: 10000

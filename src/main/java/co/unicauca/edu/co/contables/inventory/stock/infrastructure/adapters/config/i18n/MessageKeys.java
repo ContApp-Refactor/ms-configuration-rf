@@ -11,7 +11,7 @@ public final class MessageKeys {
     }
 
     public static final String ERROR_GENERIC = "kardex.error.generic";
-    public static final String ERROR_NOT_FOUND = "kardex.error.not.found";
+    public static final String ERROR_NOT_FOUND = "stock.error.not.found";
     public static final String ERROR_INVALID_VALUE = "kardex.error.invalid.value";
     public static final String ERROR_QUANTITY_EXCEEDED = "kardex.error.quantity.exceeded";
     public static final String ERROR_DUPLICATE_RECORD = "kardex.error.duplicate.record";
