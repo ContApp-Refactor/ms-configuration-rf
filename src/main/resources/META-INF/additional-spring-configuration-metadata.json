@@ -14,11 +14,6 @@
       "name": "baseUrl",
       "type": "java.lang.String",
       "description": "A description for 'baseUrl'"
-    },
-    {
-      "name": "services.kardex-external.base-url",
-      "type": "java.lang.String",
-      "description": "A description for 'services.kardex-external.base-url'"
     }
   ]
 }

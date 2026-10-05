@@ -1215,3 +1215,10 @@ ON CONFLICT DO NOTHING;
 INSERT INTO peps_product (id, product_id, name, presentation, reference, enterprise_id, state)
 VALUES (1, 1, 'ACEITE OLIVA 300 ML', 'Envase', 'ACT-01', '55433c17-b40f-45a7-ba17-1a8dc71086e8', true)
 ON CONFLICT DO NOTHING;
+
+-- Modulo 7 (inventory-weighted-average-rf): fila unica de producto migrada desde la base
+-- `inventory_weighted_average`. El esquema `kardex_products`/`kardex` lo crea Hibernate
+-- (ddl-auto=update); la base origen NO se toca (paso 9 del contrato esta anulado).
+INSERT INTO kardex_products (id, product_id, reference, name, presentation, enterprise_id, state)
+VALUES (1, 1, 'ACT-01', 'ACEITE OLIVA 300 ML', 'Envase', '55433c17-b40f-45a7-ba17-1a8dc71086e8', true)
+ON CONFLICT DO NOTHING;
