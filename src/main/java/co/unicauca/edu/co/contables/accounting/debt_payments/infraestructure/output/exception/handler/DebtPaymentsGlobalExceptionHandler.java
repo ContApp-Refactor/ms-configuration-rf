@@ -6,6 +6,8 @@ import co.unicauca.edu.co.contables.accounting.debt_payments.domain.exception.Po
 import co.unicauca.edu.co.contables.accounting.debt_payments.domain.exception.ReceiptNotFoundException;
 import co.unicauca.edu.co.contables.accounting.debt_payments.infraestructure.input.rest.dto.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -20,6 +22,7 @@ import org.springframework.web.context.request.WebRequest;
  * It catches exceptions thrown from the controller layer and converts them
  * into a standardized {@link ApiResponse} format.
  */
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(basePackages = "co.unicauca.edu.co.contables.accounting.debt_payments")
 @Slf4j
 

@@ -7,6 +7,8 @@ import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.adapters
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +34,7 @@ import java.util.stream.Collectors;
  * Proporciona respuestas consistentes y descriptivas para diferentes tipos de errores,
  * convirtiendo excepciones del dominio en respuestas HTTP apropiadas.
  */
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @ControllerAdvice(basePackages = "co.unicauca.edu.co.contables.configuration.thirds")
 public class ThirdsGlobalExceptionHandler {
 

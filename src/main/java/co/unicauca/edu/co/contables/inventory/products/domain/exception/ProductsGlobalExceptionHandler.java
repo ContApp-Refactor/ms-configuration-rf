@@ -1,5 +1,7 @@
 package co.unicauca.edu.co.contables.inventory.products.domain.exception;
 
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
  * Centraliza el manejo de excepciones en los controladores de productos, proporcionando
  * respuestas HTTP consistentes y mapeo automático de códigos de error a estados HTTP.
  */
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @ControllerAdvice(basePackages = "co.unicauca.edu.co.contables.inventory.products")
 public class ProductsGlobalExceptionHandler {
 

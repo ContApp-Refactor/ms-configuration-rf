@@ -1,5 +1,7 @@
 package co.unicauca.edu.co.contables.accounting.facture.infraestructure.adapters.output.customizedexception;
 
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import co.unicauca.edu.co.contables.accounting.facture.domain.exception.FactureNotFound;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @ControllerAdvice(basePackages = "co.unicauca.edu.co.contables.accounting.facture")
 @RestController
 public class CustomizedExceptionAdapter extends ResponseEntityExceptionHandler {
