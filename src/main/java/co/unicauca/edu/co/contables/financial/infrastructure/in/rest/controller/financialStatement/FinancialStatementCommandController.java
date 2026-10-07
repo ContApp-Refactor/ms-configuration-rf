@@ -1,4 +1,4 @@
-package co.unicauca.edu.co.contables.financial.infrastructure.in.rest.controller;
+package co.unicauca.edu.co.contables.financial.infrastructure.in.rest.controller.financialStatement;
 
 import co.unicauca.edu.co.contables.financial.domain.models.core.FinancialStatementAnnotation;
 import co.unicauca.edu.co.contables.financial.application.ports.in.financialStatement.IFinancialStatementCommandPort;
