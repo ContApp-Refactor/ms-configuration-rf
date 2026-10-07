@@ -7,6 +7,8 @@ import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.exception.custo
 import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.exception.dto.ErrorResponseDTO;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -32,8 +34,9 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  * @author JulianRuano
  */
 
-@RestControllerAdvice
-public class GlobalExceptionHandler {
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@RestControllerAdvice(basePackages = "co.unicauca.edu.co.contables.auxiliary")
+public class AuxiliaryGlobalExceptionHandler {
 
     /**
      * @brief Maneja las excepciones de validación de argumentos.

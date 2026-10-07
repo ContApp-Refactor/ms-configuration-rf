@@ -42,6 +42,7 @@ import co.unicauca.edu.co.contables.auxiliary.domain.ports.AuxiliaryBookHistory.
 import co.unicauca.edu.co.contables.auxiliary.domain.ports.AuxiliaryBookLog.IAuxiliaryBookLogCommandRepositoryPort;
 import co.unicauca.edu.co.contables.auxiliary.domain.ports.IFormatterResultOutputPort;
 import co.unicauca.edu.co.contables.auxiliary.domain.ports.IMessageServicePort;
+import co.unicauca.edu.co.contables.auxiliary.infrastructure.config.i18n.MessageKeys;
 import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.exception.customized.GenericErrorException;
 
 /**
@@ -210,7 +211,11 @@ class AuxiliaryBookLogCommandUCTest {
 
         Mockito.when(auxiliaryBookProcessor.processAuxiliaryBookData(accountingInfoClient, book))
                 .thenThrow(new IllegalStateException("boom"));
-        Mockito.when(messageServicePort.getMessage(Mockito.anyString(), Mockito.anyString())).thenReturn("formatted");
+        Mockito.when(messageServicePort.getMessage(
+                Mockito.eq(MessageKeys.ERROR_GENERIC),
+                Mockito.eq("auxiliary book generation"),
+                Mockito.any(String.class)
+        )).thenReturn("formatted");
         Mockito.doThrow(new GenericErrorException(500, "formatted"))
                 .when(formatterResultOutputPort)
                 .returnErrorGenericResponse(Mockito.eq(500), Mockito.anyString());
@@ -222,7 +227,7 @@ class AuxiliaryBookLogCommandUCTest {
         ArgumentCaptor<AuxiliaryBookLog> logCaptor = ArgumentCaptor.forClass(AuxiliaryBookLog.class);
         Mockito.verify(repositoryPort, Mockito.times(2)).registerAuxiliaryBookLog(logCaptor.capture());
         Assertions.assertThat(logCaptor.getAllValues().get(1).getETypeEvent()).isEqualTo(ETypeEvent.ERROR_GENERATION);
-        Assertions.assertThat(logCaptor.getAllValues().get(1).getMessage()).contains("boom");
+        Assertions.assertThat(logCaptor.getAllValues().get(1).getMessage()).contains("Unexpected error occurred");
     }
 
     @Test

@@ -104,6 +104,19 @@
 			<groupId>net.sf.jasperreports</groupId>
 			<artifactId>jasperreports</artifactId>
 			<version>6.20.1</version>
+			<exclusions>
+				<!--
+					Jasper trae jackson-dataformat-xml, que Spring Boot detecta y
+					registra MappingJackson2XmlHttpMessageConverter. Con eso, toda
+					respuesta sin header Accept explícito empieza a salir en XML
+					en vez de JSON (rompe los contratos REST y los tests).
+					Jasper no lo necesita para generar PDF/XLSX.
+				-->
+				<exclusion>
+					<groupId>com.fasterxml.jackson.dataformat</groupId>
+					<artifactId>jackson-dataformat-xml</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>net.sourceforge.dynamicreports</groupId>

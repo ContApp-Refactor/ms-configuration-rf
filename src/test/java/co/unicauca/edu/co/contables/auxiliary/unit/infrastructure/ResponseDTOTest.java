@@ -154,8 +154,8 @@ class ResponseDTOTest {
                 "account.accountCode",
                 "account.accountDescription",
                 "initialBalance",
-                "debit",
-                "credit",
+                "debitMovement",
+                "creditMovement",
                 "finalBalance"
         );
     }
@@ -196,7 +196,7 @@ class ResponseDTOTest {
         Assertions.assertThat(columnNames(report)).containsExactly(
                 "voucherType",
                 "date",
-                "voucherState",
+                "state",
                 "thirdPartyId",
                 "thirdPartyName",
                 "account.accountCode",

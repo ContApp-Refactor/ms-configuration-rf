@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
  * mensaje usando el {@link MessageSource} de Spring y el locale activo
  * del {@link LocaleContextHolder}, con soporte de mensaje por defecto.
  */
-@Service
+@Service("auxiliaryMessageService")
 @RequiredArgsConstructor
 public class MessageService implements IMessageServicePort {
 

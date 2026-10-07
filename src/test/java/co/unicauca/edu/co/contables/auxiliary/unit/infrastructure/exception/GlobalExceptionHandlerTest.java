@@ -4,7 +4,7 @@ import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.exception.custo
 import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.exception.customized.EntityAlreadyExists;
 import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.exception.customized.EntityDoesNotExistException;
 import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.exception.dto.ErrorResponseDTO;
-import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.exception.handler.GlobalExceptionHandler;
+import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.exception.handler.AuxiliaryGlobalExceptionHandler;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.assertj.core.api.Assertions;
@@ -26,16 +26,16 @@ import org.springframework.http.HttpMethod;
 import java.util.Map;
 
 /**
- * @brief Pruebas unitarias para {@link GlobalExceptionHandler}.
+ * @brief Pruebas unitarias para {@link AuxiliaryGlobalExceptionHandler}.
  */
 class GlobalExceptionHandlerTest {
 
-    private GlobalExceptionHandler handler;
+    private AuxiliaryGlobalExceptionHandler handler;
     private HttpServletRequest request;
 
     @BeforeEach
     void setUp() {
-        handler = new GlobalExceptionHandler();
+        handler = new AuxiliaryGlobalExceptionHandler();
         request = Mockito.mock(HttpServletRequest.class);
         Mockito.when(request.getRequestURI()).thenReturn("/api/v1/test");
         Mockito.when(request.getMethod()).thenReturn("GET");

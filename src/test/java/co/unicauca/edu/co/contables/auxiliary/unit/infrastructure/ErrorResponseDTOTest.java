@@ -104,7 +104,7 @@ class ErrorResponseDTOTest {
                 List.of(new LinkedHashMap<>(java.util.Map.of(
                         "voucherType", "RC",
                         "date", "05/01/2025",
-                        "State", "RC",
+                        "state", "RC",
                         "thirdPartyId", "900",
                         "thirdPartyName", "Proveedor Uno",
                         "account", new LinkedHashMap<>(java.util.Map.of(

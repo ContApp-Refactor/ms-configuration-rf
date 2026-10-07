@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
  * de existencia de entidades y errores genéricos, prefijando el
  * mensaje con la descripción del {@link ErrorCode} correspondiente.
  */
-@Service
+@Service("auxiliaryFormatterResultOutputPort")
 public class FormatterResultOutputPort implements IFormatterResultOutputPort {
 
     /**

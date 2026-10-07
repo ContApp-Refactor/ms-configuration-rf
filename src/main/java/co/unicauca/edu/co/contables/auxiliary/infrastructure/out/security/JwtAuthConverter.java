@@ -24,7 +24,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
  * También implementa {@link IJwtUtils} para exponer el identificador
  * del usuario autenticado ({@code sub}).
  */
-@Component
+@Component("auxiliaryJwtAuthConverter")
 public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationToken>, IJwtUtils {
 
     private final JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();

@@ -112,11 +112,12 @@ public class AccountingMovementStrategy implements IProcessStrategy {
         //   del saldo sea consistente aunque algunos asientos vengan sin ella.
         Map<Long, String> natureByAccount = resolveNatureByAccount(validData);
 
-        // ── 3. Saldo inicial por cuenta exacta (acumulado hasta startDate-1) ──
-        //   El Libro de Movimientos se lleva por cuenta, no por agrupación.
-        //   La agrupación (criteriaType) solo se usa para filtrar el alcance.
-        Map<Long, BigDecimal> initialBalanceByAccount =
-                calculateInitialBalancesByAccount(previousPeriodData, natureByAccount);
+        // ── 3. Saldo inicial por grupo contable (acumulado hasta startDate-1) ──
+        //   El Libro de Movimientos agrupa saldos iniciales según el criterio
+        //   contable (criteriaType) para que cuentas hijas hereden el saldo
+        //   de la cuenta padre cuando se consulta a nivel de cuenta (4 dígitos).
+        Map<Long, BigDecimal> initialBalanceByGroup =
+                calculateInitialBalancesByGroup(previousPeriodData, natureByAccount, criteriaType);
 
         // ── 4. Agrupar periodo actual por comprobante (tipo + número) ───────
         Map<String, List<AccountingInfo>> byVoucher = currentPeriodData.stream()
@@ -141,7 +142,7 @@ public class AccountingMovementStrategy implements IProcessStrategy {
         //   El saldo corriente se acumula por código de cuenta a lo largo de
         //   todos los comprobantes. Cada fila refleja el saldo justo antes
         //   y justo después del asiento.
-        Map<Long, BigDecimal> runningBalanceByAccount = new HashMap<>(initialBalanceByAccount);
+        Map<Long, BigDecimal> runningBalanceByAccount = new HashMap<>(initialBalanceByGroup);
         List<AccountingMovementBookDTO> result = new ArrayList<>();
 
         for (Map.Entry<String, List<AccountingInfo>> voucherEntry : sortedVouchers) {
@@ -153,14 +154,15 @@ public class AccountingMovementStrategy implements IProcessStrategy {
 
             for (AccountingInfo info : voucherMovements) {
                 Long accountCode = info.getAccount().getCode();
+                Long groupCode = extractGroupingKey(info, criteriaType);
                 String nature = natureByAccount.getOrDefault(accountCode,
                         defaultIfBlank(info.getAccount().getNature(), DEFAULT_NATURE));
 
-                BigDecimal initialBalance = runningBalanceByAccount.getOrDefault(accountCode, BigDecimal.ZERO);
+                BigDecimal initialBalance = runningBalanceByAccount.getOrDefault(groupCode, BigDecimal.ZERO);
                 BigDecimal debit = extractDebit(info);
                 BigDecimal credit = extractCredit(info);
                 BigDecimal netMovement = calculateNetBalance(initialBalance, debit, credit, nature);
-                runningBalanceByAccount.put(accountCode, netMovement);
+                runningBalanceByAccount.put(groupCode, netMovement);
 
                 AccountDTO accountDTO = new AccountDTO(
                         nature,
@@ -255,22 +257,25 @@ public class AccountingMovementStrategy implements IProcessStrategy {
     // -------------------------------------------------------------------------
 
     /**
-     * Calcula el saldo neto de cada cuenta exacta acumulando los movimientos
+     * Calcula el saldo neto de cada grupo contable acumulando los movimientos
      * anteriores al inicio del periodo. La naturaleza se toma del mapa
-     * pre-resuelto; si falta, se asume débito.
+     * pre-resuelto; si falta, se asume débito. El agrupamiento usa el
+     * criteriaType para que cuentas hijas hereden saldos de la cuenta padre.
      */
-    private Map<Long, BigDecimal> calculateInitialBalancesByAccount(
+    private Map<Long, BigDecimal> calculateInitialBalancesByGroup(
             List<AccountingInfo> previousPeriodData,
-            Map<Long, String> natureByAccount) {
+            Map<Long, String> natureByAccount,
+            ECriteriaType criteriaType) {
 
         Map<Long, BigDecimal> balances = new HashMap<>();
 
         for (AccountingInfo info : previousPeriodData) {
-            Long code = info.getAccount().getCode();
-            String nature = natureByAccount.getOrDefault(code,
+            Long accountCode = info.getAccount().getCode();
+            Long groupCode = extractGroupingKey(info, criteriaType);
+            String nature = natureByAccount.getOrDefault(accountCode,
                     defaultIfBlank(info.getAccount().getNature(), DEFAULT_NATURE));
-            BigDecimal current = balances.getOrDefault(code, BigDecimal.ZERO);
-            balances.put(code, calculateNetBalance(current, extractDebit(info), extractCredit(info), nature));
+            BigDecimal current = balances.getOrDefault(groupCode, BigDecimal.ZERO);
+            balances.put(groupCode, calculateNetBalance(current, extractDebit(info), extractCredit(info), nature));
         }
 
         return balances;
