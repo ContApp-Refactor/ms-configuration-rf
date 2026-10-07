@@ -139,10 +139,11 @@ public class AccountingMovementStrategy implements IProcessStrategy {
                 .toList();
 
         // ── 5. Construir filas del libro ────────────────────────────────────
-        //   El saldo corriente se acumula por código de cuenta a lo largo de
-        //   todos los comprobantes. Cada fila refleja el saldo justo antes
-        //   y justo después del asiento.
-        Map<Long, BigDecimal> runningBalanceByAccount = new HashMap<>(initialBalanceByGroup);
+        //   El saldo corriente se acumula por clave de agrupación (cuenta,
+        //   grupo o tercero, según criteriaType) a lo largo de todos los
+        //   comprobantes. Cada fila refleja el saldo justo antes y justo
+        //   después del asiento.
+        Map<Long, BigDecimal> runningBalanceByGroup = new HashMap<>(initialBalanceByGroup);
         List<AccountingMovementBookDTO> result = new ArrayList<>();
 
         for (Map.Entry<String, List<AccountingInfo>> voucherEntry : sortedVouchers) {
@@ -158,11 +159,11 @@ public class AccountingMovementStrategy implements IProcessStrategy {
                 String nature = natureByAccount.getOrDefault(accountCode,
                         defaultIfBlank(info.getAccount().getNature(), DEFAULT_NATURE));
 
-                BigDecimal initialBalance = runningBalanceByAccount.getOrDefault(groupCode, BigDecimal.ZERO);
+                BigDecimal initialBalance = runningBalanceByGroup.getOrDefault(groupCode, BigDecimal.ZERO);
                 BigDecimal debit = extractDebit(info);
                 BigDecimal credit = extractCredit(info);
                 BigDecimal netMovement = calculateNetBalance(initialBalance, debit, credit, nature);
-                runningBalanceByAccount.put(groupCode, netMovement);
+                runningBalanceByGroup.put(groupCode, netMovement);
 
                 AccountDTO accountDTO = new AccountDTO(
                         nature,
