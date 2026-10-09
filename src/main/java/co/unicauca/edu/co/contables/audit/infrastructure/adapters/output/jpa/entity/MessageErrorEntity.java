@@ -15,18 +15,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-// El nombre JPA debe ser único en la unidad de persistencia: debt_payments y
-// notifications ya mapean la MISMA tabla con clases llamadas igual y Hibernate
-// aborta con DuplicateMappingException si todos comparten el nombre de entidad.
-// Las columnas difieren (audit declara error_at + error_stage; las otras usan
-// error_timestamp), así que ddl-auto: update agrega las faltantes sin borrar
-// nada (D-11.2). La tabla NO se renombra.
+// Tabla PROPIA, no la compartida `message_processing_errors` de debt_payments y
+// notifications. El plan inicial (D-11.2) dejaba audit sobre la tabla compartida
+// y renombraba solo la entidad; `ddl-auto: update` agregó `error_at NOT NULL` a
+// esa tabla y rompió los inserts de kardex, que no poblan esa columna. El listener
+// revienta, la cola se atasca y los GETs asíncronos devuelven 404 (36 fallos
+// nuevos en newman). Cada módulo lleva su propio registro de errores, igual que
+// en los orígenes, donde cada microservicio tenía su propia base.
 @Entity(name = "AuditMessageErrorEntity")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "message_processing_errors")
+@Table(name = "audit_message_processing_errors")
 @Builder
 public class MessageErrorEntity {
 
