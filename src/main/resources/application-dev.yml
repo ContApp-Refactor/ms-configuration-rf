@@ -190,6 +190,8 @@ notification-settings:
   mail:
     from: ${MAIL_FROM:modulocarteracontapp@gmail.com}
     default-subject: ${MAIL_DEFAULT_SUBJECT:Reporte programado}
+    # Módulo 10 (notifications): asunto del correo de recordatorio de vencimiento.
+    invoice-reminder-subject: ${MAIL_INVOICE_REMINDER_SUBJECT:Recordatorio de Vencimiento de Facturas}
 
 scheduled:
   reports:

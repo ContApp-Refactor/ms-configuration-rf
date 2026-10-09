@@ -14,6 +14,16 @@
       "name": "baseUrl",
       "type": "java.lang.String",
       "description": "A description for 'baseUrl'"
+    },
+    {
+      "name": "notification-settings.mail.from",
+      "type": "java.lang.String",
+      "description": "A description for 'notification-settings.mail.from'"
+    },
+    {
+      "name": "notification-settings.mail.invoice-reminder-subject",
+      "type": "java.lang.String",
+      "description": "A description for 'notification-settings.mail.invoice-reminder-subject'"
     }
   ]
 }
