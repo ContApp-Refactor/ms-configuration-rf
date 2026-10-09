@@ -179,6 +179,14 @@
 			<version>7.0.4</version>
 			<type>pom</type>
 		</dependency>
+		<!-- iText 5 para PDF (módulo audit: SessionPdfGenerator). Coexiste con
+		     itext7-core porque usan namespaces distintos (com.itextpdf.text.* vs
+		     com.itextpdf.kernel.*). -->
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>itextpdf</artifactId>
+			<version>5.5.13.3</version>
+		</dependency>
 		<dependency>
 			<groupId>com.google.zxing</groupId>
 			<artifactId>core</artifactId>
