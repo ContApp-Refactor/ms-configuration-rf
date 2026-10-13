@@ -18,6 +18,14 @@ spring:
     cache-duration: 3600
     fallback-to-system-locale: false
     use-code-as-default-message: false
+  # Módulo keycloak (migrado, D-12.9): blacklist de JWT y tokens de
+  # recuperación de contraseña viven en Redis. En producción es el servicio
+  # externo redis-svc; localmente no hay Redis (condición preexistente del
+  # origen, ver R-12.6).
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 logging:
   level:
     org:
@@ -35,3 +43,46 @@ springdoc:
 server:
   error:
     include-stacktrace: never
+
+# ── Módulo keycloak (migrado) ────────────────────────────────────────────
+# Estas claves van en application.yml (y no solo en application-dev.yml)
+# porque el contexto de test (@ActiveProfiles("test")) NO carga el perfil dev
+# y los beans del módulo (KeycloakProvider, AuthKeycloakServiceImpl,
+# PasswordRecoveryServiceImpl, PermissionKeycloakServiceImpl) resuelven estas
+# propiedades al arrancar. Con placeholder de entorno y default, el perfil dev
+# hereda lo mismo sin duplicar el bloque.
+keycloak:
+  server:
+    url: ${KEYCLOAK_SERVER_URL:http://contables.unicauca.edu.co/auth}
+  realm:
+    master: ${KEYCLOAK_REALM_MASTER:master}
+    name: ${KEYCLOAK_REALM_NAME:oauth2-realm}
+  # keycloak.admin es el client-id con el que KeycloakProvider autentica al
+  # administrador (nombre heredado del origen, no cambiar sin revisar D-12.8).
+  admin: ${KEYCLOAK_ADMIN:}
+  password: ${KEYCLOAK_PASSWORD:}
+  user:
+    console: ${KEYCLOAK_USER_CONSOLE:}
+  client:
+    id: ${KEYCLOAK_CLIENT_ID:}
+    secret: ${KEYCLOAK_CLIENT_SECRET:}
+  # D-12.8: la URL del IdP quedaba hardcodeada en
+  # PermissionKeycloakServiceImpl.init(); ahora se externaliza aquí.
+  admin-server-url: ${KEYCLOAK_ADMIN_SERVER_URL:http://contables.unicauca.edu.co/auth}
+
+app:
+  recovery:
+    base-url: ${RECOVERY_FRONTEND_URL:http://localhost:5173/reset-password}  # URL del frontend que recibe ?token=
+    ttl-seconds: ${RECOVERY_TTL_SECONDS:3600}                                # 1 hora
+  jwt:
+    # El valor contiene dos puntos: sin comillas SnakeYAML lo interpreta como
+    # un mapping y el contexto entero falla al arrancar.
+    blacklist-prefix: "jwt:black:"
+    recovery-prefix: "pwd:reset:"
+
+jwt:
+  public:
+    key: ${JWT_PUBLIC_KEY:}
+  token:
+    url: ${JWT_TOKEN_URL:}
+
