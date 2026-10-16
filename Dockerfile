@@ -9,6 +9,10 @@ RUN apk add --no-cache dos2unix && \
     dos2unix ./mvnw && \
     chmod +x ./mvnw
 COPY pom.xml .
+# lombok.config habilita lombok.copyableAnnotations para @Qualifier: sin el
+# archivo dentro de la imagen, @RequiredArgsConstructor no copia la anotacion al
+# parametro del constructor y el contexto Spring falla con NoUniqueBeanDefinition.
+COPY lombok.config .
 COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 ./mvnw -f /opt/app/pom.xml package -DskipTests
 

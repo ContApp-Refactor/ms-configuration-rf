@@ -17,6 +17,11 @@ spring:
         jwt:
           issuer-uri: http://localhost/test
           jwk-set-uri: http://localhost/test/certs
+  # EmailService inyecta JavaMailSender: sin spring.mail.host el bean no se crea
+  # y el contexto de los tests que lo cargan falla. Host de mentira, no se envía.
+  mail:
+    host: localhost
+    port: 1025
 eureka:
   client:
     enabled: false
@@ -26,3 +31,22 @@ jwt:
       principle-attribute: preferred_username
       resource-id: microservices_client
 baseUrl: http://localhost
+
+# ── Módulo auxiliary-book (migrado) ─────────────────────────────────────
+services:
+  account-info-service:
+    base-url: http://localhost/accountInfo/accountInfo
+  third-service:
+    base-url: lb://THIRDS
+    mock-enabled: ${THIRD_SERVICE_MOCK_ENABLED:true}
+
+notification-settings:
+  mail:
+    from: test@test.local
+    default-subject: Reporte programado
+
+scheduled:
+  reports:
+    poller:
+      delay-ms: 60000
+      batch-size: 50

@@ -1,10 +1,13 @@
 package co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter;
 
 import co.unicauca.edu.co.contables.configuration.enterprise.application.ports.output.IAddressSearchOutputPort;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Country;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Department;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.mapper.ICitiesbyDepartmentMapper;
+import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.mapper.ICountryMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.mapper.IDepartmentsMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.repository.IAddressRepository;
+import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.repository.ICountryRepository;
 import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.repository.IDepartmentAddressRepository;
 import lombok.Data;
 import lombok.NonNull;
@@ -22,8 +25,20 @@ public class AddressJpaAdapter implements IAddressSearchOutputPort {
 
     private final IAddressRepository addressRepository;
     private final IDepartmentAddressRepository departmentAddressRepository;
+    private final ICountryRepository countryRepository;
     private final ICitiesbyDepartmentMapper citiesbyDepartmentMapper;
+    private final ICountryMapper countryMapper;
     private final IDepartmentsMapper departmentsMapper;
+
+    /**
+     * Obtiene todos los países.
+     *
+     * @return una lista de todos los países en el modelo de dominio
+     */
+    @Override
+    public List<Country> getAllCountries() {
+        return countryMapper.toModel(countryRepository.findAll());
+    }
 
     /**
      * Obtiene todos los departamentos.

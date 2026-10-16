@@ -5,6 +5,7 @@ import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -469,6 +470,35 @@ public class GlobalExceptionHandler {
             return HttpStatus.BAD_REQUEST;
         }
         return HttpStatus.BAD_REQUEST;
+    }
+
+    /**
+     * @brief Maneja media types que el endpoint no puede producir
+     *
+     * Un endpoint restringido con {@code produces} (por ejemplo el stream SSE
+     * {@code /api/notifications/stream}, que solo produce {@code text/event-stream})
+     * lanza {@link HttpMediaTypeNotAcceptableException} cuando el cliente pide
+     * otro media type. Sin este manejador la excepción cae en el
+     * {@code @ExceptionHandler(Exception.class)} y el cliente recibe un
+     * <strong>500</strong> falso: el error es del pedido, no del servidor.
+     *
+     * @param ex la excepción de media type no aceptable
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con HTTP 406
+     */
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ErrorResponse> handleNotAcceptable(
+            HttpMediaTypeNotAcceptableException ex, WebRequest request) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_ACCEPTABLE.value())
+                .error(HttpStatus.NOT_ACCEPTABLE.getReasonPhrase())
+                .message("El media type solicitado no tiene representación aceptable")
+                .code(ErrorCode.GENERIC_ERROR.getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_ACCEPTABLE);
     }
 
     /**

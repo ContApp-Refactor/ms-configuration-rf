@@ -1,18 +1,27 @@
 package co.unicauca.edu.co.contables.configuration.enterprise.application.ports.input;
 
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Country;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Department;
 
 import java.util.List;
 
 /**
  * Puerto de entrada para la gestión y búsqueda de direcciones geográficas.
- * Define las operaciones disponibles para la consulta de departamentos y sus ciudades asociadas.
+ * Define las operaciones disponibles para la consulta de países, departamentos y sus ciudades asociadas.
  *
  * @author [CONTAPP]
  * @version 1.0
  * @since 1.0.0
  */
 public interface IAddressSearchManagerPort {
+
+    /**
+     * Recupera el listado completo de países disponibles en el sistema.
+     *
+     * @return List<Country> Colección de países registrados en el sistema
+     * @see Country
+     */
+    List<Country> getAllCountries();
 
     /**
      * Recupera el listado completo de departamentos disponibles en el sistema.

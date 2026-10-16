@@ -14,7 +14,11 @@ spring:
       leak-detection-threshold: 60000  # 60 segundos para detectar leaks
   jpa:
     hibernate:
-      ddl-auto: ${DB_HIBERNATE_DDL_AUTO:create-drop}
+      # Nunca uses create-drop en dev: borra y recrea todas las tablas en cada
+      # arranque y en cada shutdown, destruyendo los datos de usuario y dejando
+      # solo las semillas de data.sql. Si hace falta un esquema limpio, borralo
+      # a mano con la base.
+      ddl-auto: ${DB_HIBERNATE_DDL_AUTO:update}
     properties:
       hibernate:
         jdbc:
@@ -39,6 +43,22 @@ spring:
   h2:
     console:
       enabled: false
+
+  # SMTP para el envío directo de correos del módulo auxiliary-book
+  # (EmailService inyecta JavaMailSender, sin spring.mail.host no se crea el bean).
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:modulocarteracontapp@gmail.com}
+    # Vacío a propósito: nunca hardcodear credenciales. Proveer MAIL_PASSWORD
+    # (App Password de Gmail) desde el entorno.
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:true}
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
@@ -86,7 +106,9 @@ spring:
           jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8090/auth/realms/oauth2-realm/protocol/openid-connect/certs}
           
 server:
-  port: ${PORT:0}
+  # Default fijo en 8080: con 0 el puerto quedaba aleatorio y el paso final
+  # (FE apuntando al puerto del monolito) no era predecible.
+  port: ${PORT:8080}
   tomcat:
     connection-timeout: 60000
     max-connections: 10000
@@ -152,3 +174,27 @@ file-upload:
 # URL base del monolito; los adaptadores migrados la usan para mapear
 # DTOs hacia otros módulos (ya no hay HTTP interno, ver T2.7).
 baseUrl: ${BASE_URL:http://localhost:8080}
+
+# ── Módulo auxiliary-book (migrado) ─────────────────────────────────────
+services:
+  account-info-service:
+    base-url: https://6880fc27f1dcae717b643a8e.mockapi.io/api/accountInfo/accountInfo
+  third-service:
+    base-url: lb://THIRDS
+    # Mock activo por defecto mientras el microservicio real de terceros no esté
+    # disponible. Para volver a usar el cliente WebClient real, ponerlo en "false".
+    mock-enabled: ${THIRD_SERVICE_MOCK_ENABLED:true}
+
+# Remitente y asunto por defecto para los correos del reporte programado.
+notification-settings:
+  mail:
+    from: ${MAIL_FROM:modulocarteracontapp@gmail.com}
+    default-subject: ${MAIL_DEFAULT_SUBJECT:Reporte programado}
+    # Módulo 10 (notifications): asunto del correo de recordatorio de vencimiento.
+    invoice-reminder-subject: ${MAIL_INVOICE_REMINDER_SUBJECT:Recordatorio de Vencimiento de Facturas}
+
+scheduled:
+  reports:
+    poller:
+      delay-ms: ${SCHEDULED_REPORTS_POLLER_DELAY_MS:60000}
+      batch-size: ${SCHEDULED_REPORTS_POLLER_BATCH_SIZE:50}

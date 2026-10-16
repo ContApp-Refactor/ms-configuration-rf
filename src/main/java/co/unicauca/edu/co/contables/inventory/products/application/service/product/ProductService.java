@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import co.unicauca.edu.co.contables.inventory.products.application.dto.ProductSyncDto;
 import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IProductEventPort;
@@ -43,6 +44,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductService implements IProductServicePort {
 
     private final IProductPersistencePort productPersistencePort;
+    @Qualifier("productEventPublisher")
     private final IProductEventPort productEventPort;
     private final IUnitOfMeasurePersistencePort unitOfMeasurePersistencePort;
     private final ICategoryPersistencePort categoryPersistencePort;

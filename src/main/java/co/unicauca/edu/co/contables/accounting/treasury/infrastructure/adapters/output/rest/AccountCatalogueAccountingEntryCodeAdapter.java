@@ -1,25 +1,31 @@
 package co.unicauca.edu.co.contables.accounting.treasury.infrastructure.adapters.output.rest;
 
+import co.unicauca.edu.co.contables.accounting.catalogue.accounting.application.input.IAccountingSearchInputPort;
+import co.unicauca.edu.co.contables.accounting.catalogue.accounting.domain.models.AccountingEntry;
+import co.unicauca.edu.co.contables.accounting.catalogue.commons.exceptions.catalogue.AccountingEntryNotFoundException;
 import co.unicauca.edu.co.contables.accounting.treasury.application.output.IAccountingEntryCodePort;
-import co.unicauca.edu.co.contables.commons.multitenancy.utils.TenantContext;
-import co.unicauca.edu.co.contables.commons.security.IJwtUtils;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
+/**
+ * Resuelve el codigo de un asiento contable contra el modulo catalogue <strong>en el mismo
+ * proceso</strong>.
+ *
+ * <p>Sustituye la auto-llamada HTTP a {@code /api/accountCatalogue/accounting/entries/{id}}, que
+ * envolvia la respuesta en {@code ApiResponse{success,data{code}}}. El adaptador anterior tratara
+ * como "sin codigo" tanto la ausencia de respuesta como el flag {@code success=false}; aqui el
+ * equivalente es que el servicio lance {@link AccountingEntryNotFoundException}, que se traduce en
+ * {@code Optional.empty()} igual que antes.
+ */
 @Component
 @Slf4j
 public class AccountCatalogueAccountingEntryCodeAdapter implements IAccountingEntryCodePort {
-    private final RestClient client;
-    private final IJwtUtils jwtUtils;
 
-    public AccountCatalogueAccountingEntryCodeAdapter(
-            @Value("${treasury.integrations.account-catalogue-url:http://localhost:8080}") String baseUrl,
-            IJwtUtils jwtUtils) {
-        this.client = RestClient.builder().baseUrl(baseUrl).build();
-        this.jwtUtils = jwtUtils;
+    private final IAccountingSearchInputPort accountingSearchInputPort;
+
+    public AccountCatalogueAccountingEntryCodeAdapter(IAccountingSearchInputPort accountingSearchInputPort) {
+        this.accountingSearchInputPort = accountingSearchInputPort;
     }
 
     @Override
@@ -28,27 +34,20 @@ public class AccountCatalogueAccountingEntryCodeAdapter implements IAccountingEn
             return Optional.empty();
         }
         try {
-            EntryApiResponse response = client.get()
-                    .uri("/api/accountCatalogue/accounting/entries/{id}", accountingEntryId)
-                    .header("Authorization", "Bearer " + jwtUtils.getToken())
-                    .header("X-Tenant-ID", Optional.ofNullable(TenantContext.getTenantId()).orElse(""))
-                    .retrieve()
-                    .body(EntryApiResponse.class);
-            if (response == null || !response.success() || response.data() == null) {
+            AccountingEntry entry = accountingSearchInputPort.findAccountingEntryById(accountingEntryId);
+            if (entry == null) {
                 return Optional.empty();
             }
-            String code = response.data().code();
+            String code = entry.getCode();
             if (code == null || code.isBlank()) {
                 return Optional.empty();
             }
             return Optional.of(code);
+        } catch (AccountingEntryNotFoundException ex) {
+            return Optional.empty();
         } catch (Exception ex) {
             log.warn("No se pudo resolver código de asiento {}: {}", accountingEntryId, ex.getMessage());
             return Optional.empty();
         }
     }
-
-    private record EntryApiResponse(boolean success, EntryData data) {}
-
-    private record EntryData(String code) {}
 }

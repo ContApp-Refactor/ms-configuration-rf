@@ -7,8 +7,10 @@ import co.unicauca.edu.co.contables.accounting.debt_payments.domain.exception.Me
 import co.unicauca.edu.co.contables.accounting.debt_payments.domain.model.MessageProcessingError;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Primary;
 
 @Service
+@Primary
 @RequiredArgsConstructor
 public class MessageProcessingErrorService implements IMessageProcessingErrorCommandPort, IMessageProcessingErrorQueryPort{
     
