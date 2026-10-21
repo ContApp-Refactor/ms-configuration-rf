@@ -25,6 +25,14 @@ public class Category {
     private Long costId;
     private Long saleId;
     private Long returnId;
+    /**
+     * Tipo de producto o servicio amarrado a la categoría (PP7 HU2).
+     */
+    private Long productTypeId;
+    /**
+     * Cuenta contable de devolución en compra. returnId es la devolución en venta.
+     */
+    private Long returnPurchaseId;
     private List<Long> taxes;
 
     @Builder.Default
