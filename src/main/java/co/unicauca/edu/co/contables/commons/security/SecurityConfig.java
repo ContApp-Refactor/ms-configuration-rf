@@ -26,6 +26,15 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/actuator/**", "/api/config/help-center/**").permitAll()
                         // Stream SSE del módulo auxiliary-book: el origen lo exponía sin autenticación
                         .requestMatchers("/api/notifications/stream").permitAll()
+                        .requestMatchers(
+                                "/api/keycloak/token/**", 
+                                "/api/keycloak/register",
+                                "/api/keycloak/forgot-password",
+                                "/api/keycloak/reset-password",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/actuator/**"
+                        ).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
