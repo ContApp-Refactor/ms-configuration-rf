@@ -3,6 +3,8 @@ services:
     image: jeserna/ms-configuration-rf:v0.0.300
     container_name: ms-configuration-rf
     env_file:
+      - ${SECRETS_DIR:-/opt/secrets}/keycloak-configs.env
+      - ${SECRETS_DIR:-/opt/secrets}/keycloak-secrets.env
       - ${SECRETS_DIR:-/opt/secrets}/common-configs.env
       - ${SECRETS_DIR:-/opt/secrets}/rabbit-mq-secrets.env
       - ${SECRETS_DIR:-/opt/secrets}/db-secrets.env
