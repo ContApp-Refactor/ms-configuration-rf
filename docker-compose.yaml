@@ -2,6 +2,11 @@ services:
   ms-configuration-rf:
     image: jeserna/ms-configuration-rf:v0.0.300
     container_name: ms-configuration-rf
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ms-configuration-rf.entrypoints=web"
+      - "traefik.http.routers.ms-configuration-rf.rule=PathPrefix(`/api/`)"
+      - "traefik.http.services.ms-configuration-rf.loadbalancer.server.port=8080"
     env_file:
       - ${SECRETS_DIR:-/opt/secrets}/keycloak-configs.env
       - ${SECRETS_DIR:-/opt/secrets}/keycloak-secrets.env
