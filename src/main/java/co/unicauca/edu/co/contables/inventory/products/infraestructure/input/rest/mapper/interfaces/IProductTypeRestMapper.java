@@ -24,6 +24,9 @@ public interface IProductTypeRestMapper {
      * @return entidad ProductType correspondiente
      */
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "sellable", defaultValue = "true")
+    @Mapping(target = "purchasable", defaultValue = "true")
+    @Mapping(target = "inventoryable", defaultValue = "false")
     ProductType toProductType(ProductTypeRequest productTypeRequest);
 
     /**

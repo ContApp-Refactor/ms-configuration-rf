@@ -19,19 +19,34 @@ import lombok.*;
 @NoArgsConstructor
 public class ProductTypeRequest {
 
-    @NotBlank
+    @NotBlank(message = "Nombre es requerido")
     @NotNull(message = "El nombre es requerido")
     private String name;
 
-    @NotBlank
+    @NotBlank(message = "Descripción es requerida")
     @NotNull(message = "La descripcion es requerida")
     private String description;
 
-    @NotBlank
+    @NotBlank(message = "Id de la empresa es requerido")
     @NotNull(message = "El id de empresa es requerido")
     private String enterpriseId;
     
     @JsonIgnore
     @Builder.Default
-    private boolean state = true; 
+    private boolean state = true;
+
+    /**
+     * Vendible. Null en el request = default true (ver IProductTypeRestMapper).
+     */
+    private Boolean sellable;
+
+    /**
+     * Comprable. Null en el request = default true (ver IProductTypeRestMapper).
+     */
+    private Boolean purchasable;
+
+    /**
+     * Inventariable (uso en kardex). Null en el request = default false.
+     */
+    private Boolean inventoryable;
 }

@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -34,4 +35,13 @@ public class ProductTypeEntity {
     private String description;
     private String enterpriseId;
     private boolean state;
+
+    @Column(nullable = true, columnDefinition = "boolean DEFAULT true")
+    private boolean sellable;
+
+    @Column(nullable = true, columnDefinition = "boolean DEFAULT true")
+    private boolean purchasable;
+
+    @Column(nullable = true, columnDefinition = "boolean DEFAULT false")
+    private boolean inventoryable;
 }

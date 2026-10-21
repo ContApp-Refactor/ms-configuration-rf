@@ -126,6 +126,28 @@ class ProductTypeServiceUnitTest {
         verify(productTypePersistencePort, times(1)).save(any(ProductType.class));
     }
 
+    @Test
+    @DisplayName("Debe persistir la clasificación vendible/comprable/inventariable al crear")
+    void testCreateProductTypePersistsClassificationFlags() {
+        // Arrange
+        productType.setSellable(true);
+        productType.setPurchasable(false);
+        productType.setInventoryable(true);
+        when(productTypePersistencePort.existsByNameAndEnterpriseId(anyString(), eq(enterpriseId)))
+                .thenReturn(false);
+        when(productTypePersistencePort.save(any(ProductType.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        ProductType result = productTypeService.createProductType(productType);
+
+        // Assert
+        assertTrue(result.isSellable());
+        assertFalse(result.isPurchasable());
+        assertTrue(result.isInventoryable());
+        verify(productTypePersistencePort, times(1)).save(any(ProductType.class));
+    }
+
     // UPDATE tests
     @Test
     @DisplayName("Debe actualizar tipo de producto exitosamente")
