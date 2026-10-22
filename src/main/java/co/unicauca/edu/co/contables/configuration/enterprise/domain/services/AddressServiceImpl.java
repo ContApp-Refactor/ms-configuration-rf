@@ -2,7 +2,7 @@ package co.unicauca.edu.co.contables.configuration.enterprise.domain.services;
 
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.CountryDataMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.DepartmentDataMapper;
-import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.CountryRepository;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.EnterpriseCountryRepository;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.DepartmentRepository;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Country;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Department;
@@ -20,7 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AddressServiceImpl implements IAddressService {
 
-    private final CountryRepository countryRepository;
+    private final EnterpriseCountryRepository countryRepository;
     private final DepartmentRepository departmentRepository;
     private final CountryDataMapper countryDataMapper;
     private final DepartmentDataMapper departmentDataMapper;
