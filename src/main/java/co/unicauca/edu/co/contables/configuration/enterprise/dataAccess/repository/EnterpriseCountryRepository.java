@@ -3,5 +3,5 @@ package co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.reposit
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.CountryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface CountryRepository extends JpaRepository<CountryEntity, Long> {
+public interface EnterpriseCountryRepository extends JpaRepository<CountryEntity, Long> {
 }
