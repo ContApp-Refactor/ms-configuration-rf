@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * @brief Mapeador de datos para departamentos
  */
-@Mapper(componentModel = "spring", uses = CountryDataMapper.class)
+@Mapper(componentModel = "spring", uses = { CountryDataMapper.class, CityDataMapper.class })
 public interface DepartmentDataMapper {
 
     @Mapping(target = "cities", ignore = true)
