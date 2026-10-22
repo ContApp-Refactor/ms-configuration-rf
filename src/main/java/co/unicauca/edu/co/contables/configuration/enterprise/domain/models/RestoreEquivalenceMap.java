@@ -10,15 +10,16 @@ import java.util.Map;
  * En el microservicio de referencia este mapeo es imprescindible porque el
  * restore reinserta por JDBC crudo TODAS las tablas de la cadena
  * (person_type, location, enterprise, ...), generando un id nuevo en cada
- * una. En el monolito, person_type y location son datos propios de la
- * empresa que de todas formas se recrean desde cero (no hay un id viejo que
- * conservar), y los catálogos (país/departamento/ciudad, responsabilidad
- * tributaria, tipo de contribuyente, tipo de empresa) no se reinsertan: se
- * reutilizan por id tal cual vienen en el backup. Por eso el único mapeo que
- * efectivamente hace falta aquí es el de la propia empresa (id de origen -&gt;
- * id del restore), pero se deja esta clase genérica por tabla para que, si en
- * el futuro el backup se extiende con datos que sí necesiten remapeo, no haga
- * falta reintroducir una estructura nueva.
+ * una. En el monolito, los catálogos (país/departamento/ciudad,
+ * responsabilidad tributaria, tipo de contribuyente, tipo de empresa) no se
+ * reinsertan: se reutilizan por id tal cual vienen en el backup, así que no
+ * necesitan remapeo. El id de la empresa tampoco aplica aquí porque es un
+ * {@code UUID}, no un {@code Long}.
+ * Donde sí hace falta un registro real es en el restore {@code inplace}:
+ * {@code location} y {@code person_type} son filas propias de la empresa que
+ * se recrean (fila nueva) y cuya fila vieja se da de baja luego, así que el
+ * servicio de restore deja aquí la equivalencia id-viejo -&gt; id-nuevo de esas
+ * dos tablas a efectos de trazabilidad/depuración.
  */
 public class RestoreEquivalenceMap {
 
