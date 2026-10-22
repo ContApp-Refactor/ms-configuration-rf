@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Resto
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Subject;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.TaxLiability;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.TaxPayerType;
+import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.BackupTooLargeException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.EnterpriseNotFoundException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.InvalidBackupFileException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.InvalidRestoreRequestException;
@@ -56,6 +58,9 @@ public class EnterpriseRestoreServiceImpl implements IEnterpriseRestoreService {
     private final TaxPayerTypeDataMapper taxPayerTypeDataMapper;
     private final EnterpriseTypeDataMapper enterpriseTypeDataMapper;
 
+    @Value("${app.backup.max-size-bytes:524288000}")
+    private long maxUploadSizeBytes;
+
     // @Transactional va en estos dos métodos públicos (los del puerto), no en
     // el "restore" interno: este último se invoca siempre por auto-invocación
     // (this.restore(...)) desde dentro de la misma instancia, y el proxy de
@@ -74,6 +79,9 @@ public class EnterpriseRestoreServiceImpl implements IEnterpriseRestoreService {
     public UUID restoreFromFile(MultipartFile file, boolean inplace, UUID targetEnterpriseId) {
         if (file == null || file.isEmpty()) {
             throw new InvalidBackupFileException("El archivo de backup subido está vacío");
+        }
+        if (file.getSize() > maxUploadSizeBytes) {
+            throw new BackupTooLargeException(file.getSize(), maxUploadSizeBytes);
         }
         byte[] zipBytes;
         try {
