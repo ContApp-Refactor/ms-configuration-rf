@@ -20,7 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import co.unicauca.edu.co.contables.accounting.facture.domain.model.Facture;
 import co.unicauca.edu.co.contables.accounting.facture.domain.model.Product;
 import co.unicauca.edu.co.contables.accounting.facture.domain.model.eFactureType;
-import co.unicauca.edu.co.contables.configuration.enterprise.application.ports.input.IEnterpriseSearchManagerPort;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.IEnterpriseService;
 import co.unicauca.edu.co.contables.configuration.thirds.application.ports.input.GetThirdUseCase;
 import co.unicauca.edu.co.contables.configuration.thirds.domain.enums.ePersonType;
 import co.unicauca.edu.co.contables.configuration.thirds.domain.model.City;
@@ -39,13 +39,13 @@ class FacturePDFAdapterUnitTest {
 
     @Test
     void shouldGenerateSalePdfThroughLocalPorts(@TempDir Path tempDir) throws Exception {
-        IEnterpriseSearchManagerPort enterprisePort = mock(IEnterpriseSearchManagerPort.class);
+        IEnterpriseService enterprisePort = mock(IEnterpriseService.class);
         GetThirdUseCase thirdUseCase = mock(GetThirdUseCase.class);
 
         Path logoPath = tempDir.resolve("logo.png");
         ImageIO.write(new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB), "png", logoPath.toFile());
 
-        when(enterprisePort.getEnterpriseById(UUID.fromString(ENTERPRISE_ID)))
+        when(enterprisePort.findById(UUID.fromString(ENTERPRISE_ID)))
                 .thenReturn(co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Enterprise
                         .builder()
                         .name("Empresa PP8")
@@ -73,7 +73,7 @@ class FacturePDFAdapterUnitTest {
                         .build());
 
         FacturePDFAdapter adapter = new FacturePDFAdapter();
-        ReflectionTestUtils.setField(adapter, "enterpriseSearchManagerPort", enterprisePort);
+        ReflectionTestUtils.setField(adapter, "enterpriseService", enterprisePort);
         ReflectionTestUtils.setField(adapter, "thirdUseCase", thirdUseCase);
 
         Product product = Product.builder()
@@ -102,7 +102,7 @@ class FacturePDFAdapterUnitTest {
         byte[] pdf = adapter.generatePDF(facture);
 
         assertThat(pdf).isNotNull().isNotEmpty();
-        verify(enterprisePort, atLeastOnce()).getEnterpriseById(UUID.fromString(ENTERPRISE_ID));
+        verify(enterprisePort, atLeastOnce()).findById(UUID.fromString(ENTERPRISE_ID));
         verify(thirdUseCase, atLeastOnce()).getThirdById(THIRD_ID, ENTERPRISE_ID);
     }
 }

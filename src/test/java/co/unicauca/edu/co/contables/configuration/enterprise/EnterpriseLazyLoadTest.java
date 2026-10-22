@@ -1,16 +1,16 @@
 package co.unicauca.edu.co.contables.configuration.enterprise;
 
-import co.unicauca.edu.co.contables.configuration.enterprise.application.ports.input.IAddressSearchManagerPort;
-import co.unicauca.edu.co.contables.configuration.enterprise.application.ports.input.IEnterpriseSearchManagerPort;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.*;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.DepartmentRepository;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.EnterpriseRepository;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.LocationRepository;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.PersonTypeRepository;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.TaxLiabilityRepository;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.TaxPayerTypeRepository;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Department;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Enterprise;
-import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.entity.*;
-import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.repository.IEnterpriseRepository;
-import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.repository.ITaxLiabilityRepository;
-import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.repository.ITaxPayerTypeRepository;
-import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.repository.IPersonTypeRepository;
-import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.repository.ILocationRepository;
-import co.unicauca.edu.co.contables.configuration.enterprise.infraestructure.adapters.output.jpaAdapter.repository.IDepartmentAddressRepository;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.IAddressService;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.IEnterpriseService;
 import co.unicauca.edu.co.contables.configuration.thirds.infrastructure.config.GeographyDataInitializer;
 import co.unicauca.edu.co.contables.commons.multitenancy.utils.TenantContext;
 import jakarta.persistence.EntityManager;
@@ -32,16 +32,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Regression test for LazyInitializationException when loading Enterprise with taxLiabilities.
- * 
- * The bug: spring.jpa.open-in-view=false and no @Transactional on getEnterpriseById
- * causes the EntityManager to close before the MapStruct mapper accesses lazy collections.
- * 
- * This test must run the ACT (calling getEnterpriseById) OUTSIDE any test-managed transaction,
+ *
+ * The bug: spring.jpa.open-in-view=false and no @Transactional on findById
+ * causes the EntityManager to close before the mapper accesses lazy collections.
+ *
+ * This test must run the ACT (calling findById) OUTSIDE any test-managed transaction,
  * otherwise the test would pass for the wrong reason (the transaction keeps the session alive).
- * 
+ *
  * GeographyDataInitializer is mocked out and spring.sql.init is disabled because the seed
  * scripts are PostgreSQL-only (they use "ON CONFLICT ... DO NOTHING", which H2 rejects).
- * 
+ *
  * TestMultiTenancyConfig provides a fixed tenant ID for consistent schema generation with @TenantId.
  * enterprise-test-schema.sql creates the required tables manually to work around H2 schema generation issues with @TenantId.
  */
@@ -58,28 +58,28 @@ class EnterpriseLazyLoadTest {
     private GeographyDataInitializer geographyDataInitializer;
 
     @Autowired
-    private IEnterpriseSearchManagerPort enterpriseSearchManagerPort;
+    private IEnterpriseService enterpriseService;
 
     @Autowired
-    private IAddressSearchManagerPort addressSearchManagerPort;
+    private IAddressService addressService;
 
     @Autowired
-    private IEnterpriseRepository enterpriseRepository;
+    private EnterpriseRepository enterpriseRepository;
 
     @Autowired
-    private ITaxLiabilityRepository taxLiabilityRepository;
+    private TaxLiabilityRepository taxLiabilityRepository;
 
     @Autowired
-    private ITaxPayerTypeRepository taxPayerTypeRepository;
+    private TaxPayerTypeRepository taxPayerTypeRepository;
 
     @Autowired
-    private IPersonTypeRepository personTypeRepository;
+    private PersonTypeRepository personTypeRepository;
 
     @Autowired
-    private ILocationRepository locationRepository;
+    private LocationRepository locationRepository;
 
     @Autowired
-    private IDepartmentAddressRepository departmentRepository;
+    private DepartmentRepository departmentRepository;
 
     @Autowired
     private EntityManager entityManager;
@@ -89,14 +89,10 @@ class EnterpriseLazyLoadTest {
 
     @Test
     void should_load_enterprise_with_lazy_tax_liabilities_without_lazy_initialization_exception() {
-        // Set tenant context for this test
         TenantContext.setTenantId("test-tenant");
-        
+
         try {
-            // ARRANGE: Persist a complete Enterprise graph with lazy taxLiabilities
-            // This setup runs inside a transaction to ensure data is committed
             UUID enterpriseId = transactionTemplate.execute(status -> {
-                // Create required related entities using repositories where available
                 TaxLiabilityEntity taxLiability = TaxLiabilityEntity.builder()
                         .name("IVA")
                         .build();
@@ -107,7 +103,6 @@ class EnterpriseLazyLoadTest {
                         .build();
                 taxPayerType = taxPayerTypeRepository.save(taxPayerType);
 
-                // EnterpriseTypeEntity and CityEntity don't have repositories - use EntityManager
                 EnterpriseTypeEntity enterpriseType = EnterpriseTypeEntity.builder()
                         .name("Matriz")
                         .build();
@@ -173,12 +168,8 @@ class EnterpriseLazyLoadTest {
                 return enterprise.getId();
             });
 
-            // ACT: Call the search port OUTSIDE any transaction
-            // This is the critical part - if @Transactional is missing on the service,
-            // this will throw LazyInitializationException when the mapper accesses taxLiabilities
-            Enterprise enterprise = enterpriseSearchManagerPort.getEnterpriseById(enterpriseId);
+            Enterprise enterprise = enterpriseService.findById(enterpriseId);
 
-            // ASSERT: Verify the enterprise and its lazy collections are loaded correctly
             assertNotNull(enterprise, "Enterprise should be found");
             assertEquals(enterpriseId, enterprise.getId());
             assertNotNull(enterprise.getTaxLiabilities(), "Tax liabilities should be loaded (not null)");
@@ -191,21 +182,12 @@ class EnterpriseLazyLoadTest {
 
     /**
      * Regression test for LazyInitializationException when loading the cities of a department.
-     *
-     * The bug: DepartmentEntity.cities is LAZY and spring.jpa.open-in-view=false, so with no
-     * @Transactional on getAllCities the EntityManager closes after findById(...) and the
-     * MapStruct mapper blows up when it walks the cities collection (HTTP 500 on
-     * GET /api/enterprises/address/cities/{id}).
-     *
-     * The ACT runs OUTSIDE any test-managed transaction, otherwise the test would pass for the
-     * wrong reason (the open transaction would keep the session alive).
      */
     @Test
     void should_load_department_cities_without_lazy_initialization_exception() {
         TenantContext.setTenantId("test-tenant");
 
         try {
-            // ARRANGE: a department with two cities, committed outside the test transaction
             Long departmentId = transactionTemplate.execute(status -> {
                 CountryEntity country = CountryEntity.builder()
                         .name("Colombia")
@@ -232,10 +214,8 @@ class EnterpriseLazyLoadTest {
                 return department.getId();
             });
 
-            // ACT: fuera de cualquier transacción gestionada por el test
-            Department department = addressSearchManagerPort.getAllCities(departmentId);
+            Department department = addressService.getAllCities(departmentId);
 
-            // ASSERT: las ciudades se resolvieron dentro de la misma sesión
             assertNotNull(department, "Department should be found");
             assertNotNull(department.getCities(), "Cities should be loaded (not null)");
             assertEquals(2, department.getCities().size(), "Both cities should be loaded");

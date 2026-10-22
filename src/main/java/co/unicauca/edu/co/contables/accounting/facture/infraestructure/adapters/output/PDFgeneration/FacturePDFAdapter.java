@@ -5,7 +5,7 @@ import co.unicauca.edu.co.contables.accounting.facture.domain.model.Enterprise;
 import co.unicauca.edu.co.contables.accounting.facture.domain.model.Facture;
 import co.unicauca.edu.co.contables.accounting.facture.domain.model.Product;
 import co.unicauca.edu.co.contables.accounting.facture.domain.model.Third;
-import co.unicauca.edu.co.contables.configuration.enterprise.application.ports.input.IEnterpriseSearchManagerPort;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.IEnterpriseService;
 import co.unicauca.edu.co.contables.configuration.thirds.application.ports.input.GetThirdUseCase;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
@@ -58,7 +58,7 @@ import java.util.UUID;
 public class FacturePDFAdapter implements FactureGeneratePDFOutputPort {
 
         @Autowired
-        private IEnterpriseSearchManagerPort enterpriseSearchManagerPort;
+        private IEnterpriseService enterpriseService;
 
         @Autowired
         private GetThirdUseCase thirdUseCase;
@@ -813,7 +813,7 @@ public class FacturePDFAdapter implements FactureGeneratePDFOutputPort {
          */
         private Enterprise enterpriseData(Facture facture) {
                 co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Enterprise empresa =
-                                enterpriseSearchManagerPort.getEnterpriseById(UUID.fromString(facture.getEntId()));
+                                enterpriseService.findById(UUID.fromString(facture.getEntId()));
                 if (empresa == null) {
                         throw new IllegalStateException(
                                         "No se encontró la empresa " + facture.getEntId() + " para la factura");
