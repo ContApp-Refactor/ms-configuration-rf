@@ -24,7 +24,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(http -> http
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/actuator/**", "/api/config/help-center/**").permitAll()
-                        .requestMatchers("/logos/**").permitAll()
+                        .requestMatchers("/api/enterprises/logos/**").permitAll()
                         // Stream SSE del módulo auxiliary-book: el origen lo exponía sin autenticación
                         .requestMatchers("/api/notifications/stream").permitAll()
                         .requestMatchers(

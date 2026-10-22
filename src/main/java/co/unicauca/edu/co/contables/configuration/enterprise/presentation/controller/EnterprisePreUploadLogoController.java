@@ -2,7 +2,6 @@ package co.unicauca.edu.co.contables.configuration.enterprise.presentation.contr
 
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,12 +23,9 @@ public class EnterprisePreUploadLogoController {
 
     private final ILogoStorageService logoStorageService;
 
-    @Value("${app.upload.public-base-url:http://localhost:8080}")
-    private String publicBaseUrl;
-
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, String>> preUploadLogo(@RequestPart("file") MultipartFile file) {
         String logoKey = logoStorageService.save(file);
-        return ResponseEntity.ok(Map.of("url", publicBaseUrl + "/logos/" + logoKey));
+        return ResponseEntity.ok(Map.of("url", "/api/enterprises/logos/" + logoKey));
     }
 }

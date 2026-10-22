@@ -31,7 +31,7 @@ public class WebConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/logos/**")
+        registry.addResourceHandler("/api/enterprises/logos/**")
                 .addResourceLocations("file:" + logoDir + "/");
     }
 
