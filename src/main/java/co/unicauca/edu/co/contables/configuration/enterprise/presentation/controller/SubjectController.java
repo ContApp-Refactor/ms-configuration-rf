@@ -27,12 +27,12 @@ import lombok.RequiredArgsConstructor;
 /**
  * @brief Controlador REST del CRUD de materias (subjects).
  *
- * Expone {@code /api/subjects} con el contrato que consume el frontend:
- * listado y creación admiten barra final, el código es la clave de
+ * Expone {@code /api/enterprises/subjects} con el contrato que consume el
+ * frontend: listado y creación admiten barra final, el código es la clave de
  * búsqueda y las respuestas son {@code {code, name}}.
  */
 @RestController
-@RequestMapping("/api/subjects")
+@RequestMapping("/api/enterprises/subjects")
 @Tag(name = "Subjects", description = "Gestión de materias")
 @RequiredArgsConstructor
 public class SubjectController {

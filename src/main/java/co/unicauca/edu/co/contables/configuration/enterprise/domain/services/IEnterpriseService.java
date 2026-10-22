@@ -40,4 +40,6 @@ public interface IEnterpriseService {
     List<EnterpriseInfoDto> findAllActive();
 
     List<EnterpriseInfoDto> findAllInactive();
+
+    List<EnterpriseInfoDto> search(String q);
 }

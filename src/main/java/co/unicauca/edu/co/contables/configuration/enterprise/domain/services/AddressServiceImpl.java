@@ -33,8 +33,8 @@ public class AddressServiceImpl implements IAddressService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Department> getAllDepartments() {
-        return departmentDataMapper.toDomainList(departmentRepository.findAll());
+    public List<Department> getAllDepartments(Long idCountry) {
+        return departmentDataMapper.toDomainList(departmentRepository.findByCountryId(idCountry));
     }
 
     @Override

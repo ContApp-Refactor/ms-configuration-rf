@@ -8,7 +8,7 @@ import java.util.List;
 public interface IAddressService {
     List<Country> getAllCountries();
 
-    List<Department> getAllDepartments();
+    List<Department> getAllDepartments(Long idCountry);
 
     Department getAllCities(Long idDepartment);
 }
