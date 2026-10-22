@@ -4,6 +4,7 @@ import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.E
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.projection.EnterpriseInfoProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,4 +18,7 @@ public interface EnterpriseRepository extends JpaRepository<EnterpriseEntity, UU
     List<EnterpriseInfoProjection> findEnterpriseInfoInactive();
 
     boolean existsByNit(String nit);
+
+    @Query("SELECT e FROM EnterpriseEntity e WHERE LOWER(e.name) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(e.nit) LIKE LOWER(CONCAT('%', :q, '%'))")
+    List<EnterpriseEntity> searchByNameOrNit(@Param("q") String q);
 }

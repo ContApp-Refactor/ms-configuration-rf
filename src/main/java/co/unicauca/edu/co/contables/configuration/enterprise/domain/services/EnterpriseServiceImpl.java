@@ -147,4 +147,18 @@ public class EnterpriseServiceImpl implements IEnterpriseService {
                         .build())
                 .toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EnterpriseInfoDto> search(String q) {
+        return repository.searchByNameOrNit(q).stream()
+                .map(e -> EnterpriseInfoDto.builder()
+                        .id(e.getId())
+                        .name(e.getName())
+                        .nit(e.getNit())
+                        .logo(e.getLogo())
+                        .inventoryConfigurationType(e.getInventoryConfigurationType())
+                        .build())
+                .toList();
+    }
 }

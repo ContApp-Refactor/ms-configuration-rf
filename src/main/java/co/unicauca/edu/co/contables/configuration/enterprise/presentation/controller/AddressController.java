@@ -35,13 +35,13 @@ public class AddressController {
         return ResponseEntity.ok(mapper.toCountryResList(service.getAllCountries()));
     }
 
-    @GetMapping("/departments")
-    @Operation(summary = "Obtener todos los departamentos")
-    public ResponseEntity<List<DepartmentRes>> getAllDepartment() {
-        return ResponseEntity.ok(mapper.toDepartmentResList(service.getAllDepartments()));
+    @GetMapping("/countries/{idCountry}/departments")
+    @Operation(summary = "Obtener los departamentos de un país")
+    public ResponseEntity<List<DepartmentRes>> getDepartmentsByCountry(@PathVariable("idCountry") Long idCountry) {
+        return ResponseEntity.ok(mapper.toDepartmentResList(service.getAllDepartments(idCountry)));
     }
 
-    @GetMapping("/cities/{idDepartment}")
+    @GetMapping("/departments/{idDepartment}/cities")
     @Operation(summary = "Obtener ciudades por departamento")
     public ResponseEntity<CitiesByDepartmentRes> getAllCities(@PathVariable("idDepartment") Long idDepartment) {
         return ResponseEntity.ok(mapper.toCitiesByDepartmentRes(service.getAllCities(idDepartment)));

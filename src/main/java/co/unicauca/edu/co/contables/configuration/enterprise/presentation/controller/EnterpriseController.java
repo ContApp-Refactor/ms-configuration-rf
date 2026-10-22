@@ -7,8 +7,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 import co.unicauca.edu.co.contables.commons.security.IJwtUtils;
+import co.unicauca.edu.co.contables.configuration.thirds.application.ports.output.PdfRUTContentOutput;
+import co.unicauca.edu.co.contables.configuration.thirds.application.service.importExport.PdfRUTService;
+import co.unicauca.edu.co.contables.configuration.thirds.domain.model.PdfRUTContent;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.dto.EnterpriseInfoDto;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.mapper.EnterpriseDomainMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.mapper.EnterpriseTypeDomainMapper;
@@ -62,6 +68,8 @@ public class EnterpriseController {
 
     private final IJwtUtils jwtUtils;
 
+    private final PdfRUTService pdfRUTService;
+
     @Operation(summary = "Obtener todas las responsabilidades tributarias")
     @GetMapping("/taxliabilities")
     public ResponseEntity<List<TaxLiabilityRes>> getAllTaxLiability() {
@@ -90,6 +98,23 @@ public class EnterpriseController {
     @GetMapping("/inactive")
     public ResponseEntity<List<EnterpriseInfoDto>> getAllEnterprisesInactive() {
         return ResponseEntity.ok(service.findAllInactive());
+    }
+
+    @Operation(summary = "Buscar empresas por nombre o NIT")
+    @GetMapping("/search")
+    public ResponseEntity<List<EnterpriseInfoDto>> searchEnterprises(@RequestParam("q") String q) {
+        return ResponseEntity.ok(service.search(q));
+    }
+
+    @Operation(summary = "Extraer datos de una empresa desde un PDF de RUT")
+    @PostMapping("/content-PDF-RUT")
+    public ResponseEntity<PdfRUTContentOutput> uploadPdf(@RequestParam("file") MultipartFile file) throws IOException {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        PdfRUTContent request = new PdfRUTContent(file);
+        PdfRUTContentOutput response = pdfRUTService.extractContent(request);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Crear una empresa")
