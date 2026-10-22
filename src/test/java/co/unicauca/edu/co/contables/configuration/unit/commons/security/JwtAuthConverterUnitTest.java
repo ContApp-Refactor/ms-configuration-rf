@@ -12,7 +12,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import co.unicauca.edu.co.contables.configuration.commons.security.JwtAuthConverter;
+import co.unicauca.edu.co.contables.commons.security.JwtAuthConverter;
 
 import java.time.Instant;
 import java.util.*;

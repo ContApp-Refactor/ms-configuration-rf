@@ -1,7 +1,7 @@
 package co.unicauca.edu.co.contables.configuration.helpCenter.domain.enums;
 
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.helpCenter.InvalidModuleException;
-import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
+import co.unicauca.edu.co.contables.commons.exceptions.helpCenter.InvalidModuleException;
+import co.unicauca.edu.co.contables.commons.utils.StringStandardizationUtils;
 import lombok.Getter;
 
 /**

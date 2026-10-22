@@ -4,14 +4,61 @@ spring:
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:root}
     driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
-
+    hikari:
+      connection-timeout: 20000  # 20 segundos para obtener conexión del pool
+      idle-timeout: 300000       # 5 minutos antes de cerrar conexiones idle
+      max-lifetime: 1200000      # 20 minutos máximo lifetime de conexión
+      maximum-pool-size: 20      # Máximo 20 conexiones
+      minimum-idle: 5            # Mínimo 5 conexiones idle
+      validation-timeout: 5000   # 5 segundos para validar conexión
+      leak-detection-threshold: 60000  # 60 segundos para detectar leaks
   jpa:
     hibernate:
-      ddl-auto: ${DB_HIBERNATE_DDL_AUTO:create-drop}
+      # Nunca uses create-drop en dev: borra y recrea todas las tablas en cada
+      # arranque y en cada shutdown, destruyendo los datos de usuario y dejando
+      # solo las semillas de data.sql. Si hace falta un esquema limpio, borralo
+      # a mano con la base.
+      ddl-auto: ${DB_HIBERNATE_DDL_AUTO:update}
+    properties:
+      hibernate:
+        jdbc:
+          batch-size: 1000
+        order-inserts: true
+        order-updates: true
+        batch-versioned-data: true
+        timeout: 30  # Timeout en segundos para consultas
+    open-in-view: false  # Importante para evitar problemas con EntityManager
+
+  transaction:
+    default-timeout: 30  # Timeout por defecto para transacciones en segundos
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 8MB
+      enabled: true
+      file-size-threshold: 2KB
+      resolve-lazily: false
 
   h2:
     console:
       enabled: false
+
+  # SMTP para el envío directo de correos del módulo auxiliary-book
+  # (EmailService inyecta JavaMailSender, sin spring.mail.host no se crea el bean).
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:modulocarteracontapp@gmail.com}
+    # Vacío a propósito: nunca hardcodear credenciales. Proveer MAIL_PASSWORD
+    # (App Password de Gmail) desde el entorno.
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:true}
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
@@ -20,6 +67,11 @@ spring:
     password: ${RABBITMQ_PASSWORD:guest}
     connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:30000}
     requested-heartbeat: ${RABBITMQ_HEARTBEAT:30}
+    # Confirmaciones de publicación: las exigen los outbox publishers
+    # (treasury TreasuryOutboxMessenger y facture PurchaseInvoiceEventPublisher),
+    # que esperan CorrelationData.getFuture(). Sin esto el future nunca se cumple.
+    publisher-confirm-type: correlated
+    publisher-returns: true
     # Connection pool
     cache:
       connection:
@@ -28,6 +80,16 @@ spring:
       channel:
         size: ${RABBITMQ_CHANNEL_POOL_SIZE:25}
         checkout-timeout: ${RABBITMQ_CHANNEL_CHECKOUT_TIMEOUT:5000}
+    # Retry y recuperación
+    template:
+      retry:
+        enabled: true
+        initial-interval: ${RABBITMQ_RETRY_INITIAL_INTERVAL:1000}
+        max-attempts: ${RABBITMQ_RETRY_MAX_ATTEMPTS:3}
+        max-interval: ${RABBITMQ_RETRY_MAX_INTERVAL:10000}
+        multiplier: ${RABBITMQ_RETRY_MULTIPLIER:2.0}
+      mandatory: true
+      receive-timeout: ${RABBITMQ_RECEIVE_TIMEOUT:5000}
     # Listener container
     listener:
       simple:
@@ -44,8 +106,16 @@ spring:
           jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8090/auth/realms/oauth2-realm/protocol/openid-connect/certs}
           
 server:
-  port: ${PORT:0}
-
+  # Default fijo en 8080: con 0 el puerto quedaba aleatorio y el paso final
+  # (FE apuntando al puerto del monolito) no era predecible.
+  port: ${PORT:8080}
+  tomcat:
+    connection-timeout: 60000
+    max-connections: 10000
+    threads:
+      max: 200
+      min-spare: 10
+    max-http-form-post-size: 8MB
 eureka:
   instance:
     instance-id: "${spring.application.name}:${random.uuid}"
@@ -64,8 +134,67 @@ jwt:
       principle-attribute: ${JWT_PRINCIPAL_ATTR:preferred_username}
       resource-id: ${JWT_RESOURCE_ID:microservices_client}
 
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+
 management:
+  health:
+    circuitbreakers:
+      enabled: true
   endpoint:
     health:
       probes:
         enabled: true
+
+file-upload:
+  max-size: 5242880
+  allowed-extensions:
+    excel:
+      - ".xlsx"
+      - ".xls"
+    pdf:
+      - ".pdf"
+  allowed-mime-types:
+    excel:
+      - "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      - "application/vnd.ms-excel"
+    pdf:
+      - "application/pdf"
+
+# URL base del monolito; los adaptadores migrados la usan para mapear
+# DTOs hacia otros módulos (ya no hay HTTP interno, ver T2.7).
+baseUrl: ${BASE_URL:http://localhost:8080}
+
+# ── Módulo auxiliary-book (migrado) ─────────────────────────────────────
+services:
+  account-info-service:
+    base-url: https://6880fc27f1dcae717b643a8e.mockapi.io/api/accountInfo/accountInfo
+  third-service:
+    base-url: lb://THIRDS
+    # Mock activo por defecto mientras el microservicio real de terceros no esté
+    # disponible. Para volver a usar el cliente WebClient real, ponerlo en "false".
+    mock-enabled: ${THIRD_SERVICE_MOCK_ENABLED:true}
+
+# Remitente y asunto por defecto para los correos del reporte programado.
+notification-settings:
+  mail:
+    from: ${MAIL_FROM:modulocarteracontapp@gmail.com}
+    default-subject: ${MAIL_DEFAULT_SUBJECT:Reporte programado}
+    # Módulo 10 (notifications): asunto del correo de recordatorio de vencimiento.
+    invoice-reminder-subject: ${MAIL_INVOICE_REMINDER_SUBJECT:Recordatorio de Vencimiento de Facturas}
+
+scheduled:
+  reports:
+    poller:
+      delay-ms: ${SCHEDULED_REPORTS_POLLER_DELAY_MS:60000}
+      batch-size: ${SCHEDULED_REPORTS_POLLER_BATCH_SIZE:50}

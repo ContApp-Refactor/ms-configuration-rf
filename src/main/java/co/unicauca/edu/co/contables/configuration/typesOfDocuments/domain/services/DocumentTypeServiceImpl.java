@@ -2,15 +2,15 @@ package co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.servi
 
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.dataAccess.entity.DocumentClassEntity;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.dataAccess.repository.DocumentClassRepository;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassesNotFoundException;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentClasses.DocumentClassInactiveException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypeInUseException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypesAlreadyExistsException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.DocumentTypesNotFoundException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.InvalidModuleException;
-import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
+import co.unicauca.edu.co.contables.commons.exceptions.documentClasses.DocumentClassesNotFoundException;
+import co.unicauca.edu.co.contables.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.commons.audit.annotation.OperationType;
+import co.unicauca.edu.co.contables.commons.exceptions.documentClasses.DocumentClassInactiveException;
+import co.unicauca.edu.co.contables.commons.exceptions.documentTypes.DocumentTypeInUseException;
+import co.unicauca.edu.co.contables.commons.exceptions.documentTypes.DocumentTypesAlreadyExistsException;
+import co.unicauca.edu.co.contables.commons.exceptions.documentTypes.DocumentTypesNotFoundException;
+import co.unicauca.edu.co.contables.commons.exceptions.documentTypes.InvalidModuleException;
+import co.unicauca.edu.co.contables.commons.utils.StringStandardizationUtils;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.entity.DocumentTypeEntity;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.mapper.DocumentTypeDataMapper;
 import co.unicauca.edu.co.contables.configuration.typesOfDocuments.dataAccess.repository.DocumentTypeRepository;

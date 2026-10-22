@@ -1,9 +1,9 @@
 package co.unicauca.edu.co.contables.configuration.helpCenter.domain.services;
 
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.helpCenter.InvalidModuleException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.helpCenter.HelpCenterAlreadyExistsException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.helpCenter.HelpCenterNotFoundException;
-import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
+import co.unicauca.edu.co.contables.commons.exceptions.helpCenter.InvalidModuleException;
+import co.unicauca.edu.co.contables.commons.exceptions.helpCenter.HelpCenterAlreadyExistsException;
+import co.unicauca.edu.co.contables.commons.exceptions.helpCenter.HelpCenterNotFoundException;
+import co.unicauca.edu.co.contables.commons.utils.StringStandardizationUtils;
 import co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.entity.HelpCenterEntity;
 import co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.mapper.HelpCenterDataMapper;
 import co.unicauca.edu.co.contables.configuration.helpCenter.dataAccess.repository.HelpCenterRepository;
