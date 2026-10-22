@@ -1,6 +1,6 @@
 services:
   ms-configuration-rf:
-    image: jeserna/ms-configuration-rf:v0.0.319
+    image: jeserna/ms-configuration-rf:v0.0.322
     container_name: ms-configuration-rf
     labels:
       - "traefik.enable=true"
