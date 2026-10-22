@@ -25,6 +25,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(http -> http
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/actuator/**", "/api/config/help-center/**").permitAll()
                         .requestMatchers("/api/enterprises/logos/**").permitAll()
+                        // A propósito NO se agregan aquí /api/enterprises/*/backup,
+                        // /api/enterprises/backups/**, /api/enterprises/restore ni
+                        // /api/enterprises/*/duplicate: deben caer en anyRequest().authenticated()
+                        // (son datos sensibles de la empresa, no públicos como el logo).
                         // Stream SSE del módulo auxiliary-book: el origen lo exponía sin autenticación
                         .requestMatchers("/api/notifications/stream").permitAll()
                         .requestMatchers(
