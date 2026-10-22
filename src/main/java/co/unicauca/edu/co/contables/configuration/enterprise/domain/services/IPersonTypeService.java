@@ -4,4 +4,6 @@ import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Perso
 
 public interface IPersonTypeService {
     PersonType create(PersonType personType);
+
+    boolean delete(Long id);
 }

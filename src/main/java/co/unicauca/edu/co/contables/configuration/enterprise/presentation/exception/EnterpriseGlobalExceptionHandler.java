@@ -38,6 +38,62 @@ public class EnterpriseGlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex, request);
     }
 
+    @ExceptionHandler(EnterpriseNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEnterpriseNotFound(EnterpriseNotFoundException ex,
+            WebRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex, request);
+    }
+
+    @ExceptionHandler(BackupNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleBackupNotFound(BackupNotFoundException ex, WebRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex, request);
+    }
+
+    @ExceptionHandler(InvalidBackupFileException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidBackupFile(InvalidBackupFileException ex,
+            WebRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex, request);
+    }
+
+    @ExceptionHandler(BackupTooLargeException.class)
+    public ResponseEntity<ErrorResponse> handleBackupTooLarge(BackupTooLargeException ex, WebRequest request) {
+        return build(HttpStatus.PAYLOAD_TOO_LARGE, ex, request);
+    }
+
+    @ExceptionHandler(InvalidRestoreRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRestoreRequest(InvalidRestoreRequestException ex,
+            WebRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex, request);
+    }
+
+    @ExceptionHandler(RestoreFailedException.class)
+    public ResponseEntity<ErrorResponse> handleRestoreFailed(RestoreFailedException ex, WebRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex, request);
+    }
+
+    @ExceptionHandler(CopyProcessNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCopyProcessNotFound(CopyProcessNotFoundException ex,
+            WebRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex, request);
+    }
+
+    @ExceptionHandler(CopyProcessNotTerminalException.class)
+    public ResponseEntity<ErrorResponse> handleCopyProcessNotTerminal(CopyProcessNotTerminalException ex,
+            WebRequest request) {
+        return build(HttpStatus.CONFLICT, ex, request);
+    }
+
+    @ExceptionHandler(CorruptBackupException.class)
+    public ResponseEntity<ErrorResponse> handleCorruptBackup(CorruptBackupException ex, WebRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex, request);
+    }
+
+    @ExceptionHandler(RestoreInPlaceConflictException.class)
+    public ResponseEntity<ErrorResponse> handleRestoreInPlaceConflict(RestoreInPlaceConflictException ex,
+            WebRequest request) {
+        return build(HttpStatus.CONFLICT, ex, request);
+    }
+
     private ResponseEntity<ErrorResponse> build(HttpStatus status, Exception ex, WebRequest request) {
         ErrorResponse body = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())

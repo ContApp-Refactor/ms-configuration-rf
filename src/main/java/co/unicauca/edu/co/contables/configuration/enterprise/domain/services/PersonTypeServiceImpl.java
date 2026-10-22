@@ -25,4 +25,13 @@ public class PersonTypeServiceImpl implements IPersonTypeService {
         }
         return dataMapper.toDomain(repository.save(entity));
     }
+
+    @Override
+    public boolean delete(Long id) {
+        if (repository.existsById(id)) {
+            repository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
 }
