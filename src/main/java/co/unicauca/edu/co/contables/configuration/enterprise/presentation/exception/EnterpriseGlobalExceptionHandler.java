@@ -71,6 +71,29 @@ public class EnterpriseGlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex, request);
     }
 
+    @ExceptionHandler(CopyProcessNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCopyProcessNotFound(CopyProcessNotFoundException ex,
+            WebRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex, request);
+    }
+
+    @ExceptionHandler(CopyProcessNotTerminalException.class)
+    public ResponseEntity<ErrorResponse> handleCopyProcessNotTerminal(CopyProcessNotTerminalException ex,
+            WebRequest request) {
+        return build(HttpStatus.CONFLICT, ex, request);
+    }
+
+    @ExceptionHandler(CorruptBackupException.class)
+    public ResponseEntity<ErrorResponse> handleCorruptBackup(CorruptBackupException ex, WebRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex, request);
+    }
+
+    @ExceptionHandler(RestoreInPlaceConflictException.class)
+    public ResponseEntity<ErrorResponse> handleRestoreInPlaceConflict(RestoreInPlaceConflictException ex,
+            WebRequest request) {
+        return build(HttpStatus.CONFLICT, ex, request);
+    }
+
     private ResponseEntity<ErrorResponse> build(HttpStatus status, Exception ex, WebRequest request) {
         ErrorResponse body = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
