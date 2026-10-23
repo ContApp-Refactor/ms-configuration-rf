@@ -5,6 +5,8 @@ import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.retry.RejectAndDontRequeueRecoverer;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.amqp.SimpleRabbitListenerContainerFactoryConfigurer;
 import org.springframework.context.annotation.*;
 
@@ -30,11 +32,26 @@ public class TreasuryRabbitConfig {
     @Bean Binding purchaseBinding(){return BindingBuilder.bind(purchaseQueue()).to(treasuryInvoiceExchange());}
     @Bean Binding resultBinding(){return BindingBuilder.bind(resultQueue()).to(resultExchange());}
     @Bean Binding dlqBinding(){return BindingBuilder.bind(treasuryDlq()).to(treasuryDlx());}
+    /**
+     * Contenedor de los listeners de tesoreria.
+     *
+     * <p>Sin {@code Jackson2JsonMessageConverter} el contenedor cae al
+     * {@code SimpleMessageConverter} por defecto, que deja el payload como
+     * {@code byte[]} y no puede convertirlo a los DTO tipados de
+     * {@code TreasuryEventListener} ni al envelope del consumidor contable. El
+     * converter se resuelve con {@code ObjectProvider} porque en el perfil
+     * {@code test} ese bean no se declara.</p>
+     */
     @Bean SimpleRabbitListenerContainerFactory treasuryRabbitListenerContainerFactory(
-            ConnectionFactory connectionFactory, SimpleRabbitListenerContainerFactoryConfigurer configurer) {
+            ConnectionFactory connectionFactory, SimpleRabbitListenerContainerFactoryConfigurer configurer,
+            ObjectProvider<Jackson2JsonMessageConverter> jsonMessageConverter) {
         var factory = new SimpleRabbitListenerContainerFactory();
         configurer.configure(factory, connectionFactory);
         factory.setAcknowledgeMode(AcknowledgeMode.AUTO);
+        Jackson2JsonMessageConverter converter = jsonMessageConverter.getIfAvailable();
+        if (converter != null) {
+            factory.setMessageConverter(converter);
+        }
         factory.setAdviceChain(RetryInterceptorBuilder.stateless().maxAttempts(3)
                 .backOffOptions(500, 2.0, 5000)
                 .recoverer(new RejectAndDontRequeueRecoverer()).build());

@@ -62,6 +62,19 @@ class AccountCataloguePaymentMethodAdapterTest {
         return AccountCatalogue.builder().id(id).status(status).build();
     }
 
+    /** Metodo de pago cuya cuenta contable trae codigo PUC, para derivar requiresBankAccount. */
+    private PaymentMethod paymentMethodWithAccountCode(Long id, Boolean status, Long accountingAccountId,
+            String accountCode) {
+        PaymentMethod method = paymentMethod(id, status, accountingAccountId);
+        if (accountingAccountId != null) {
+            method.setAccountingAccountEntity(AccountCatalogue.builder()
+                    .id(accountingAccountId)
+                    .code(accountCode)
+                    .build());
+        }
+        return method;
+    }
+
     @Test
     @DisplayName("findActive resuelve metodo activo con cuenta contable activa")
     void findActiveResuelve() {
@@ -229,5 +242,76 @@ class AccountCataloguePaymentMethodAdapterTest {
         when(bankAccountService.findById(77L, ENTERPRISE)).thenReturn(bankAccount);
 
         assertFalse(adapter.isActiveBankAccount(77L, ENTERPRISE));
+    }
+
+    @Test
+    @DisplayName("findActive expone requiresBankAccount=true cuando la cuenta es Bancos (1110)")
+    void findActiveExponeRequiereBancoParaCuentaBancos() {
+        when(paymentMethodService.findById(3L, ENTERPRISE))
+                .thenReturn(paymentMethodWithAccountCode(3L, true, 42L, "11100501"));
+        when(searchPort.getAllAccountsByEnterprise(ENTERPRISE))
+                .thenReturn(List.of(catalogueAccount(42L, true)));
+
+        Optional<PaymentMethodData> data = adapter.findActive(3L, ENTERPRISE);
+
+        assertTrue(data.isPresent());
+        assertTrue(data.get().requiresBankAccount());
+    }
+
+    @Test
+    @DisplayName("findActive expone requiresBankAccount=false cuando la cuenta es Caja (1105)")
+    void findActiveNoRequiereBancoParaCuentaCaja() {
+        when(paymentMethodService.findById(3L, ENTERPRISE))
+                .thenReturn(paymentMethodWithAccountCode(3L, true, 42L, "11050101"));
+        when(searchPort.getAllAccountsByEnterprise(ENTERPRISE))
+                .thenReturn(List.of(catalogueAccount(42L, true)));
+
+        Optional<PaymentMethodData> data = adapter.findActive(3L, ENTERPRISE);
+
+        assertTrue(data.isPresent());
+        assertFalse(data.get().requiresBankAccount());
+    }
+
+    @Test
+    @DisplayName("validateForPayment con cuenta Bancos (1110) exige cuenta bancaria")
+    void validateMetodoBancosExigeCuentaBancaria() {
+        when(paymentMethodService.findById(3L, ENTERPRISE))
+                .thenReturn(paymentMethodWithAccountCode(3L, true, 42L, "11100501"));
+        when(searchPort.getAllAccountsByEnterprise(ENTERPRISE))
+                .thenReturn(List.of(catalogueAccount(42L, true)));
+
+        TreasuryException ex = assertThrows(TreasuryException.class,
+                () -> adapter.validateForPayment(3L, null, ENTERPRISE));
+
+        assertEquals("El metodo de pago exige cuenta bancaria", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("validateForPayment con cuenta Bancos (1110) si admite cuenta bancaria")
+    void validateMetodoBancosAdmiteCuentaBancaria() {
+        when(paymentMethodService.findById(3L, ENTERPRISE))
+                .thenReturn(paymentMethodWithAccountCode(3L, true, 42L, "11100501"));
+        when(searchPort.getAllAccountsByEnterprise(ENTERPRISE))
+                .thenReturn(List.of(catalogueAccount(42L, true)));
+        BankAccount bankAccount = new BankAccount();
+        bankAccount.setStatus(true);
+        bankAccount.setAccountingAccountId(42L);
+        when(bankAccountService.findById(77L, ENTERPRISE)).thenReturn(bankAccount);
+
+        adapter.validateForPayment(3L, 77L, ENTERPRISE);
+    }
+
+    @Test
+    @DisplayName("validateForPayment con cuenta Caja (1105) no admite cuenta bancaria")
+    void validateMetodoCajaNoAdmiteCuentaBancaria() {
+        when(paymentMethodService.findById(3L, ENTERPRISE))
+                .thenReturn(paymentMethodWithAccountCode(3L, true, 42L, "11050101"));
+        when(searchPort.getAllAccountsByEnterprise(ENTERPRISE))
+                .thenReturn(List.of(catalogueAccount(42L, true)));
+
+        TreasuryException ex = assertThrows(TreasuryException.class,
+                () -> adapter.validateForPayment(3L, 77L, ENTERPRISE));
+
+        assertEquals("El metodo de pago no admite cuenta bancaria", ex.getMessage());
     }
 }

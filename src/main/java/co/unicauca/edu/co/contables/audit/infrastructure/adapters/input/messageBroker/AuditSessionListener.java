@@ -74,7 +74,12 @@ public class AuditSessionListener extends AbstractMessageListener<SessionEventDt
 
     @Override
     protected String extractEventType(SessionEventDto event) {
-        return event != null && event.getAction() != null ? event.getAction() : null;
+        // "UNKNOWN" en vez de null: event_type es NOT NULL en
+        // audit_message_processing_errors, así que un null revienta el INSERT,
+        // el error nunca se persiste y /message-errors/latest devuelve el
+        // mensaje anterior. Coincide con la convención de fallback del base
+        // class (AbstractMessageListener).
+        return event != null && event.getAction() != null ? event.getAction() : "UNKNOWN";
     }
 
     @Override

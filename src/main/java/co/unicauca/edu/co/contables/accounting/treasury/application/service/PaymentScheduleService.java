@@ -80,7 +80,7 @@ public class PaymentScheduleService implements IPaymentScheduleCommandUseCase,
     @Override public List<PaymentSchedule> list(ScheduleFilter filter){return schedules.search(filter);}
     @Override public PaymentSchedule execute(Long id){
         PaymentSchedule schedule=locked(id);if(schedule.getStatus()!=PaymentScheduleStatus.SCHEDULED&&schedule.getStatus()!=PaymentScheduleStatus.FAILED)return schedule;
-        try{validateExecutableDetails(schedule);}catch(RuntimeException ex){schedule.failed(ex.getMessage());return schedules.save(schedule);}
+        try{validateExecutableDetails(schedule);validatePaymentMethod(schedule.getPaymentMethodId(),schedule.getBankAccountId(),schedule.getEnterpriseId());}catch(RuntimeException ex){schedule.failed(ex.getMessage());return schedules.save(schedule);}
         schedule.start();schedule=schedules.save(schedule);
         try{
             PaymentVoucher voucher;

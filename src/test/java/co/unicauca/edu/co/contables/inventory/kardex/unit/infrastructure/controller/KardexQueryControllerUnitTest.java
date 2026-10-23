@@ -27,6 +27,7 @@ import co.unicauca.edu.co.contables.inventory.kardex.domain.model.MovementType;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.controller.KardexQueryController;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.dto.ResponseDto;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.dto.request.KardexFilterDto;
+import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.dto.response.ClassicPageDto;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.dto.response.KardexDtoResponse;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.mapper.IKardexResponseMapper;
 
@@ -97,7 +98,7 @@ public class KardexQueryControllerUnitTest {
         when(kardexResponseMapper.toDtoResponse(kardex2)).thenReturn(response2);
         
         // Act
-        ResponseDto<Page<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
+        ResponseDto<ClassicPageDto<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
         
         // Assert
         assertNotNull(response);
@@ -127,7 +128,7 @@ public class KardexQueryControllerUnitTest {
         when(kardexResponseMapper.toDtoResponse(kardex1)).thenReturn(response1);
         
         // Act
-        ResponseDto<Page<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
+        ResponseDto<ClassicPageDto<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
         
         // Assert
         assertNotNull(response);
@@ -147,7 +148,7 @@ public class KardexQueryControllerUnitTest {
         when(kardexQueryPort.findProductId(productId, pageable, null, null)).thenReturn(emptyPage);
         
         // Act
-        ResponseDto<Page<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
+        ResponseDto<ClassicPageDto<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
         
         // Assert
         assertNotNull(response);
@@ -172,7 +173,7 @@ public class KardexQueryControllerUnitTest {
         when(kardexResponseMapper.toDtoResponse(kardex1)).thenReturn(response1);
         
         // Act
-        ResponseDto<Page<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, customPageable);
+        ResponseDto<ClassicPageDto<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, customPageable);
         
         // Assert
         assertNotNull(response);
@@ -196,7 +197,7 @@ public class KardexQueryControllerUnitTest {
         when(kardexResponseMapper.toDtoResponse(kardex2)).thenReturn(response2);
         
         // Act
-        ResponseDto<Page<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
+        ResponseDto<ClassicPageDto<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
         
         // Assert
         List<KardexDtoResponse> content = response.getData().getContent();
@@ -223,7 +224,7 @@ public class KardexQueryControllerUnitTest {
         when(kardexResponseMapper.toDtoResponse(kardex1)).thenReturn(response1);
         
         // Act
-        ResponseDto<Page<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
+        ResponseDto<ClassicPageDto<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
         
         // Assert
         assertNotNull(response);
@@ -241,12 +242,18 @@ public class KardexQueryControllerUnitTest {
         when(kardexResponseMapper.toDtoResponse(kardex1)).thenReturn(response1);
         
         // Act
-        ResponseDto<Page<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
+        ResponseDto<ClassicPageDto<KardexDtoResponse>> response = kardexQueryController.getKardexByProductId(productId, filterDto, pageable);
         
         // Assert
         assertNotNull(response.getData());
         assertNotNull(response.getMessage());
         assertTrue(response.getStatus() > 0);
-        assertTrue(response.getData() instanceof Page);
+        assertTrue(response.getData() instanceof ClassicPageDto);
+        ClassicPageDto<KardexDtoResponse> page = response.getData();
+        assertNotNull(page.getPageable());
+        assertNotNull(page.getSort());
+        assertNotNull(page.getPageable().getSort());
+        assertEquals(1, page.getTotalElements());
+        assertEquals(1, page.getNumberOfElements());
     }
 }

@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -104,7 +107,7 @@ public class InvoicePersistenceAdapterUnitTest {
         existing.setTotalPay(0L);
         existing.setTotalValue(1000L);
 
-        when(repository.getReferenceById(12L)).thenReturn(existing);
+        when(repository.findById(12L)).thenReturn(Optional.of(existing));
 
         InvoiceReplica domain = TestFixtures.invoiceReplicaWith(12L, 2000L, 1500L, null);
 
@@ -115,6 +118,23 @@ public class InvoicePersistenceAdapterUnitTest {
         assertThat(existing.getPendingValue()).isEqualTo(domain.getPendingValue());
         assertThat(existing.getTotalPay()).isEqualTo(domain.getTotalPay());
         assertThat(existing.getTotalValue()).isEqualTo(domain.getTotalValue());
+    }
+
+    @Test
+    void updateInvoice_throwsWhenInvoiceIsMissing() {
+        // findById en lugar de getReferenceById evita el LazyInitializationException
+        // cuando el llamador no está en transacción. Si la factura no existe, debe
+        // fallar explícitamente en vez de mutar un proxy no inicializado.
+        when(repository.findById(12L)).thenReturn(Optional.empty());
+
+        InvoiceReplica domain = TestFixtures.invoiceReplicaWith(12L, 2000L, 1500L, null);
+
+        InvoicePersistenceAdapter a = adapter();
+
+        assertThatThrownBy(() -> a.updateInvoice(domain))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("12");
+        verify(repository, never()).save(any());
     }
 
     @Test

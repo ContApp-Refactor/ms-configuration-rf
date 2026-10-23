@@ -151,6 +151,16 @@ management:
   health:
     circuitbreakers:
       enabled: true
+    # R-12.6: localmente no hay Redis (condición preexistente del origen).
+    # En dev el health no debe caer por un servicio externo ausente; el
+    # JwtBlacklistFilter ya tolera esa ausencia con fail-open.
+    redis:
+      enabled: false
+    # Gmail SMTP devuelve 534-5.7.9 (WebLoginRequired) sin App Password, así
+    # que el indicador `mail` queda DOWN y arrastra /actuator/health a 503.
+    # Solo dev: el intento real de enviar sigue logueando el error.
+    mail:
+      enabled: false
   endpoint:
     health:
       probes:

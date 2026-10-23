@@ -24,10 +24,13 @@ import co.unicauca.edu.co.contables.accounting.treasury.domain.exception.Treasur
 
 import jakarta.persistence.EntityNotFoundException;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Global Exception Handler to manage various exception types for Treasury module.
  */
 
+@Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(basePackages = "co.unicauca.edu.co.contables.accounting.treasury")
 public class TreasuryGlobalExceptionHandler {
@@ -120,6 +123,9 @@ public class TreasuryGlobalExceptionHandler {
   @ResponseBody
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   public ResponseEntity<ErrorResponseDto<Object>> handleRuntimeException(RuntimeException ex) {
+    // El Javadoc prometía "Logs the error" pero no logueaba: el 500 salía
+    // genérico y sin stack trace, imposible de diagnosticar desde fuera.
+    log.error("RuntimeException no controlada en treasury", ex);
     return ErrorResponseDto.builder()
         .errorCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
         .message("Internal server error")

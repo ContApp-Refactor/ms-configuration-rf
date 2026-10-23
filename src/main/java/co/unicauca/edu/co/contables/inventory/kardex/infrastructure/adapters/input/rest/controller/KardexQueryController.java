@@ -15,6 +15,7 @@ import co.unicauca.edu.co.contables.inventory.kardex.application.ports.input.kar
 import co.unicauca.edu.co.contables.inventory.kardex.domain.model.Kardex;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.dto.ResponseDto;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.dto.request.KardexFilterDto;
+import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.dto.response.ClassicPageDto;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.dto.response.KardexDtoResponse;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.dto.response.ListLastProductKardexDtoResponse;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.input.rest.mapper.IKardexResponseMapper;
@@ -46,15 +47,15 @@ public class KardexQueryController {
      * @return Paginated response with kardex records
      */
     @GetMapping("/kardex-by-product")
-    public ResponseDto<Page<KardexDtoResponse>> getKardexByProductId(
+    public ResponseDto<ClassicPageDto<KardexDtoResponse>> getKardexByProductId(
             @RequestParam @NotNull(message = "The product ID is required.") Long productId,
             @Valid @ModelAttribute KardexFilterDto filter,
             Pageable pageable) {
 
         Page<Kardex> kardexPage = kardexQueryPort.findProductId(productId, pageable, filter.getStartDate(), filter.getEndDate());
         Page<KardexDtoResponse> kardexDtoResponses = kardexPage.map(kardexResponseMapper::toDtoResponse);
-        return ResponseDto.<Page<KardexDtoResponse>>builder()
-                .data(kardexDtoResponses)
+        return ResponseDto.<ClassicPageDto<KardexDtoResponse>>builder()
+                .data(ClassicPageDto.from(kardexDtoResponses))
                 .status(200)
                 .message("Kardex records retrieved successfully").build();
     }

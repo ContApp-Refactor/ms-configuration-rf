@@ -14,6 +14,10 @@ import lombok.Getter;
 @Getter
 @Builder
 public class SessionAuditResponse {
+    // Obligatorio: la coleccion newman localiza la sesion recien publicada con
+    // json.data.find(s => s.sessionId === testSessionId). Sin este campo la
+    // sesion no puede encontrarse aunque exista en base.
+    private String sessionId;
     private String userName;
     private List<String> userRole;
     private Instant loginTime;
