@@ -47,7 +47,6 @@ public class BillingSaleInvoiceController {
     }
 
     @PostMapping
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_CREATE)
     public ResponseEntity<BillingInvoiceResponse> create(
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId,
             @Valid @RequestBody InvoiceDraftRequest request) {
@@ -55,7 +54,6 @@ public class BillingSaleInvoiceController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_UPDATE)
     public ResponseEntity<BillingInvoiceResponse> update(
             @PathVariable("id") UUID id,
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId,
@@ -64,7 +62,6 @@ public class BillingSaleInvoiceController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_DELETE)
     public ResponseEntity<Void> delete(
             @PathVariable("id") UUID id,
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId,
@@ -73,7 +70,6 @@ public class BillingSaleInvoiceController {
     }
 
     @PostMapping("/{id}/duplicate")
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_CREATE)
     public ResponseEntity<BillingInvoiceResponse> duplicate(
             @PathVariable("id") UUID id,
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId) {
@@ -81,7 +77,6 @@ public class BillingSaleInvoiceController {
     }
 
     @PostMapping("/{id}/emit")
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_EMIT)
     public ResponseEntity<BillingInvoiceResponse> emit(
             @PathVariable("id") UUID id,
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId,
@@ -90,7 +85,6 @@ public class BillingSaleInvoiceController {
     }
 
     @PostMapping("/{id}/annul")
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_ANNUL)
     public ResponseEntity<BillingInvoiceResponse> annul(
             @PathVariable("id") UUID id,
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId,
@@ -99,7 +93,6 @@ public class BillingSaleInvoiceController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_READ)
     public ResponseEntity<BillingInvoiceResponse> get(
             @PathVariable("id") UUID id,
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId) {
@@ -107,7 +100,6 @@ public class BillingSaleInvoiceController {
     }
 
     @GetMapping
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_READ)
     public ResponseEntity<List<BillingDocumentSummaryResponse>> list(
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId,
             @RequestParam(name = "status", required = false) DocumentStatus status) {
@@ -117,7 +109,6 @@ public class BillingSaleInvoiceController {
     // Sub-recursos de devoluciones de la factura: permiso de consulta de la factura (BFV#R), D17.
 
     @GetMapping("/{id}/return-availability")
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_READ)
     public ResponseEntity<ReturnAvailabilityResponse> returnAvailability(
             @PathVariable("id") UUID id,
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId) {
@@ -125,7 +116,6 @@ public class BillingSaleInvoiceController {
     }
 
     @GetMapping("/{id}/returns")
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_READ)
     public ResponseEntity<List<ReturnSummaryResponse>> returnsOf(
             @PathVariable("id") UUID id,
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId) {
@@ -133,7 +123,6 @@ public class BillingSaleInvoiceController {
     }
 
     @GetMapping("/with-returns")
-    @PreAuthorize(BillingPermissions.SALE_INVOICE_READ)
     public ResponseEntity<List<InvoiceWithReturnsResponse>> withReturns(
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId) {
         return support.withReturns(TYPE, enterpriseId);
