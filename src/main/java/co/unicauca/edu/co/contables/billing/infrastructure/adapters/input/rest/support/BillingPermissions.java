@@ -25,34 +25,34 @@ public final class BillingPermissions {
     }
 
     // Factura de venta (BFV)
-    public static final String SALE_INVOICE_READ = "hasAuthority('BFV#R')";
-    public static final String SALE_INVOICE_CREATE = "hasAuthority('BFV#C')";
-    public static final String SALE_INVOICE_UPDATE = "hasAuthority('BFV#U')";
-    public static final String SALE_INVOICE_DELETE = "hasAuthority('BFV#D')";
-    public static final String SALE_INVOICE_EMIT = "hasAuthority('BFV#EM')";
-    public static final String SALE_INVOICE_ANNUL = "hasAuthority('BFV#AN')";
+    public static final String SALE_INVOICE_READ = "isAuthenticated()";
+    public static final String SALE_INVOICE_CREATE = "isAuthenticated()";
+    public static final String SALE_INVOICE_UPDATE = "isAuthenticated()";
+    public static final String SALE_INVOICE_DELETE = "isAuthenticated()";
+    public static final String SALE_INVOICE_EMIT = "isAuthenticated()";
+    public static final String SALE_INVOICE_ANNUL = "isAuthenticated()";
 
     // Factura de compra (BFC)
-    public static final String PURCHASE_INVOICE_READ = "hasAuthority('BFC#R')";
-    public static final String PURCHASE_INVOICE_CREATE = "hasAuthority('BFC#C')";
-    public static final String PURCHASE_INVOICE_UPDATE = "hasAuthority('BFC#U')";
-    public static final String PURCHASE_INVOICE_DELETE = "hasAuthority('BFC#D')";
-    public static final String PURCHASE_INVOICE_EMIT = "hasAuthority('BFC#EM')";
-    public static final String PURCHASE_INVOICE_ANNUL = "hasAuthority('BFC#AN')";
+    public static final String PURCHASE_INVOICE_READ = "isAuthenticated()";
+    public static final String PURCHASE_INVOICE_CREATE = "isAuthenticated()";
+    public static final String PURCHASE_INVOICE_UPDATE = "isAuthenticated()";
+    public static final String PURCHASE_INVOICE_DELETE = "isAuthenticated()";
+    public static final String PURCHASE_INVOICE_EMIT = "isAuthenticated()";
+    public static final String PURCHASE_INVOICE_ANNUL = "isAuthenticated()";
 
     // Devolucion de venta (BNC)
-    public static final String SALE_RETURN_READ = "hasAuthority('BNC#R')";
-    public static final String SALE_RETURN_CREATE = "hasAuthority('BNC#C')";
-    public static final String SALE_RETURN_UPDATE = "hasAuthority('BNC#U')";
-    public static final String SALE_RETURN_DELETE = "hasAuthority('BNC#D')";
-    public static final String SALE_RETURN_EMIT = "hasAuthority('BNC#EM')";
-    public static final String SALE_RETURN_ANNUL = "hasAuthority('BNC#AN')";
+    public static final String SALE_RETURN_READ = "isAuthenticated()";
+    public static final String SALE_RETURN_CREATE = "isAuthenticated()";
+    public static final String SALE_RETURN_UPDATE = "isAuthenticated()";
+    public static final String SALE_RETURN_DELETE = "isAuthenticated()";
+    public static final String SALE_RETURN_EMIT = "isAuthenticated()";
+    public static final String SALE_RETURN_ANNUL = "isAuthenticated()";
 
     // Devolucion de compra (BDC)
-    public static final String PURCHASE_RETURN_READ = "hasAuthority('BDC#R')";
-    public static final String PURCHASE_RETURN_CREATE = "hasAuthority('BDC#C')";
-    public static final String PURCHASE_RETURN_UPDATE = "hasAuthority('BDC#U')";
-    public static final String PURCHASE_RETURN_DELETE = "hasAuthority('BDC#D')";
-    public static final String PURCHASE_RETURN_EMIT = "hasAuthority('BDC#EM')";
-    public static final String PURCHASE_RETURN_ANNUL = "hasAuthority('BDC#AN')";
+    public static final String PURCHASE_RETURN_READ = "isAuthenticated()";
+    public static final String PURCHASE_RETURN_CREATE = "isAuthenticated()";
+    public static final String PURCHASE_RETURN_UPDATE = "isAuthenticated()";
+    public static final String PURCHASE_RETURN_DELETE = "isAuthenticated()";
+    public static final String PURCHASE_RETURN_EMIT = "isAuthenticated()";
+    public static final String PURCHASE_RETURN_ANNUL = "isAuthenticated()";
 }
