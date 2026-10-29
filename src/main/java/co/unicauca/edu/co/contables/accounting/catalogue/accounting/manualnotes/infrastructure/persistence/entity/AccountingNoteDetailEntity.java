@@ -14,10 +14,10 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "regcontable_accounting_note_details",
+@Table(name = "manualnotes_accounting_note_details",
         indexes = {
-                @Index(name = "idx_regcontable_detail_account_note", columnList = "account_code, accounting_note_id"),
-                @Index(name = "idx_regcontable_detail_third_party", columnList = "third_party_id")
+                @Index(name = "idx_manualnotes_detail_account_note", columnList = "account_code, accounting_note_id"),
+                @Index(name = "idx_manualnotes_detail_third_party", columnList = "third_party_id")
         })
 public class AccountingNoteDetailEntity {
 

@@ -40,8 +40,8 @@ public interface AccountingNoteRepository extends JpaRepository<AccountingNoteEn
                        d.account_code as "accountCode", d.third_party_id as "thirdPartyId",
                        d.cost_center_code as "costCenterCode", d.description as "description",
                        d.debit as "debit", d.credit as "credit"
-                from regcontable_accounting_note_details d
-                join regcontable_accounting_notes n on n.id = d.accounting_note_id
+                from manualnotes_accounting_note_details d
+                join manualnotes_accounting_notes n on n.id = d.accounting_note_id
                 where n.enterprise_id = :enterpriseId
                   and n.status = 'POSTED'
                   and d.account_code = :accountCode
@@ -83,8 +83,8 @@ public interface AccountingNoteRepository extends JpaRepository<AccountingNoteEn
             select coalesce(sum(movement_rows.debit - movement_rows.credit), 0)
             from (
                 select d.debit as debit, d.credit as credit
-                from regcontable_accounting_note_details d
-                join regcontable_accounting_notes n on n.id = d.accounting_note_id
+                from manualnotes_accounting_note_details d
+                join manualnotes_accounting_notes n on n.id = d.accounting_note_id
                 where n.enterprise_id = :enterpriseId
                   and d.account_code = :accountCode
                   and n.date < :startDate

@@ -20,10 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "regcontable_accounting_notes",
-        uniqueConstraints = @UniqueConstraint(name = "uk_regcontable_origin",
+@Table(name = "manualnotes_accounting_notes",
+        uniqueConstraints = @UniqueConstraint(name = "uk_manualnotes_origin",
                 columnNames = {"origin_module", "origin_id"}),
-        indexes = @Index(name = "idx_regcontable_note_date_type", columnList = "date, document_type_code"))
+        indexes = @Index(name = "idx_manualnotes_note_date_type", columnList = "date, document_type_code"))
 public class AccountingNoteEntity {
 
     @Id

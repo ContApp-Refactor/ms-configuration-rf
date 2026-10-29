@@ -9,8 +9,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 @Entity(name = "RegcontableDocumentType")
-@Table(name = "regcontable_document_types",
-        uniqueConstraints = @UniqueConstraint(name = "uk_regcontable_document_type_enterprise_code",
+@Table(name = "manualnotes_document_types",
+        uniqueConstraints = @UniqueConstraint(name = "uk_manualnotes_document_type_enterprise_code",
                 columnNames = {"enterprise_id", "code"}))
 public class DocumentTypeEntity {
 
