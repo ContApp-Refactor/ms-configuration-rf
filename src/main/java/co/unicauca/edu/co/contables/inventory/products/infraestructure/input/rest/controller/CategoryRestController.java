@@ -84,7 +84,6 @@ public class CategoryRestController {
                 return new ResponseEntity<>(responsePage, HttpStatus.OK);
         }
 
-        @PreAuthorize("hasAuthority('C#C')")
         @PostMapping("/create")
         public ResponseEntity<CategoryResponse> create(
                         @Valid @RequestBody CategoryCreateRequest categoryCreateRequest) {
