@@ -66,6 +66,26 @@ class CategoryServiceUnitTest {
     }
 
     @Test
+    @DisplayName("Debe persistir productTypeId y returnPurchaseId al crear categoría (HU2)")
+    void testCreateCategoryPersistsProductTypeAndReturnPurchaseAccount() {
+        // Arrange
+        category.setProductTypeId(7L);
+        category.setReturnPurchaseId(88L);
+        when(categoryPersistencePort.existsByNameAndEnterpriseId(anyString(), eq(enterpriseId)))
+                .thenReturn(false);
+        when(categoryPersistencePort.create(any(Category.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        Category result = categoryService.create(category);
+
+        // Assert
+        assertEquals(7L, result.getProductTypeId());
+        assertEquals(88L, result.getReturnPurchaseId());
+        verify(categoryPersistencePort, times(1)).create(any(Category.class));
+    }
+
+    @Test
     @DisplayName("Debe encontrar categoría por ID y empresa exitosamente")
     void testFindByIdSuccess() {
         // Arrange

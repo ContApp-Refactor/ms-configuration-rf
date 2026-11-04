@@ -24,4 +24,23 @@ public class ProductType {
     @Builder.Default
     private boolean state = true;
 
+    /**
+     * Vendible: el tipo puede usarse en facturas de venta.
+     */
+    @Builder.Default
+    private boolean sellable = true;
+
+    /**
+     * Comprable: el tipo puede usarse en facturas de compra.
+     */
+    @Builder.Default
+    private boolean purchasable = true;
+
+    /**
+     * Inventariable: el tipo tiene uso en el kardex (control de entradas,
+     * salidas y valoración según el sistema de inventario configurado).
+     */
+    @Builder.Default
+    private boolean inventoryable = false;
+
 }

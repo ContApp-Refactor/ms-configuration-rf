@@ -44,6 +44,17 @@ public class CategoryCreateRequest {
     @NotNull(message = "Id de la devolución es requerido")
     private Long returnId;
 
+    /**
+     * Tipo de producto o servicio amarrado (PP7 HU2). Opcional para no
+     * romper clientes existentes; el formulario FE lo envía.
+     */
+    private Long productTypeId;
+
+    /**
+     * Cuenta de devolución en compra (PP7 HU2). returnId = devolución en venta.
+     */
+    private Long returnPurchaseId;
+
     @NotNull(message = "Lista de impuestos es requerida")
     private List<Long> taxes;
 

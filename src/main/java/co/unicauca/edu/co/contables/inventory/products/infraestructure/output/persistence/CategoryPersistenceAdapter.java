@@ -50,6 +50,8 @@ public class CategoryPersistenceAdapter implements ICategoryPersistencePort {
                 existing.setCostId(category.getCostId());
                 existing.setSaleId(category.getSaleId());
                 existing.setReturnId(category.getReturnId());
+                existing.setProductTypeId(category.getProductTypeId());
+                existing.setReturnPurchaseId(category.getReturnPurchaseId());
                 existing.setTaxes(category.getTaxes());
                 existing.setState(category.isState());
                 entity = categoryRepository.save(existing);
