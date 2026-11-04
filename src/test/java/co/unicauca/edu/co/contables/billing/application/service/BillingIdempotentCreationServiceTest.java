@@ -245,6 +245,8 @@ class BillingIdempotentCreationServiceTest {
 
         Throwable thrown = catchThrowable(() -> service.create(ENTERPRISE_ID, TYPE, KEY, HASH, creator()));
 
-        assertThat(codeOf(thrown)).isEqualTo(BillingErrorCode.BILLING_CONCURRENT_MODIFICATION);
+        // B14: no es una "modificacion concurrente del documento": el front lo interpretaba mal.
+        assertThat(codeOf(thrown)).isEqualTo(BillingErrorCode.BILLING_IDEMPOTENCY_IN_PROGRESS);
+        assertThat(thrown).hasMessage("La operacion ya se esta procesando. Reintenta en unos segundos.");
     }
 }

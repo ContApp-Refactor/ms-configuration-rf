@@ -69,9 +69,12 @@ public class BillingIdempotentCreationService {
                 return document;
             });
         } catch (IdempotencyKeyCollisionException collision) {
+            // B14: la unicidad de la base detecto la clave pero la relectura vigente no la encuentra al
+            // ganador (p. ej. registro vencido que aun ocupa la clave, o ganador aun no visible). No es
+            // una "modificacion concurrente del documento": se pide reintentar.
             return transactions.callInNewTransaction(() -> replay(enterpriseId, type, key, requestHash))
-                    .orElseThrow(() -> new BillingException(BillingErrorCode.BILLING_CONCURRENT_MODIFICATION,
-                            "La clave de idempotencia cambio durante la creacion, reintente"));
+                    .orElseThrow(() -> new BillingException(BillingErrorCode.BILLING_IDEMPOTENCY_IN_PROGRESS,
+                            "La operacion ya se esta procesando. Reintenta en unos segundos."));
         }
     }
 

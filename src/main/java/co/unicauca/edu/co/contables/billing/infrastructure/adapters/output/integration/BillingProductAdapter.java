@@ -5,7 +5,6 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentKind;
 import co.unicauca.edu.co.contables.billing.domain.model.Money;
 import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxRate;
-import co.unicauca.edu.co.contables.billing.infrastructure.config.BillingProperties;
 import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IProductServicePort;
 import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IUnitOfMeasureServicePort;
 import co.unicauca.edu.co.contables.inventory.products.domain.exception.product.ProductNotFoundException;
@@ -13,13 +12,19 @@ import co.unicauca.edu.co.contables.inventory.products.domain.exception.unitOfMe
 import co.unicauca.edu.co.contables.inventory.products.domain.model.Product;
 import co.unicauca.edu.co.contables.inventory.products.domain.model.UnitOfMeasure;
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
  * Catalogo de productos resuelto <strong>en el mismo proceso</strong> mediante los puertos de
  * entrada del modulo inventory (D8, H0-1): precio de referencia = {@code Product.cost} (escala 2,
- * HALF_UP) tanto en ventas como en compras (provisional, RN-30) e IVA = {@code billing.default-vat-rate}.
+ * HALF_UP) tanto en ventas como en compras (provisional, RN-30) e IVA = el de la categoria del
+ * producto segun {@link BillingVatRateResolver} (con {@code billing.default-vat-rate} como respaldo).
  * Se devuelven tambien los productos inactivos ({@code active=false}); la unidad de medida
  * inexistente solo deja el nombre en {@code null}.
  */
@@ -28,35 +33,70 @@ public class BillingProductAdapter implements ProductPort {
 
     private final IProductServicePort productService;
     private final IUnitOfMeasureServicePort unitOfMeasureService;
-    private final BillingProperties properties;
+    private final BillingVatRateResolver vatRateResolver;
 
     public BillingProductAdapter(IProductServicePort productService, IUnitOfMeasureServicePort unitOfMeasureService,
-            BillingProperties properties) {
+            BillingVatRateResolver vatRateResolver) {
         this.productService = productService;
         this.unitOfMeasureService = unitOfMeasureService;
-        this.properties = properties;
+        this.vatRateResolver = vatRateResolver;
     }
 
     @Override
     public Optional<ProductSnapshot> findProduct(String enterpriseId, long productId, DocumentKind kind) {
-        Product product;
-        try {
-            product = productService.findById(productId, enterpriseId);
-        } catch (ProductNotFoundException ex) {
-            return Optional.empty();
-        }
+        Product product = load(enterpriseId, productId);
         if (product == null) {
             return Optional.empty();
         }
-        return Optional.of(new ProductSnapshot(
+        return Optional.of(snapshot(enterpriseId, productId, product,
+                vatRateResolver.resolve(enterpriseId, product.getCategoryId())));
+    }
+
+    /**
+     * Version por lote (H7): los productos se leen primero y el IVA se resuelve UNA vez para todas
+     * las categorias distintas ({@link BillingVatRateResolver#resolveAll}: una consulta de impuestos
+     * activos y una por categoria). Nada se conserva entre invocaciones: los impuestos pueden cambiar.
+     */
+    @Override
+    public Map<Long, ProductSnapshot> findProducts(String enterpriseId, Collection<Long> productIds,
+            DocumentKind kind) {
+        Map<Long, Product> loaded = new LinkedHashMap<>();
+        for (Long productId : new LinkedHashSet<>(productIds)) {
+            Product product = load(enterpriseId, productId);
+            if (product != null) {
+                loaded.put(productId, product);
+            }
+        }
+        if (loaded.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        Set<Long> categoryIds = new LinkedHashSet<>();
+        loaded.values().forEach(product -> categoryIds.add(product.getCategoryId()));
+        Map<Long, BigDecimal> rates = vatRateResolver.resolveAll(enterpriseId, categoryIds);
+        Map<Long, ProductSnapshot> found = new LinkedHashMap<>();
+        loaded.forEach((productId, product) -> found.put(productId,
+                snapshot(enterpriseId, productId, product, rates.get(product.getCategoryId()))));
+        return found;
+    }
+
+    private Product load(String enterpriseId, long productId) {
+        try {
+            return productService.findById(productId, enterpriseId);
+        } catch (ProductNotFoundException ex) {
+            return null;
+        }
+    }
+
+    private ProductSnapshot snapshot(String enterpriseId, long productId, Product product, BigDecimal vatRate) {
+        return new ProductSnapshot(
                 productId,
                 product.getCode(),
                 product.getName(),
                 product.getUnitOfMeasureId(),
                 unitOfMeasureName(product.getUnitOfMeasureId(), enterpriseId),
                 Money.of(BigDecimal.valueOf(product.getCost())),
-                TaxRate.of(properties.getDefaultVatRate()),
-                product.isState()));
+                TaxRate.of(vatRate),
+                product.isState());
     }
 
     private String unitOfMeasureName(Long unitOfMeasureId, String enterpriseId) {

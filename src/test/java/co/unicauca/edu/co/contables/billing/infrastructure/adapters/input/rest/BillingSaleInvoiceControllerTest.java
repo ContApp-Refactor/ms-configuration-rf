@@ -439,6 +439,20 @@ class BillingSaleInvoiceControllerTest {
     }
 
     @Test
+    void RN_06_get_of_emitted_invoice_exposes_the_frozen_issuer() throws Exception {
+        BillingDocument doc = withVersion(emittedSale(), 1L);
+        when(getUseCase.get(ENTERPRISE_ID, TYPE, doc.id())).thenReturn(BillingDocumentView.of(doc));
+
+        mockMvc.perform(get(BASE + "/" + doc.id()).param("enterpriseId", ENTERPRISE_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.issuer.enterpriseId").value(ENTERPRISE_ID))
+                .andExpect(jsonPath("$.issuer.name").value("Empresa Emisora SAS"))
+                .andExpect(jsonPath("$.issuer.nit").value("900123456"))
+                .andExpect(jsonPath("$.issuer.dv").value("1"))
+                .andExpect(jsonPath("$.issuer.active").value(true));
+    }
+
+    @Test
     void QRY_1_get_unknown_or_foreign_document_is_404() throws Exception {
         when(getUseCase.get(ENTERPRISE_ID, TYPE, uuid(9)))
                 .thenThrow(new BillingException(BillingErrorCode.BILLING_DOCUMENT_NOT_FOUND, "no existe"));

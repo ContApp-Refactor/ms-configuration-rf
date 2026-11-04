@@ -15,12 +15,14 @@ import co.unicauca.edu.co.contables.billing.domain.model.CounterpartySnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentLine;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentNumber;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentTotals;
+import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnLineAvailability;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingDocumentSummaryResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceLineResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceResponse;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingIssuerResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnLineResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingTotalsResponse;
@@ -109,7 +111,16 @@ public class BillingRestMapper {
                 doc.emittedAt(),
                 doc.annulledAt(),
                 doc.annulReason(),
-                doc.version());
+                doc.version(),
+                toIssuer(doc.issuer()));
+    }
+
+    /** Emisor congelado (RN-06); nulo mientras el documento sea borrador. */
+    private static BillingIssuerResponse toIssuer(IssuerSnapshot issuer) {
+        return issuer == null
+                ? null
+                : new BillingIssuerResponse(issuer.enterpriseId(), issuer.name(), issuer.nit(), issuer.dv(),
+                        issuer.active());
     }
 
     public BillingDocumentSummaryResponse toSummaryResponse(BillingDocumentSummary summary) {
@@ -228,7 +239,8 @@ public class BillingRestMapper {
                 doc.emittedAt(),
                 doc.annulledAt(),
                 doc.annulReason(),
-                doc.version());
+                doc.version(),
+                toIssuer(doc.issuer()));
     }
 
     private BillingReturnLineResponse toReturnLineResponse(DocumentLine line) {

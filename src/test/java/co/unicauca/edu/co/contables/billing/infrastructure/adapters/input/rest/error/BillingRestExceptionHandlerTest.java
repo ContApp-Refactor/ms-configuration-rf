@@ -55,6 +55,16 @@ class BillingRestExceptionHandlerTest {
     }
 
     @Test
+    void IDM_3_idempotency_in_progress_is_409_with_its_own_code_not_concurrent_modification() throws Exception {
+        mockMvc.perform(get("/probe/idempotency-in-progress"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BILLING_IDEMPOTENCY_IN_PROGRESS"))
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message")
+                        .value("La operacion ya se esta procesando. Reintenta en unos segundos."));
+    }
+
+    @Test
     void ERR_1_not_found_is_404() throws Exception {
         mockMvc.perform(get("/probe/not-found"))
                 .andExpect(status().isNotFound())
@@ -152,6 +162,12 @@ class BillingRestExceptionHandlerTest {
         @GetMapping("/idempotency")
         public String idempotency() {
             throw new BillingException(BillingErrorCode.BILLING_IDEMPOTENCY_CONFLICT, "otro contenido");
+        }
+
+        @GetMapping("/idempotency-in-progress")
+        public String idempotencyInProgress() {
+            throw new BillingException(BillingErrorCode.BILLING_IDEMPOTENCY_IN_PROGRESS,
+                    "La operacion ya se esta procesando. Reintenta en unos segundos.");
         }
 
         @GetMapping("/not-found")

@@ -604,6 +604,19 @@ class BillingSaleReturnControllerTest {
     }
 
     @Test
+    void RN_06_get_of_an_emitted_return_exposes_the_frozen_issuer() throws Exception {
+        BillingDocument doc = emittedReturn();
+        when(getUseCase.get(ENTERPRISE_ID, TYPE, doc.id())).thenReturn(new BillingDocumentView(doc, null, 2));
+
+        mockMvc.perform(get(BASE + "/" + doc.id()).param("enterpriseId", ENTERPRISE_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.issuer.name").value("Empresa Emisora SAS"))
+                .andExpect(jsonPath("$.issuer.nit").value("900123456"))
+                .andExpect(jsonPath("$.issuer.dv").value("1"))
+                .andExpect(jsonPath("$.issuer.active").value(true));
+    }
+
+    @Test
     void RET_10_get_of_a_draft_has_no_ordinal() throws Exception {
         BillingDocument doc = savedDraft();
         when(getUseCase.get(ENTERPRISE_ID, TYPE, doc.id())).thenReturn(BillingDocumentView.of(doc));

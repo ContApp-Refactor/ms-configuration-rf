@@ -7,7 +7,8 @@ import java.util.List;
 /**
  * Devolucion completa (NC / DC). {@code invoiceId}, {@code originalNumber} y {@code originalDate}
  * referencian a la factura original; {@code ordinal} (1, 2, 3...) es derivado y solo se informa en
- * la consulta de una devolucion emitida o anulada (nulo en borrador).
+ * la consulta de una devolucion emitida o anulada (nulo en borrador); {@code issuer} es el emisor
+ * congelado al emitir (RN-06) y es nulo en borrador.
  */
 public record BillingReturnResponse(
         String id,
@@ -31,5 +32,6 @@ public record BillingReturnResponse(
         Instant emittedAt,
         Instant annulledAt,
         String annulReason,
-        Long version) {
+        Long version,
+        BillingIssuerResponse issuer) {
 }

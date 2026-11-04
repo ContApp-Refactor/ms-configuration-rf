@@ -26,7 +26,7 @@ public record DocumentLine(
     public DocumentLine {
         if (lineNo < 1) {
             throw new BillingException(BillingErrorCode.BILLING_INVALID_LINE,
-                    "El numero de linea debe ser mayor o igual a 1");
+                    "El numero de item debe ser mayor o igual a 1");
         }
         Objects.requireNonNull(quantity, "quantity");
         Objects.requireNonNull(catalogUnitPrice, "catalogUnitPrice");
@@ -58,7 +58,7 @@ public record DocumentLine(
         Objects.requireNonNull(quantity, "quantity");
         if (quantity.value().compareTo(source.quantity().value()) > 0) {
             throw new BillingException(BillingErrorCode.BILLING_RETURN_QUANTITY_EXCEEDED,
-                    "La cantidad a devolver supera la vendida en la linea " + source.lineNo());
+                    "La cantidad a devolver supera la vendida en el item " + source.lineNo());
         }
         return new DocumentLine(lineNo, source.lineNo(), source.productId(), source.productCode(),
                 source.productName(), source.unitOfMeasureId(), source.unitOfMeasureName(), quantity,
