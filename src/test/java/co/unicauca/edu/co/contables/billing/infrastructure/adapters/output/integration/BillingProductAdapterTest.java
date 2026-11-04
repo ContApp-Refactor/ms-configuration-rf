@@ -2,12 +2,27 @@ package co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.inte
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import co.unicauca.edu.co.contables.accounting.catalogue.taxes.application.input.ITaxSearchInputPort;
+import co.unicauca.edu.co.contables.accounting.catalogue.taxes.domain.models.Tax;
+import co.unicauca.edu.co.contables.billing.infrastructure.config.BillingProperties;
+import co.unicauca.edu.co.contables.inventory.products.application.ports.input.ICategoryServicePort;
+import co.unicauca.edu.co.contables.inventory.products.domain.model.Category;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.mockito.ArgumentCaptor;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentKind;
 import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
-import co.unicauca.edu.co.contables.billing.infrastructure.config.BillingProperties;
 import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IProductServicePort;
 import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IUnitOfMeasureServicePort;
 import co.unicauca.edu.co.contables.inventory.products.domain.exception.product.ProductNotFoundException;
@@ -22,7 +37,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/** D8/H0-1: precio de catalogo = cost del producto (escala 2), IVA = billing.default-vat-rate. */
+/** D8/H0-1: precio de catalogo = cost del producto (escala 2), IVA = el de su categoria (resolver). */
 @ExtendWith(MockitoExtension.class)
 class BillingProductAdapterTest {
 
@@ -35,13 +50,15 @@ class BillingProductAdapterTest {
     @Mock
     private IUnitOfMeasureServicePort unitOfMeasureService;
 
-    private BillingProperties properties;
+    @Mock
+    private BillingVatRateResolver vatRateResolver;
+
     private BillingProductAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        properties = new BillingProperties();
-        adapter = new BillingProductAdapter(productService, unitOfMeasureService, properties);
+        lenient().when(vatRateResolver.resolve(any(), any())).thenReturn(new BigDecimal("19"));
+        adapter = new BillingProductAdapter(productService, unitOfMeasureService, vatRateResolver);
     }
 
     private static Product.ProductBuilder baseProduct() {
@@ -100,9 +117,9 @@ class BillingProductAdapterTest {
     }
 
     @Test
-    void PRODUCT_tax_rate_follows_configured_default_vat() {
-        properties.setDefaultVatRate(new BigDecimal("5"));
-        when(productService.findById(PRODUCT_ID, ENTERPRISE)).thenReturn(baseProduct().build());
+    void PRODUCT_tax_rate_follows_the_vat_resolved_for_the_product_category() {
+        when(vatRateResolver.resolve(ENTERPRISE, 10L)).thenReturn(new BigDecimal("5"));
+        when(productService.findById(PRODUCT_ID, ENTERPRISE)).thenReturn(baseProduct().categoryId(10L).build());
         when(unitOfMeasureService.findByIdAndEnterpriseId(UOM_ID, ENTERPRISE))
                 .thenReturn(UnitOfMeasure.builder().id(UOM_ID).name("Unidad").build());
 
@@ -151,6 +168,55 @@ class BillingProductAdapterTest {
         ProductSnapshot snapshot = adapter.findProduct(ENTERPRISE, PRODUCT_ID, DocumentKind.SALE).orElseThrow();
 
         assertThat(snapshot.active()).isFalse();
+    }
+
+    @Test
+    void PRODUCT_batch_resolves_vat_once_for_the_distinct_categories() {
+        when(vatRateResolver.resolveAll(eq(ENTERPRISE), any())).thenReturn(
+                new HashMap<>(Map.of(10L, new BigDecimal("5"), 11L, new BigDecimal("16"))));
+        when(productService.findById(1L, ENTERPRISE)).thenReturn(baseProduct().id(1L).categoryId(10L).build());
+        when(productService.findById(2L, ENTERPRISE)).thenReturn(baseProduct().id(2L).categoryId(11L).build());
+        when(productService.findById(3L, ENTERPRISE)).thenThrow(new ProductNotFoundException(3L));
+        when(productService.findById(4L, ENTERPRISE)).thenReturn(baseProduct().id(4L).categoryId(10L).build());
+        when(unitOfMeasureService.findByIdAndEnterpriseId(UOM_ID, ENTERPRISE))
+                .thenReturn(UnitOfMeasure.builder().id(UOM_ID).name("Unidad").build());
+
+        Map<Long, ProductSnapshot> result = adapter.findProducts(ENTERPRISE, List.of(1L, 2L, 3L, 4L, 1L),
+                DocumentKind.SALE);
+
+        assertThat(result).containsOnlyKeys(1L, 2L, 4L);
+        assertThat(result.get(1L).catalogTaxRate().value()).isEqualByComparingTo("5.00");
+        assertThat(result.get(2L).catalogTaxRate().value()).isEqualByComparingTo("16.00");
+        assertThat(result.get(4L).catalogTaxRate().value()).isEqualByComparingTo("5.00");
+        ArgumentCaptor<Collection<Long>> categories = ArgumentCaptor.forClass(Collection.class);
+        verify(vatRateResolver, times(1)).resolveAll(eq(ENTERPRISE), categories.capture());
+        assertThat(categories.getValue()).containsExactlyInAnyOrder(10L, 11L);
+        verify(productService, times(1)).findById(1L, ENTERPRISE);
+    }
+
+    @Test
+    void PRODUCT_batch_of_five_products_in_one_category_queries_active_taxes_once() {
+        ICategoryServicePort categoryService = mock(ICategoryServicePort.class);
+        ITaxSearchInputPort taxSearch = mock(ITaxSearchInputPort.class);
+        BillingVatRateResolver real = new BillingVatRateResolver(categoryService, taxSearch, new BillingProperties());
+        BillingProductAdapter realAdapter = new BillingProductAdapter(productService, unitOfMeasureService, real);
+        when(categoryService.findById(ENTERPRISE, 10L))
+                .thenReturn(Category.builder().id(10L).taxes(List.of(7L)).build());
+        when(taxSearch.getActiveTaxes(ENTERPRISE)).thenReturn(List.of(Tax.builder().id(7L).idEnterprise(ENTERPRISE)
+                .code("IVA5").description("IVA").interest(5.0).status(true).build()));
+        List<Long> ids = List.of(1L, 2L, 3L, 4L, 5L);
+        for (long id : ids) {
+            when(productService.findById(id, ENTERPRISE)).thenReturn(baseProduct().id(id).categoryId(10L).build());
+        }
+        when(unitOfMeasureService.findByIdAndEnterpriseId(UOM_ID, ENTERPRISE))
+                .thenReturn(UnitOfMeasure.builder().id(UOM_ID).name("Unidad").build());
+
+        Map<Long, ProductSnapshot> result = realAdapter.findProducts(ENTERPRISE, ids, DocumentKind.SALE);
+
+        assertThat(result).hasSize(5);
+        assertThat(result.values()).allSatisfy(s -> assertThat(s.catalogTaxRate().value()).isEqualByComparingTo("5.00"));
+        verify(taxSearch, times(1)).getActiveTaxes(ENTERPRISE);
+        verify(categoryService, times(1)).findById(ENTERPRISE, 10L);
     }
 
     @Test

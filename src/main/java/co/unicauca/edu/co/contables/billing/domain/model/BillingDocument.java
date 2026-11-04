@@ -164,11 +164,11 @@ public class BillingDocument {
         for (DocumentLine line : renumbered) {
             if (line.sourceLineNo() == null) {
                 throw new BillingException(BillingErrorCode.BILLING_INVALID_LINE,
-                        "Toda linea de devolucion debe referenciar una linea de la factura original");
+                        "Todo item de devolucion debe referenciar un item de la factura original");
             }
             if (!seen.add(line.sourceLineNo())) {
                 throw new BillingException(BillingErrorCode.BILLING_INVALID_LINE,
-                        "La linea " + line.sourceLineNo() + " de la factura original esta repetida");
+                        "El item " + line.sourceLineNo() + " de la factura original esta repetido");
             }
         }
 
@@ -272,7 +272,7 @@ public class BillingDocument {
         }
         if (type.isInvoice() && hasEmittedReturns) {
             throw new BillingException(BillingErrorCode.BILLING_HAS_EMITTED_RETURNS,
-                    "La factura tiene devoluciones emitidas; anule primero las devoluciones");
+                    "La factura ya tiene devoluciones emitidas y no puede anularse");
         }
         transitionTo(DocumentStatus.ANULADA);
         this.annulReason = trimmed;
@@ -462,7 +462,7 @@ public class BillingDocument {
             throw incomplete("El documento requiere tercero");
         }
         if (lines.isEmpty()) {
-            throw incomplete("El documento requiere al menos una linea");
+            throw incomplete("El documento requiere al menos un item");
         }
         if (type.isInvoice()) {
             if (!totals.total().isPositive()) {

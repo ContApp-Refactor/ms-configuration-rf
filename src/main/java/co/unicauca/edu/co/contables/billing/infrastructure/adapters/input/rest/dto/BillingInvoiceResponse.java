@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * Factura completa. Ids como string; {@code number} es el consecutivo con prefijo (FV-000123) o
  * nulo en borrador; {@code kind} es SALE o PURCHASE; {@code returnStatus} es derivado y puede ser
- * nulo.
+ * nulo; {@code issuer} es el emisor congelado al emitir (RN-06) y es nulo en borrador.
  */
 public record BillingInvoiceResponse(
         String id,
@@ -28,5 +28,6 @@ public record BillingInvoiceResponse(
         Instant emittedAt,
         Instant annulledAt,
         String annulReason,
-        Long version) {
+        Long version,
+        BillingIssuerResponse issuer) {
 }

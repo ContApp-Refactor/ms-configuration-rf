@@ -15,7 +15,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Resuelve referencias a otros modulos (tercero, productos, emisor) y las traduce a errores de
@@ -47,11 +46,18 @@ public class BillingReferenceResolver {
      */
     public Map<Long, ProductSnapshot> requireProducts(String enterpriseId, Collection<Long> productIds,
             DocumentKind kind) {
+        Collection<Long> ids = distinct(productIds);
+        if (ids.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        Map<Long, ProductSnapshot> available = products.findProducts(enterpriseId, ids, kind);
         Map<Long, ProductSnapshot> found = new LinkedHashMap<>();
-        for (Long productId : distinct(productIds)) {
-            ProductSnapshot snapshot = products.findProduct(enterpriseId, productId, kind)
-                    .orElseThrow(() -> new BillingException(BillingErrorCode.BILLING_PRODUCT_NOT_FOUND,
-                            "El producto " + productId + " no existe"));
+        for (Long productId : ids) {
+            ProductSnapshot snapshot = available == null ? null : available.get(productId);
+            if (snapshot == null) {
+                throw new BillingException(BillingErrorCode.BILLING_PRODUCT_NOT_FOUND,
+                        "El producto " + productId + " no existe");
+            }
             found.put(productId, snapshot);
         }
         return found;
@@ -60,12 +66,12 @@ public class BillingReferenceResolver {
     /** Como {@link #requireProducts} pero omite los inexistentes (lectura de un borrador, DRF-8). */
     public Map<Long, ProductSnapshot> tryProducts(String enterpriseId, Collection<Long> productIds,
             DocumentKind kind) {
-        Map<Long, ProductSnapshot> found = new LinkedHashMap<>();
-        for (Long productId : distinct(productIds)) {
-            Optional<ProductSnapshot> snapshot = products.findProduct(enterpriseId, productId, kind);
-            snapshot.ifPresent(value -> found.put(productId, value));
+        Collection<Long> ids = distinct(productIds);
+        if (ids.isEmpty()) {
+            return new LinkedHashMap<>();
         }
-        return found;
+        Map<Long, ProductSnapshot> available = products.findProducts(enterpriseId, ids, kind);
+        return available == null ? new LinkedHashMap<>() : available;
     }
 
     /** Emisor de la empresa; {@code ENTERPRISE_NOT_FOUND} si no existe. */

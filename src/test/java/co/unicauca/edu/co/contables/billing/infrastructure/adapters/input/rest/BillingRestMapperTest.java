@@ -6,6 +6,7 @@ import static co.unicauca.edu.co.contables.billing.support.BillingTestData.TODAY
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.USER;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.customer;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.emittedSale;
+import static co.unicauca.edu.co.contables.billing.support.BillingTestData.issuer;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.lineOf;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.money;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.product;
@@ -251,6 +252,23 @@ class BillingRestMapperTest {
         assertThat(response.emittedAt()).isEqualTo(doc.emittedAt());
         assertThat(response.annulledAt()).isNull();
         assertThat(response.annulReason()).isNull();
+    }
+
+    @Test
+    void RN_06_emitted_response_exposes_the_frozen_issuer() {
+        BillingInvoiceResponse response = mapper.toResponse(BillingDocumentView.of(emittedSale()));
+
+        assertThat(response.issuer()).isNotNull();
+        assertThat(response.issuer().enterpriseId()).isEqualTo(issuer().enterpriseId());
+        assertThat(response.issuer().name()).isEqualTo("Empresa Emisora SAS");
+        assertThat(response.issuer().nit()).isEqualTo("900123456");
+        assertThat(response.issuer().dv()).isEqualTo("1");
+        assertThat(response.issuer().active()).isTrue();
+    }
+
+    @Test
+    void RN_06_draft_response_has_no_issuer() {
+        assertThat(mapper.toResponse(BillingDocumentView.of(readySaleDraft())).issuer()).isNull();
     }
 
     @Test

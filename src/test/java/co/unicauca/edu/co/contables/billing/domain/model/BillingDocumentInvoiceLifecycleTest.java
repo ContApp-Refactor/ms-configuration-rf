@@ -454,6 +454,32 @@ class BillingDocumentInvoiceLifecycleTest {
         assertThat(doc.status()).isEqualTo(DocumentStatus.EMITIDA);
     }
 
+    @Test
+    void ANL_2_annul_with_returns_message_says_the_invoice_already_has_emitted_returns() {
+        BillingDocument doc = emittedSale();
+
+        assertThatThrownBy(() -> doc.annul("motivo", true, LATER, USER))
+                .isInstanceOf(BillingException.class)
+                .hasMessageContaining("ya tiene devoluciones emitidas")
+                .hasMessageContaining("no puede anularse")
+                .hasMessageNotContaining("anule primero");
+    }
+
+    @Test
+    void B6_user_facing_messages_use_item_instead_of_linea() {
+        BillingDocument empty = draftSale();
+        empty.replaceInvoiceDraft(customer(), TODAY, null, List.of(), NOW, USER);
+
+        assertThatThrownBy(empty::assertEmittable)
+                .isInstanceOf(BillingException.class)
+                .hasMessageContaining("al menos un item")
+                .hasMessageNotContaining("linea");
+        assertThatThrownBy(() -> DocumentLine.forReturn(1, emittedSale().lines().get(0), qty("999")))
+                .isInstanceOf(BillingException.class)
+                .hasMessageContaining("en el item 1")
+                .hasMessageNotContaining("linea");
+    }
+
     // ---------- RN-05 inmutabilidad ----------
 
     @Test

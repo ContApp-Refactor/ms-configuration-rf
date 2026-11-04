@@ -112,6 +112,22 @@ class BillingReturnRestMapperTest {
     // ---------- document -> BillingReturnResponse ----------
 
     @Test
+    void RN_06_emitted_return_response_exposes_the_frozen_issuer_and_draft_has_none() {
+        BillingDocument original = emittedSale();
+        BillingDocument draft = returnDraftOf(original, uuid(2), "producto defectuoso",
+                returnLineOf(original, 1, "1"));
+        BillingDocument emitted = emittedReturnOf(original, uuid(3), 3L, returnLineOf(original, 1, "1"));
+
+        assertThat(mapper.toReturnResponse(BillingDocumentView.of(draft)).issuer()).isNull();
+        BillingReturnResponse response = mapper.toReturnResponse(BillingDocumentView.of(emitted));
+        assertThat(response.issuer()).isNotNull();
+        assertThat(response.issuer().name()).isEqualTo("Empresa Emisora SAS");
+        assertThat(response.issuer().nit()).isEqualTo("900123456");
+        assertThat(response.issuer().dv()).isEqualTo("1");
+        assertThat(response.issuer().active()).isTrue();
+    }
+
+    @Test
     void RET_9_return_draft_response_references_the_original_and_inherits_price_in_cents() {
         BillingDocument original = emittedSale();
         BillingDocument draft = withVersion(

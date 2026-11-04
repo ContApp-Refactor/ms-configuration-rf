@@ -71,7 +71,8 @@ class BillingInvoiceDraftServiceTest {
     private BillingDocumentRepositoryPort repository;
     @Mock
     private ThirdPartyPort thirdParties;
-    @Mock
+    // findProducts (por lote) es un metodo default del puerto: delega en findProduct, que es lo que se stubbea
+    @Mock(answer = org.mockito.Answers.CALLS_REAL_METHODS)
     private ProductPort products;
     @Mock
     private EnterprisePort enterprises;

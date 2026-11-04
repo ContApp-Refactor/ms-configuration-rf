@@ -130,12 +130,12 @@ public class BillingReturnDraftService implements SaveReturnDraftUseCase {
             Objects.requireNonNull(command, "line");
             if (!seen.add(command.sourceLineNo())) {
                 throw new BillingException(BillingErrorCode.BILLING_INVALID_LINE,
-                        "La linea " + command.sourceLineNo() + " de la factura original esta repetida");
+                        "El item " + command.sourceLineNo() + " de la factura original esta repetido");
             }
             DocumentLine source = sourceByLineNo.get(command.sourceLineNo());
             if (source == null) {
                 throw new BillingException(BillingErrorCode.BILLING_RETURN_LINE_NOT_FOUND,
-                        "La factura no tiene la linea " + command.sourceLineNo());
+                        "La factura no tiene el item " + command.sourceLineNo());
             }
             lines.add(DocumentLine.forReturn(lineNo++, source, Quantity.of(command.quantity())));
         }
