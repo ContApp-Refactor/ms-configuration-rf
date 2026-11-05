@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,6 +33,7 @@ public class SkeletonFactureService {
     private final SkeletonFactureMapper mapper;
     private final PurchaseInvoiceOutboxService purchaseOutbox;
     private final PayableAccountDefaultResolver payableAccountDefaultResolver;
+    private final PurchaseProductCostSynchronizer productCostSynchronizer;
 
     @Transactional
     @FactureDocumentAuditable(operationType = DocumentOperationType.CREATE, moduleName = "INVOICES")
@@ -41,6 +43,7 @@ public class SkeletonFactureService {
         if (factureRepository.existsByFactCode(request.getFactCode())) throw new IllegalArgumentException("Ya existe una factura con el codigo: " + request.getFactCode());
         SkeletonFacture saved = factureRepository.save(mapper.toEntity(request));
         purchaseOutbox.enqueue(saved, "PURCHASE_INVOICE_CREATED");
+        productCostSynchronizer.syncProducts(saved);
         return mapper.toDetailDto(saved);
     }
 
@@ -54,10 +57,15 @@ public class SkeletonFactureService {
                     : current.getCreatedAt() != null ? current.getCreatedAt().toLocalDate() : LocalDate.now());
         }
         preparePurchaseRequest(request);
+        // Se capturan antes de limpiar: una línea eliminada deja de estar en la
+        // factura, pero su producto debe resincronizarse contra sus compras vigentes.
+        Set<Long> affectedProductIds = PurchaseProductCostSynchronizer.productIdsOf(current);
         SkeletonFacture replacement = mapper.toEntity(request);
         current.setFactCode(replacement.getFactCode());current.setEntId(replacement.getEntId());current.setThId(replacement.getThId());current.setTotalValue(replacement.getTotalValue());current.setTotalPay(replacement.getTotalPay());current.setPendingValue(replacement.getPendingValue());current.setIssueDate(replacement.getIssueDate());current.setExpirationDate(replacement.getExpirationDate());current.setAccountingAccount(replacement.getAccountingAccount());current.getProducts().clear();replacement.getProducts().forEach(current::addProduct);
         SkeletonFacture saved = factureRepository.save(current);
         purchaseOutbox.enqueue(saved, "PURCHASE_INVOICE_UPDATED");
+        affectedProductIds.addAll(PurchaseProductCostSynchronizer.productIdsOf(saved));
+        productCostSynchronizer.syncProducts(affectedProductIds);
         return mapper.toDetailDto(saved);
     }
 
@@ -65,7 +73,14 @@ public class SkeletonFactureService {
     public SkeletonFactureDetailDto voidPurchase(Long id) {
         SkeletonFacture current = factureRepository.findByIdWithProducts(id).orElseThrow(() -> new IllegalArgumentException("Factura de compra no encontrada"));
         if (current.getFactureType() != SkeletonFactureType.PURCHASE) throw new IllegalArgumentException("El documento no es una compra");
-        if (current.getPurchaseStatus() != PurchaseInvoiceStatus.VOIDED) {current.setPurchaseStatus(PurchaseInvoiceStatus.VOIDED);current.setVoidedAt(java.time.LocalDateTime.now());factureRepository.save(current);purchaseOutbox.enqueue(current,"PURCHASE_INVOICE_VOIDED");}
+        if (current.getPurchaseStatus() != PurchaseInvoiceStatus.VOIDED) {
+            current.setPurchaseStatus(PurchaseInvoiceStatus.VOIDED);
+            current.setVoidedAt(java.time.LocalDateTime.now());
+            factureRepository.save(current);
+            purchaseOutbox.enqueue(current, "PURCHASE_INVOICE_VOIDED");
+            // Recién después de marcar la anulación el recálculo deja de ver esta compra.
+            productCostSynchronizer.syncProducts(current);
+        }
         return mapper.toDetailDto(current);
     }
 

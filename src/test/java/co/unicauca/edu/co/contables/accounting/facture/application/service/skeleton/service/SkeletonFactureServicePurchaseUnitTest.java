@@ -2,6 +2,7 @@ package co.unicauca.edu.co.contables.accounting.facture.application.service.skel
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -14,6 +15,7 @@ import co.unicauca.edu.co.contables.accounting.facture.application.service.skele
 import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.model.PurchaseInvoiceStatus;
 import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.model.SkeletonFacture;
 import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.model.SkeletonFactureType;
+import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.model.SkeletonProduct;
 import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.repository.SkeletonFactureRepository;
 import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.repository.SkeletonReturnRepository;
 import java.util.List;
@@ -29,6 +31,7 @@ class SkeletonFactureServicePurchaseUnitTest {
     private SkeletonFactureMapper mapper;
     private PurchaseInvoiceOutboxService outbox;
     private PayableAccountDefaultResolver payableAccountDefaultResolver;
+    private PurchaseProductCostSynchronizer productCostSynchronizer;
     private SkeletonFactureService service;
 
     @BeforeEach
@@ -37,12 +40,14 @@ class SkeletonFactureServicePurchaseUnitTest {
         mapper = mock(SkeletonFactureMapper.class);
         outbox = mock(PurchaseInvoiceOutboxService.class);
         payableAccountDefaultResolver = mock(PayableAccountDefaultResolver.class);
+        productCostSynchronizer = mock(PurchaseProductCostSynchronizer.class);
         service = new SkeletonFactureService(
                 factureRepository,
                 mock(SkeletonReturnRepository.class),
                 mapper,
                 outbox,
-                payableAccountDefaultResolver);
+                payableAccountDefaultResolver,
+                productCostSynchronizer);
     }
 
     @Test
@@ -72,7 +77,8 @@ class SkeletonFactureServicePurchaseUnitTest {
                 mock(SkeletonReturnRepository.class),
                 realMapper,
                 outbox,
-                payableAccountDefaultResolver);
+                payableAccountDefaultResolver,
+                productCostSynchronizer);
         when(payableAccountDefaultResolver.resolveForPurchase(null, "enterprise-a")).thenReturn(2205L);
         when(factureRepository.save(org.mockito.ArgumentMatchers.any(SkeletonFacture.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -142,6 +148,79 @@ class SkeletonFactureServicePurchaseUnitTest {
         verify(mapper, never()).toDetailDto(invoice);
     }
 
+    @Test
+    void createPurchaseSynchronizesProductCosts() {
+        SkeletonFactureRequestDto request = request(1005L);
+        SkeletonFacture invoice = invoice(5L, PurchaseInvoiceStatus.ACTIVE);
+        when(payableAccountDefaultResolver.resolveForPurchase(null, "enterprise-a")).thenReturn(2205L);
+        when(mapper.toEntity(request)).thenReturn(invoice);
+        when(factureRepository.save(invoice)).thenReturn(invoice);
+        when(mapper.toDetailDto(invoice)).thenReturn(SkeletonFactureDetailDto.builder().id(5L).build());
+
+        service.createPurchase(request);
+
+        verify(productCostSynchronizer).syncProducts(invoice);
+    }
+
+    @Test
+    void updatePurchaseSynchronizesProductCosts() {
+        SkeletonFacture current = invoice(6L, PurchaseInvoiceStatus.ACTIVE);
+        current.setProducts(new java.util.HashSet<>(Set.of(line(30L))));
+        SkeletonFacture replacement = invoice(null, PurchaseInvoiceStatus.ACTIVE);
+        replacement.setProducts(new java.util.HashSet<>(Set.of(line(30L))));
+        SkeletonFactureRequestDto request = request(1006L);
+        when(payableAccountDefaultResolver.resolveForPurchase(null, "enterprise-a")).thenReturn(2205L);
+        when(factureRepository.findByIdWithProducts(6L)).thenReturn(Optional.of(current));
+        when(mapper.toEntity(request)).thenReturn(replacement);
+        when(factureRepository.save(current)).thenReturn(current);
+
+        service.updatePurchase(6L, request);
+
+        verify(productCostSynchronizer).syncProducts(
+                argThat((java.util.Collection<Long> ids) -> ids.contains(30L)));
+    }
+
+    @Test
+    void voidPurchaseRecalculatesProductCostsAfterMarkingTheInvoice() {
+        SkeletonFacture invoice = invoice(7L, PurchaseInvoiceStatus.ACTIVE);
+        when(factureRepository.findByIdWithProducts(7L)).thenReturn(Optional.of(invoice));
+
+        service.voidPurchase(7L);
+
+        verify(productCostSynchronizer).syncProducts(invoice);
+        assertThat(invoice.getPurchaseStatus()).isEqualTo(PurchaseInvoiceStatus.VOIDED);
+    }
+
+    @Test
+    void voidPurchaseSynchronizesOnlyOnTheFirstTransition() {
+        SkeletonFacture invoice = invoice(8L, PurchaseInvoiceStatus.ACTIVE);
+        when(factureRepository.findByIdWithProducts(8L)).thenReturn(Optional.of(invoice));
+
+        service.voidPurchase(8L);
+        service.voidPurchase(8L);
+
+        verify(productCostSynchronizer).syncProducts(invoice);
+    }
+
+    @Test
+    void updatePurchaseResynchronizesProductsRemovedFromTheInvoice() {
+        SkeletonFacture current = invoice(9L, PurchaseInvoiceStatus.ACTIVE);
+        current.setProducts(new java.util.HashSet<>(Set.of(line(10L), line(20L))));
+        SkeletonFacture replacement = invoice(null, PurchaseInvoiceStatus.ACTIVE);
+        replacement.setProducts(new java.util.HashSet<>(Set.of(line(20L))));
+        SkeletonFactureRequestDto request = request(1009L);
+        when(payableAccountDefaultResolver.resolveForPurchase(null, "enterprise-a")).thenReturn(2205L);
+        when(factureRepository.findByIdWithProducts(9L)).thenReturn(Optional.of(current));
+        when(mapper.toEntity(request)).thenReturn(replacement);
+        when(factureRepository.save(org.mockito.ArgumentMatchers.any(SkeletonFacture.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.updatePurchase(9L, request);
+
+        verify(productCostSynchronizer).syncProducts(
+                argThat((java.util.Collection<Long> ids) -> ids.contains(10L) && ids.contains(20L)));
+    }
+
     private SkeletonFactureRequestDto request(long code) {
         return SkeletonFactureRequestDto.builder()
                 .factCode(code)
@@ -149,6 +228,10 @@ class SkeletonFactureServicePurchaseUnitTest {
                 .factureType(SkeletonFactureType.PURCHASE)
                 .products(Set.of())
                 .build();
+    }
+
+    private SkeletonProduct line(Long productId) {
+        return SkeletonProduct.builder().productId(productId).unitPrice(1000.0).build();
     }
 
     private SkeletonFacture invoice(Long id, PurchaseInvoiceStatus status) {
