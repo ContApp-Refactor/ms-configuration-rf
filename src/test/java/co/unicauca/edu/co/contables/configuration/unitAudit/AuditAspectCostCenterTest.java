@@ -20,10 +20,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
-import co.unicauca.edu.co.contables.configuration.commons.audit.builder.AuditEventBuilder;
-import co.unicauca.edu.co.contables.configuration.commons.audit.publisher.AuditEventPublisher;
+import co.unicauca.edu.co.contables.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.commons.audit.annotation.OperationType;
+import co.unicauca.edu.co.contables.commons.audit.builder.AuditEventBuilder;
+import co.unicauca.edu.co.contables.commons.audit.publisher.AuditEventPublisher;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.audit.AuditAspectCostCenters;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.models.CostCenter;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.services.ICostCenterService;

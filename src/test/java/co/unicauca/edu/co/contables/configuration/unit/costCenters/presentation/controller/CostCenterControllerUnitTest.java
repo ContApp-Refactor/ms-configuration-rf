@@ -1,6 +1,6 @@
 package co.unicauca.edu.co.contables.configuration.unit.costCenters.presentation.controller;
 
-import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
+import co.unicauca.edu.co.contables.commons.utils.PaginationHelper;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.mapper.CostCenterDomainMapper;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.models.CostCenter;
 import co.unicauca.edu.co.contables.configuration.costCenters.domain.services.ICostCenterService;

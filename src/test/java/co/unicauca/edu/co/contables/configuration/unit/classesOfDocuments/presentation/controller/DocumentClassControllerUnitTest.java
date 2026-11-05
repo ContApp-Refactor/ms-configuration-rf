@@ -7,7 +7,7 @@ import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentatio
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassUpdateReq;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.response.DocumentClassRes;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.controller.DocumentClassController;
-import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
+import co.unicauca.edu.co.contables.commons.utils.PaginationHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

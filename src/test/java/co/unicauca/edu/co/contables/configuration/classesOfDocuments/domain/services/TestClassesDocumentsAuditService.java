@@ -4,8 +4,8 @@ import org.springframework.stereotype.Service;
 
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.models.DocumentClass;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassUpdateReq;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.OperationType;
+import co.unicauca.edu.co.contables.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.commons.audit.annotation.OperationType;
 
 @Service
 public class TestClassesDocumentsAuditService {

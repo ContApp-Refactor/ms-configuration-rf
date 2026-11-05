@@ -1,6 +1,6 @@
 package co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.controller;
 
-import co.unicauca.edu.co.contables.configuration.commons.utils.PaginationHelper;
+import co.unicauca.edu.co.contables.commons.utils.PaginationHelper;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.models.DocumentClass;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.services.IDocumentClassService;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.mapper.DocumentClassDomainMapper;

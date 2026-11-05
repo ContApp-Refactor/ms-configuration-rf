@@ -1,0 +1,50 @@
+-- ==============================================================================
+-- CIUDADES DE VALLE DEL CAUCA - COLOMBIA
+-- Todos los municipios del departamento de Valle del Cauca
+-- ==============================================================================
+
+INSERT INTO cities (ci_code, st_code, co_code, ci_name) VALUES
+-- Valle del Cauca - Municipios
+('76001', '76', 'COL', 'Cali'),
+('76020', '76', 'COL', 'Alcalá'),
+('76036', '76', 'COL', 'Andalucía'),
+('76041', '76', 'COL', 'Ansermanuevo'),
+('76054', '76', 'COL', 'Argelia'),
+('76100', '76', 'COL', 'Bolívar'),
+('76109', '76', 'COL', 'Buenaventura'),
+('76111', '76', 'COL', 'Guadalajara de Buga'),
+('76113', '76', 'COL', 'Bugalagrande'),
+('76122', '76', 'COL', 'Caicedonia'),
+('76126', '76', 'COL', 'Calima'),
+('76130', '76', 'COL', 'Candelaria'),
+('76147', '76', 'COL', 'Cartago'),
+('76233', '76', 'COL', 'Dagua'),
+('76243', '76', 'COL', 'El Águila'),
+('76246', '76', 'COL', 'El Cairo'),
+('76248', '76', 'COL', 'El Cerrito'),
+('76250', '76', 'COL', 'El Dovio'),
+('76275', '76', 'COL', 'Florida'),
+('76306', '76', 'COL', 'Ginebra'),
+('76318', '76', 'COL', 'Guacarí'),
+('76364', '76', 'COL', 'Jamundí'),
+('76377', '76', 'COL', 'La Cumbre'),
+('76400', '76', 'COL', 'La Unión'),
+('76403', '76', 'COL', 'La Victoria'),
+('76497', '76', 'COL', 'Obando'),
+('76520', '76', 'COL', 'Palmira'),
+('76563', '76', 'COL', 'Pradera'),
+('76606', '76', 'COL', 'Restrepo'),
+('76616', '76', 'COL', 'Riofrío'),
+('76622', '76', 'COL', 'Roldanillo'),
+('76670', '76', 'COL', 'San Pedro'),
+('76736', '76', 'COL', 'Sevilla'),
+('76823', '76', 'COL', 'Toro'),
+('76828', '76', 'COL', 'Trujillo'),
+('76834', '76', 'COL', 'Tuluá'),
+('76845', '76', 'COL', 'Ulloa'),
+('76863', '76', 'COL', 'Versalles'),
+('76869', '76', 'COL', 'Vijes'),
+('76890', '76', 'COL', 'Yotoco'),
+('76892', '76', 'COL', 'Yumbo'),
+('76895', '76', 'COL', 'Zarzal')
+ON CONFLICT (ci_code, st_code, co_code) DO NOTHING;

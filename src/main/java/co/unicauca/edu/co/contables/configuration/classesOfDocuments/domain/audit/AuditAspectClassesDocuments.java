@@ -13,10 +13,10 @@ import org.springframework.stereotype.Component;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.models.DocumentClass;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.domain.services.IDocumentClassService;
 import co.unicauca.edu.co.contables.configuration.classesOfDocuments.presentation.DTO.request.DocumentClassUpdateReq;
-import co.unicauca.edu.co.contables.configuration.commons.audit.annotation.Auditable;
-import co.unicauca.edu.co.contables.configuration.commons.audit.aspect.BaseAuditAspect;
-import co.unicauca.edu.co.contables.configuration.commons.audit.builder.AuditEventBuilder;
-import co.unicauca.edu.co.contables.configuration.commons.audit.publisher.AuditEventPublisher;
+import co.unicauca.edu.co.contables.commons.audit.annotation.Auditable;
+import co.unicauca.edu.co.contables.commons.audit.aspect.BaseAuditAspect;
+import co.unicauca.edu.co.contables.commons.audit.builder.AuditEventBuilder;
+import co.unicauca.edu.co.contables.commons.audit.publisher.AuditEventPublisher;
 import lombok.extern.slf4j.Slf4j;
 
 @Aspect

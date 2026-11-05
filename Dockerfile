@@ -1,38 +1,33 @@
 # Etapa 1: Build con dependencias cacheables
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM eclipse-temurin:17-jdk-alpine AS maven
 
-# 1. Directorio de trabajo
-WORKDIR /app
+WORKDIR /opt/app
 
-# 2. Copiar archivos necesarios para cachear dependencias
-COPY .mvn .mvn
-COPY mvnw pom.xml ./
-
-# 3. Preparar el entorno (dos2unix para compatibilidad)
+COPY .mvn ./.mvn
+COPY mvnw ./
 RUN apk add --no-cache dos2unix && \
     dos2unix ./mvnw && \
     chmod +x ./mvnw
-
-# 4. Descarga de dependencias para cacheo (sin compilar)
-RUN ./mvnw dependency:go-offline
-
-# 5. Copiar el código fuente (esto invalida el cache solo si cambia src/)
+COPY pom.xml .
+# lombok.config habilita lombok.copyableAnnotations para @Qualifier: sin el
+# archivo dentro de la imagen, @RequiredArgsConstructor no copia la anotacion al
+# parametro del constructor y el contexto Spring falla con NoUniqueBeanDefinition.
+COPY lombok.config .
 COPY src ./src
-
-# 6. Compilar y empaquetar (sin ejecutar tests para velocidad)
-RUN ./mvnw clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -f /opt/app/pom.xml package -DskipTests
 
 # Etapa 2: Imagen final liviana para producción
-FROM eclipse-temurin:17-jre-alpine AS main
+FROM eclipse-temurin:17-jre-alpine AS builder
+WORKDIR /opt/app
+COPY --from=maven /opt/app/target/*-SNAPSHOT.jar application.jar
+RUN java -Djarmode=layertools -jar application.jar extract
 
-# 7. Directorio de trabajo
-WORKDIR /app
 
-# 8. Copiar solo el artefacto necesario desde la etapa anterior
-COPY --from=builder /app/target/*.jar /usr/local/springboot-app.jar
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /application
+COPY --from=builder /opt/app/dependencies/ ./
+COPY --from=builder /opt/app/spring-boot-loader/ ./
+COPY --from=builder /opt/app/snapshot-dependencies/ ./
+COPY --from=builder /opt/app/application/ ./
+ENTRYPOINT ["java","org.springframework.boot.loader.launch.JarLauncher"]
 
-# 9. Exponer el puerto usado por Spring Boot (por defecto)
-EXPOSE 8080
-
-# 10. Comando de arranque
-CMD ["java", "-jar", "/usr/local/springboot-app.jar"]
