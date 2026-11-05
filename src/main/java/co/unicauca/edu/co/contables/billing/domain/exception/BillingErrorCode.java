@@ -25,6 +25,13 @@ public enum BillingErrorCode {
     BILLING_INACTIVE_REFERENCE(ErrorCategory.UNPROCESSABLE),
     BILLING_RETURN_QUANTITY_EXCEEDED(ErrorCategory.UNPROCESSABLE),
     BILLING_RETURN_LINE_NOT_FOUND(ErrorCategory.UNPROCESSABLE),
+    // Integracion de stock con Inventario (el movimiento de inventario rechazo la emision)
+    BILLING_STOCK_INSUFFICIENT(ErrorCategory.UNPROCESSABLE),
+    BILLING_STOCK_PRODUCT_NOT_AVAILABLE(ErrorCategory.UNPROCESSABLE),
+    BILLING_STOCK_QUANTITY_NOT_SUPPORTED(ErrorCategory.UNPROCESSABLE),
+    BILLING_STOCK_CONFIG_MISSING(ErrorCategory.UNPROCESSABLE),
+    BILLING_STOCK_ORIGINAL_NOT_FOUND(ErrorCategory.UNPROCESSABLE),
+    BILLING_STOCK_REJECTED(ErrorCategory.UNPROCESSABLE),
 
     // BAD_REQUEST
     BILLING_INVALID_LINE(ErrorCategory.BAD_REQUEST),
@@ -34,6 +41,7 @@ public enum BillingErrorCode {
     // FORBIDDEN / UNAVAILABLE / INTERNAL
     BILLING_FORBIDDEN(ErrorCategory.FORBIDDEN),
     BILLING_SEQUENCE_BUSY(ErrorCategory.UNAVAILABLE),
+    BILLING_STOCK_UNAVAILABLE(ErrorCategory.UNAVAILABLE),
     BILLING_INTERNAL_ERROR(ErrorCategory.INTERNAL);
 
     /** Categoria semantica del error (independiente de HTTP). */

@@ -26,6 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.Stock;
+import co.unicauca.edu.co.contables.inventory.stock.infrastructure.adapters.output.exception.customized.EntityDoesNotExistException;
 import co.unicauca.edu.co.contables.inventory.stock.infrastructure.adapters.output.exception.customized.GenericErrorException;
 import co.unicauca.edu.co.contables.inventory.peps.infrastructure.adapters.output.remoteSync.adapter.StockClientAdapter;
 import co.unicauca.edu.co.contables.inventory.stock.application.ports.input.IStockCommandPort;
@@ -145,9 +146,11 @@ class StockClientAdapterUnitTest {
     }
 
     @Test
-    @DisplayName("Should swallow a failure and report 500 when buying fails")
+    @DisplayName("Should report 500 when buying fails with an unexpected error")
     void testBuyStock_CommandPortThrows_ReportsGenericError() {
-        when(stockCommandPort.registerPurchase(any())).thenThrow(new IllegalStateException("stock unavailable"));
+        // Convertido: antes usaba IllegalStateException; ahora esa es una regla de negocio del
+        // dominio de stock (400). El 500 generico queda para errores inesperados.
+        when(stockCommandPort.registerPurchase(any())).thenThrow(new RuntimeException("stock unavailable"));
 
         stockClientAdapter.buyStock(pepsStock);
 
@@ -156,9 +159,9 @@ class StockClientAdapterUnitTest {
     }
 
     @Test
-    @DisplayName("Should swallow a failure and report 500 when selling fails")
+    @DisplayName("Should report 500 when selling fails with an unexpected error")
     void testSellStock_CommandPortThrows_ReportsGenericError() {
-        when(stockCommandPort.registerSale(any())).thenThrow(new IllegalStateException("stock unavailable"));
+        when(stockCommandPort.registerSale(any())).thenThrow(new RuntimeException("stock unavailable"));
 
         stockClientAdapter.sellStock(pepsStock);
 
@@ -167,9 +170,45 @@ class StockClientAdapterUnitTest {
     }
 
     @Test
+    @DisplayName("Should propagate stock module business exceptions untouched (e.g. stock not found)")
+    void testSellStock_BusinessExceptionIsPropagated() {
+        EntityDoesNotExistException notFound = new EntityDoesNotExistException(404, "No se encontro 10.");
+        when(stockCommandPort.registerSale(any())).thenThrow(notFound);
+
+        EntityDoesNotExistException thrown = assertThrows(EntityDoesNotExistException.class,
+            () -> stockClientAdapter.sellStock(pepsStock));
+
+        assertEquals(notFound, thrown);
+        verify(formatterResultOutputPort, never()).returnErrorGenericResponse(anyInt(), anyString());
+    }
+
+    @Test
+    @DisplayName("Should report insufficient stock as a 400 business rule when the stock domain rejects the exit")
+    void testSellStock_InvalidAmountIsInsufficientStock() {
+        when(stockCommandPort.registerSale(any())).thenThrow(new IllegalArgumentException("Invalid amount for exit"));
+
+        stockClientAdapter.sellStock(pepsStock);
+
+        verify(formatterResultOutputPort)
+            .returnBusinessRuleErrorResponse(400, "Insufficient stock in stock module: Invalid amount for exit");
+        verify(formatterResultOutputPort, never()).returnErrorGenericResponse(anyInt(), anyString());
+    }
+
+    @Test
+    @DisplayName("Should report an inactive stock as a 400 business rule")
+    void testBuyStock_InactiveStockIsBusinessRule() {
+        when(stockCommandPort.registerPurchase(any())).thenThrow(new IllegalStateException("Stock is not active"));
+
+        stockClientAdapter.buyStock(pepsStock);
+
+        verify(formatterResultOutputPort).returnBusinessRuleErrorResponse(400, "Stock is not active");
+        verify(formatterResultOutputPort, never()).returnErrorGenericResponse(anyInt(), anyString());
+    }
+
+    @Test
     @DisplayName("Should propagate the error when the formatter itself refuses the request")
     void testBuyStock_FormatterThrows_PropagatesError() {
-        when(stockCommandPort.registerPurchase(any())).thenThrow(new IllegalStateException("stock unavailable"));
+        when(stockCommandPort.registerPurchase(any())).thenThrow(new RuntimeException("stock unavailable"));
         doThrow(new GenericErrorException(500, "Unexpected error communicating with stock service"))
             .when(formatterResultOutputPort).returnErrorGenericResponse(anyInt(), anyString());
 
@@ -182,7 +221,7 @@ class StockClientAdapterUnitTest {
     @Test
     @DisplayName("Should propagate the error on the sale path too")
     void testSellStock_FormatterThrows_PropagatesError() {
-        when(stockCommandPort.registerSale(any())).thenThrow(new IllegalStateException("stock unavailable"));
+        when(stockCommandPort.registerSale(any())).thenThrow(new RuntimeException("stock unavailable"));
         doThrow(new GenericErrorException(500, "Unexpected error communicating with stock service"))
             .when(formatterResultOutputPort).returnErrorGenericResponse(anyInt(), anyString());
 

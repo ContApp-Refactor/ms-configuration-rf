@@ -18,6 +18,7 @@ import co.unicauca.edu.co.contables.inventory.kardex.domain.model.Stock;
 import co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.output.remoteSync.adapter.StockClientAdapter;
 import co.unicauca.edu.co.contables.inventory.stock.application.ports.input.IStockCommandPort;
 import co.unicauca.edu.co.contables.inventory.stock.domain.port.IFormatterResultOutputPort;
+import co.unicauca.edu.co.contables.inventory.stock.infrastructure.adapters.output.exception.customized.EntityDoesNotExistException;
 import co.unicauca.edu.co.contables.inventory.stock.infrastructure.adapters.output.exception.customized.GenericErrorException;
 
 /**
@@ -205,6 +206,44 @@ class StockClientAdapterUnitTest {
         GenericErrorException thrown = assertThrows(GenericErrorException.class,
             () -> stockClientAdapter.sellStock(stock));
         assertEquals("Unexpected error communicating with stock service", thrown.getMessage());
+    }
+
+    @Test
+    @DisplayName("Should propagate stock module business exceptions untouched (e.g. stock not found)")
+    void testSellStock_BusinessExceptionIsPropagated() {
+        EntityDoesNotExistException notFound = new EntityDoesNotExistException(404, "No se encontro 1.");
+        when(stockCommandPort.registerSale(any())).thenThrow(notFound);
+
+        EntityDoesNotExistException thrown = assertThrows(EntityDoesNotExistException.class,
+            () -> stockClientAdapter.sellStock(stock));
+
+        assertSame(notFound, thrown);
+        verify(formatterResultOutputPort, never()).returnErrorGenericResponse(anyInt(), anyString());
+    }
+
+    @Test
+    @DisplayName("Should report insufficient stock as a 400 business rule when the stock domain rejects the exit")
+    void testSellStock_InvalidAmountIsInsufficientStock() {
+        when(stockCommandPort.registerSale(any())).thenThrow(new IllegalArgumentException("Invalid amount for exit"));
+
+        stockClientAdapter.sellStock(stock);
+
+        verify(formatterResultOutputPort)
+            .returnBusinessRuleErrorResponse(400, "Insufficient stock in stock module: Invalid amount for exit");
+        verify(formatterResultOutputPort, never()).returnErrorGenericResponse(anyInt(), anyString());
+    }
+
+    @Test
+    @DisplayName("Should report an inactive stock as a 400 business rule on buy and sell")
+    void testInactiveStockIsBusinessRule() {
+        when(stockCommandPort.registerPurchase(any())).thenThrow(new IllegalStateException("Stock is not active"));
+        when(stockCommandPort.registerSale(any())).thenThrow(new IllegalStateException("Stock is not active"));
+
+        stockClientAdapter.buyStock(stock);
+        stockClientAdapter.sellStock(stock);
+
+        verify(formatterResultOutputPort, times(2)).returnBusinessRuleErrorResponse(400, "Stock is not active");
+        verify(formatterResultOutputPort, never()).returnErrorGenericResponse(anyInt(), anyString());
     }
 
     @Test
