@@ -14,7 +14,7 @@ COPY pom.xml .
 # parametro del constructor y el contexto Spring falla con NoUniqueBeanDefinition.
 COPY lombok.config .
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 ./mvnw -f /opt/app/pom.xml package -DskipTests
+RUN --mount=type=cache,target=/root/.m2/repository ./mvnw  -f /opt/app/pom.xml package -Dmaven.test.skip=true
 
 # Etapa 2: Imagen final liviana para producción
 FROM eclipse-temurin:17-jre-alpine AS builder
