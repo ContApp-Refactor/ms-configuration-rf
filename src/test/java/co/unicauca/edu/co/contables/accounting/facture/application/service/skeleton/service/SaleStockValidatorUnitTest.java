@@ -3,6 +3,7 @@ package co.unicauca.edu.co.contables.accounting.facture.application.service.skel
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,6 +19,10 @@ import co.unicauca.edu.co.contables.accounting.facture.application.service.skele
 import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.dto.SkeletonProductRequestDto;
 import co.unicauca.edu.co.contables.inventory.peps.application.ports.input.IKardexQueryPort;
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.Kardex;
+import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IProductServicePort;
+import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IProductTypeServicePort;
+import co.unicauca.edu.co.contables.inventory.products.domain.model.Product;
+import co.unicauca.edu.co.contables.inventory.products.domain.model.ProductType;
 import co.unicauca.edu.co.contables.inventory.stock.domain.port.IMessageServicePort;
 
 /**
@@ -29,6 +34,8 @@ class SaleStockValidatorUnitTest {
 
     private IKardexQueryPort kardexQueryPort;
     private IMessageServicePort messageService;
+    private IProductServicePort productServicePort;
+    private IProductTypeServicePort productTypeServicePort;
     private SaleStockValidator validator;
 
     @BeforeEach
@@ -45,7 +52,33 @@ class SaleStockValidatorUnitTest {
                 return defaultMessage;
             }
         };
-        validator = new SaleStockValidator(kardexQueryPort, messageService);
+        productServicePort = mock(IProductServicePort.class);
+        productTypeServicePort = mock(IProductTypeServicePort.class);
+        // Por defecto los productos del test son inventariables: se valida stock.
+        when(productServicePort.findById(anyLong(), any())).thenReturn(productOfType(5L));
+        when(productTypeServicePort.getProductTypeByIdAndEnterpriseId(anyLong(), any()))
+                .thenReturn(typeInventoryable(true));
+        validator = new SaleStockValidator(
+                kardexQueryPort, messageService, productServicePort, productTypeServicePort);
+    }
+
+    @Test
+    void skipsValidationWhenTheProductTypeIsNotInventoryable() {
+        when(productTypeServicePort.getProductTypeByIdAndEnterpriseId(anyLong(), any()))
+                .thenReturn(typeInventoryable(false));
+
+        assertThatCode(() -> validator.validate(request(line(10L, 9999))))
+                .doesNotThrowAnyException();
+
+        verify(kardexQueryPort, never()).getKardexAvailableQuantityByProduct(anyLong());
+    }
+
+    @Test
+    void stillValidatesWhenTheProductTypeCannotBeDetermined() {
+        when(productServicePort.findById(anyLong(), any())).thenThrow(new RuntimeException("producto inexistente"));
+
+        assertThatThrownBy(() -> validator.validate(request(line(10L, 8))))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -114,6 +147,14 @@ class SaleStockValidatorUnitTest {
 
     private Kardex lot(int availableQuantity) {
         return Kardex.builder().availableQuantity(availableQuantity).build();
+    }
+
+    private Product productOfType(Long productTypeId) {
+        return Product.builder().id(10L).productTypeId(productTypeId).enterpriseId("enterprise-a").build();
+    }
+
+    private ProductType typeInventoryable(boolean inventoryable) {
+        return ProductType.builder().id(5L).inventoryable(inventoryable).build();
     }
 
     private SkeletonProductRequestDto line(Long productId, int amount) {

@@ -9,6 +9,10 @@ import co.unicauca.edu.co.contables.accounting.facture.application.service.skele
 import co.unicauca.edu.co.contables.inventory.peps.application.ports.input.IKardexQueryPort;
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.Kardex;
 import co.unicauca.edu.co.contables.inventory.peps.infrastructure.adapters.config.i18n.MessageKeys;
+import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IProductServicePort;
+import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IProductTypeServicePort;
+import co.unicauca.edu.co.contables.inventory.products.domain.model.Product;
+import co.unicauca.edu.co.contables.inventory.products.domain.model.ProductType;
 import co.unicauca.edu.co.contables.inventory.stock.domain.port.IMessageServicePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +31,8 @@ public class SaleStockValidator {
 
     private final IKardexQueryPort kardexQueryPort;
     private final IMessageServicePort messageService;
+    private final IProductServicePort productServicePort;
+    private final IProductTypeServicePort productTypeServicePort;
 
     /**
      * @brief Rechaza la venta si alguna línea pide más de lo disponible en el kardex
@@ -41,6 +47,10 @@ public class SaleStockValidator {
             if (line == null || line.getProductId() == null) {
                 continue;
             }
+            if (skipStockCheck(line.getProductId(), request.getEntId())) {
+                log.debug("Producto {} no inventariable: se omite la validacion de stock", line.getProductId());
+                continue;
+            }
             int requested = line.getAmount() == null ? 0 : line.getAmount();
             int available = availableQuantity(line.getProductId());
             if (requested > available) {
@@ -49,6 +59,33 @@ public class SaleStockValidator {
                 throw new IllegalArgumentException(
                         messageService.getMessage(MessageKeys.ERROR_INSUFFICIENT_STOCK, requested, available));
             }
+        }
+    }
+
+    /**
+     * @brief Indica si la linea queda fuera del control de stock por no ser inventariable
+     *
+     * El kardex solo gobierna los productos inventariables (HU1): un producto que no
+     * lo es nunca acumula lotes, por lo que validarlo lo dejaría sin venta posible.
+     * Si no se puede determinar la clasificación se valida de todos modos.
+     *
+     * @param productId producto de la linea
+     * @param enterpriseId empresa de la factura
+     * @return true si el tipo de producto no es inventariable
+     */
+    private boolean skipStockCheck(Long productId, String enterpriseId) {
+        try {
+            Product product = productServicePort.findById(productId, enterpriseId);
+            if (product == null || product.getProductTypeId() == null) {
+                return false;
+            }
+            ProductType productType =
+                    productTypeServicePort.getProductTypeByIdAndEnterpriseId(product.getProductTypeId(), enterpriseId);
+            return productType != null && !productType.isInventoryable();
+        } catch (RuntimeException e) {
+            log.debug("No se pudo determinar si el producto {} es inventariable ({}); se valida stock",
+                    productId, e.getMessage());
+            return false;
         }
     }
 
