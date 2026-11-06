@@ -42,3 +42,6 @@ node_modules/
 
 package-lock.json
 package.json
+
+docs/RABBITMQ_MATRIX.md
+docs/RABBITMQ_MIGRATION_PLAN.md
