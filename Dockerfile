@@ -16,7 +16,7 @@ COPY lombok.config .
 
 # Resolve dependencies independently of source changes
 RUN --mount=type=cache,id=maven-repository,target=/root/.m2/repository \
-    ./mvnw dependency:go-offline -B
+    ./mvnw dependency:go-offline -B -ntp
 
 COPY src ./src
 RUN --mount=type=cache,id=maven-repository,target=/root/.m2/repository ./mvnw  -f /opt/app/pom.xml package -Dmaven.test.skip=true -B -ntp
