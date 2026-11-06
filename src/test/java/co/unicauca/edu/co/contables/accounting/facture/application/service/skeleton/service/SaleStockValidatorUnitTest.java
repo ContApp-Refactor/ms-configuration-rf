@@ -145,6 +145,26 @@ class SaleStockValidatorUnitTest {
         verify(kardexQueryPort, never()).getKardexAvailableQuantityByProduct(any());
     }
 
+    @Test
+    void validateLineRejectsASingleLineWithoutEnoughStock() {
+        when(kardexQueryPort.getKardexAvailableQuantityByProduct(12L)).thenReturn(List.of(lot(30)));
+
+        assertThatThrownBy(() -> validator.validateLine("enterprise-a", 12L, 40.0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Solicitado: 40")
+                .hasMessageContaining("Disponible: 30");
+    }
+
+    @Test
+    void validateLineAcceptsALineWithinTheAvailableStock() {
+        when(kardexQueryPort.getKardexAvailableQuantityByProduct(12L)).thenReturn(List.of(lot(30)));
+
+        assertThatCode(() -> validator.validateLine("enterprise-a", 12L, 25))
+                .doesNotThrowAnyException();
+
+        verify(kardexQueryPort).getKardexAvailableQuantityByProduct(12L);
+    }
+
     private Kardex lot(int availableQuantity) {
         return Kardex.builder().availableQuantity(availableQuantity).build();
     }

@@ -47,18 +47,37 @@ public class SaleStockValidator {
             if (line == null || line.getProductId() == null) {
                 continue;
             }
-            if (skipStockCheck(line.getProductId(), request.getEntId())) {
-                log.debug("Producto {} no inventariable: se omite la validacion de stock", line.getProductId());
-                continue;
-            }
-            int requested = line.getAmount() == null ? 0 : line.getAmount();
-            int available = availableQuantity(line.getProductId());
-            if (requested > available) {
-                log.info("Venta rechazada por stock insuficiente - producto {}, solicitado {}, disponible {}",
-                        line.getProductId(), requested, available);
-                throw new IllegalArgumentException(
-                        messageService.getMessage(MessageKeys.ERROR_INSUFFICIENT_STOCK, requested, available));
-            }
+            validateLine(request.getEntId(), line.getProductId(), line.getAmount());
+        }
+    }
+
+    /**
+     * @brief Valida una linea de venta contra el kardex
+     *
+     * Compartido por POST /api/factures/skeleton/sale y por
+     * POST /api/factures/ (FactureRestAdapter), que es el camino que usa
+     * el front de Factura de Venta.
+     *
+     * @param enterpriseId empresa de la factura
+     * @param productId producto de la linea
+     * @param requestedAmount cantidad pedida
+     * @throws IllegalArgumentException si no hay stock suficiente
+     */
+    public void validateLine(String enterpriseId, Long productId, Number requestedAmount) {
+        if (productId == null) {
+            return;
+        }
+        if (skipStockCheck(productId, enterpriseId)) {
+            log.debug("Producto {} no inventariable: se omite la validacion de stock", productId);
+            return;
+        }
+        int requested = requestedAmount == null ? 0 : requestedAmount.intValue();
+        int available = availableQuantity(productId);
+        if (requested > available) {
+            log.info("Venta rechazada por stock insuficiente - producto {}, solicitado {}, disponible {}",
+                    productId, requested, available);
+            throw new IllegalArgumentException(
+                    messageService.getMessage(MessageKeys.ERROR_INSUFFICIENT_STOCK, requested, available));
         }
     }
 
