@@ -34,3 +34,11 @@ build/
 
 # Agent instructions
 AGENTS.md
+
+# Environment variables
+.env.merged
+
+node_modules/
+
+package-lock.json
+package.json
