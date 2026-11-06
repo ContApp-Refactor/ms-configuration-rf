@@ -82,7 +82,6 @@ public class UnitMeasureRestController {
                                 unitOfMeasureServicePort.findByIdAndEnterpriseId(id, enterpriseId));
         }
 
-        @PreAuthorize("hasAuthority('UM#C')")
         @PostMapping("/create")
         public ResponseEntity<UnitOfMeasureResponse> create(
                         @Valid @RequestBody UnitOfMeasureCreateRequest unitOfMeasureCreateRequest) {
