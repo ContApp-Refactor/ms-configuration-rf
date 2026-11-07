@@ -82,6 +82,14 @@ public class EnterpriseServiceImpl implements IEnterpriseService {
         current.setPersonType(personTypeDataMapper.toEntity(enterprise.getPersonType()));
         current.setLocation(locationDataMapper.toEntity(enterprise.getLocation()));
 
+        // Este update copia los campos uno por uno y se saltaba el método de valoración,
+        // así que la empresa nunca guardaba la selección hecha en el formulario
+        // (el PUT devolvía 200 y el valor seguía vacío). Solo se pisa cuando viene
+        // informado, para no vaciar lo que ya hubiera.
+        if (enterprise.getInventoryConfigurationType() != null) {
+            current.setInventoryConfigurationType(enterprise.getInventoryConfigurationType());
+        }
+
         repository.save(current);
 
         if (previousLocationId != null) {
