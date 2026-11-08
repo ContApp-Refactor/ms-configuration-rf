@@ -24,7 +24,8 @@ import org.springframework.stereotype.Component;
  * Catalogo de productos resuelto <strong>en el mismo proceso</strong> mediante los puertos de
  * entrada del modulo inventory (D8, H0-1): precio de referencia = {@code Product.cost} (escala 2,
  * HALF_UP) tanto en ventas como en compras (provisional, RN-30) e IVA = el de la categoria del
- * producto segun {@link BillingVatRateResolver} (con {@code billing.default-vat-rate} como respaldo).
+ * producto segun {@link BillingVatRateResolver} (con {@code billing.default-vat-rate} como respaldo),
+ * junto con su desglose por impuesto.
  * Se devuelven tambien los productos inactivos ({@code active=false}); la unidad de medida
  * inexistente solo deja el nombre en {@code null}.
  */
@@ -49,7 +50,7 @@ public class BillingProductAdapter implements ProductPort {
             return Optional.empty();
         }
         return Optional.of(snapshot(enterpriseId, productId, product,
-                vatRateResolver.resolve(enterpriseId, product.getCategoryId())));
+                vatRateResolver.resolveBreakdown(enterpriseId, product.getCategoryId())));
     }
 
     /**
@@ -72,7 +73,8 @@ public class BillingProductAdapter implements ProductPort {
         }
         Set<Long> categoryIds = new LinkedHashSet<>();
         loaded.values().forEach(product -> categoryIds.add(product.getCategoryId()));
-        Map<Long, BigDecimal> rates = vatRateResolver.resolveAll(enterpriseId, categoryIds);
+        Map<Long, BillingVatRateResolver.Resolution> rates =
+                vatRateResolver.resolveAllBreakdowns(enterpriseId, categoryIds);
         Map<Long, ProductSnapshot> found = new LinkedHashMap<>();
         loaded.forEach((productId, product) -> found.put(productId,
                 snapshot(enterpriseId, productId, product, rates.get(product.getCategoryId()))));
@@ -87,7 +89,8 @@ public class BillingProductAdapter implements ProductPort {
         }
     }
 
-    private ProductSnapshot snapshot(String enterpriseId, long productId, Product product, BigDecimal vatRate) {
+    private ProductSnapshot snapshot(String enterpriseId, long productId, Product product,
+            BillingVatRateResolver.Resolution vat) {
         return new ProductSnapshot(
                 productId,
                 product.getCode(),
@@ -95,8 +98,9 @@ public class BillingProductAdapter implements ProductPort {
                 product.getUnitOfMeasureId(),
                 unitOfMeasureName(product.getUnitOfMeasureId(), enterpriseId),
                 Money.of(BigDecimal.valueOf(product.getCost())),
-                TaxRate.of(vatRate),
-                product.isState());
+                TaxRate.of(vat.rate()),
+                product.isState(),
+                vat.taxes());
     }
 
     private String unitOfMeasureName(Long unitOfMeasureId, String enterpriseId) {

@@ -47,10 +47,12 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentNumber;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentStatus;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
+import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Quantity;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnLineAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnStatus;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.commons.multitenancy.utils.TenantContext;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -267,6 +269,31 @@ class BillingDocumentPersistenceAdapterTest {
         assertThat(status).isEqualTo("BORRADOR");
         assertThat(tenant).isEqualTo(TENANT_A);
         assertThat(lineTenant).isEqualTo(TENANT_A);
+    }
+
+    // ---------- desglose de impuestos (columna tax_breakdown) ----------
+
+    @Test
+    void TAXES_breakdown_round_trips_through_the_database_and_old_rows_without_it_still_load() {
+        ProductSnapshot taxed = new ProductSnapshot(1L, "P1", "Producto 1", 1L, "Unidad", money("100.00"),
+                rate("26"), true, List.of(TaxComponent.of("Ica", new BigDecimal("6")),
+                        TaxComponent.of("SalD", new BigDecimal("8")), TaxComponent.of("Iva", new BigDecimal("12"))));
+        BillingDocument doc = draftSale();
+        doc.replaceInvoiceDraft(customer(), TODAY, null, List.of(
+                DocumentLine.forInvoice(1, taxed, Quantity.of(new BigDecimal("1")), null, null),
+                lineOf(2, product(2L), "1")), NOW, USER);
+        BillingDocument saved = adapter.save(doc);
+        flushAndClear();
+
+        BillingDocument found = adapter.findById(ENTERPRISE_ID, saved.id()).orElseThrow();
+
+        assertThat(found.state()).isEqualTo(saved.state());
+        assertThat(found.lines().get(0).taxes()).extracting(TaxComponent::name).containsExactly("Ica", "SalD", "Iva");
+        assertThat(found.lines().get(0).taxAmount().value()).isEqualByComparingTo("26.00");
+        assertThat(found.lines().get(1).taxes()).isEmpty();
+        String stored = jdbc.queryForObject(
+                "select tax_breakdown from billing_document_lines where line_no = 2", String.class);
+        assertThat(stored).as("linea sin impuestos de categoria: columna nula, como las viejas").isNull();
     }
 
     // ---------- version ----------

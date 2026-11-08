@@ -47,6 +47,9 @@ public class EnterpriseServiceImpl implements IEnterpriseService {
     public Enterprise create(Enterprise enterprise) {
         enterprise.setLocation(locationService.create(enterprise.getLocation()));
         enterprise.setPersonType(personTypeService.create(enterprise.getPersonType()));
+        if (enterprise.getInventoryConfigurationType() == null) {
+            enterprise.setInventoryConfigurationType(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
+        }
 
         EnterpriseEntity entity = dataMapper.toEntity(enterprise);
         if (entity == null) {
@@ -81,6 +84,9 @@ public class EnterpriseServiceImpl implements IEnterpriseService {
         current.setEnterpriseType(enterpriseTypeDataMapper.toEntity(enterprise.getEnterpriseType()));
         current.setPersonType(personTypeDataMapper.toEntity(enterprise.getPersonType()));
         current.setLocation(locationDataMapper.toEntity(enterprise.getLocation()));
+        if (enterprise.getInventoryConfigurationType() != null) {
+            current.setInventoryConfigurationType(enterprise.getInventoryConfigurationType());
+        }
 
         repository.save(current);
 

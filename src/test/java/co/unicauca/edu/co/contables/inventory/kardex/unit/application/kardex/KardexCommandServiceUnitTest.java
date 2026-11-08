@@ -172,6 +172,45 @@ public class KardexCommandServiceUnitTest {
     }
     
     @Test
+    @DisplayName("Should reject sale when quantity exceeds current balance")
+    void testRegisterSaleRejectsWhenQuantityExceedsBalance() {
+        // Arrange
+        lastKardex.setBalanceQuantity(5);
+        kardex.setType(MovementType.SALE);
+        when(kardexQueryRepositoryPort.getLatestKardexByProductId(1L)).thenReturn(lastKardex);
+        when(validationService.validateBusinessRulesAndGetProduct("FACT001", 1L, MovementType.SALE))
+            .thenReturn(product);
+        doThrow(new IllegalStateException("insufficient")).when(formatterResultOutputPort)
+            .returnBusinessRuleErrorResponse(eq(400), any());
+
+        // Act & Assert
+        assertThrows(IllegalStateException.class, () -> kardexCommandService.registerSale(kardex));
+        verify(formatterResultOutputPort).returnBusinessRuleErrorResponse(eq(400), any());
+        verify(stockIntegrationService, never()).callApiStockService(any(), anyBoolean());
+        verify(kardexCommandRepositoryPort, never()).registerSale(any());
+    }
+
+    @Test
+    @DisplayName("Should reject purchase return when quantity exceeds current balance")
+    void testRegisterReturnOnPurchaseRejectsWhenQuantityExceedsBalance() {
+        // Arrange
+        lastKardex.setBalanceQuantity(5);
+        kardex.setType(MovementType.PURCHASERETURN);
+        when(returnService.getUnitPriceIfReturnAllowed("FACT001", 10, 1L, MovementType.PURCHASE))
+            .thenReturn(new BigDecimal("25.50"));
+        when(kardexQueryRepositoryPort.getLatestKardexByProductId(1L)).thenReturn(lastKardex);
+        when(validationService.validateBusinessRulesAndGetProduct("FACT001", 1L, MovementType.PURCHASERETURN))
+            .thenReturn(product);
+        doThrow(new IllegalStateException("insufficient")).when(formatterResultOutputPort)
+            .returnBusinessRuleErrorResponse(eq(400), any());
+
+        // Act & Assert
+        assertThrows(IllegalStateException.class, () -> kardexCommandService.registerReturnOnPurchase(kardex));
+        verify(stockIntegrationService, never()).callApiStockService(any(), anyBoolean());
+        verify(kardexCommandRepositoryPort, never()).registerReturnOnPurchase(any());
+    }
+
+    @Test
     @DisplayName("Should register purchase return successfully")
     void testRegisterReturnOnPurchase() {
         // Arrange

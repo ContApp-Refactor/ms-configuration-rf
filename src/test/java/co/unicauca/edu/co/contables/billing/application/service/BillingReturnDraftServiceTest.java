@@ -45,6 +45,8 @@ import co.unicauca.edu.co.contables.billing.domain.model.BillingDocument;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentLine;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentStatus;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
+import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -186,6 +188,40 @@ class BillingReturnDraftServiceTest {
         assertThat(created.totals().subtotal()).isEqualTo(money("600.00"));
         assertThat(created.totals().tax()).isEqualTo(money("30.00"));
         assertThat(created.totals().total()).isEqualTo(money("630.00"));
+    }
+
+    @Test
+    void TAXES_return_line_inherits_the_frozen_breakdown_of_the_original_line() {
+        ProductSnapshot taxed = new ProductSnapshot(1L, "P1", "Producto 1", 1L, "Unidad", money("100.00"),
+                rate("26"), true, List.of(TaxComponent.of("Ica", new BigDecimal("6")),
+                        TaxComponent.of("SalD", new BigDecimal("8")), TaxComponent.of("Iva", new BigDecimal("12"))));
+        BillingDocument original = emittedInvoice(ORIGINAL_ID, DocumentType.SALE_INVOICE, 7L, List.of(
+                DocumentLine.forInvoice(1, taxed, qty("10"), null, null),
+                DocumentLine.forInvoice(2, taxed, qty("10"), null, rate("5"))));
+        stored(original);
+        returnsOfOriginal();
+
+        BillingDocument created = create(command(null, "motivo", null, line(1, "4"), line(2, "1")));
+
+        DocumentLine inherited = created.lines().get(0);
+        assertThat(inherited.taxes()).isEqualTo(original.lines().get(0).taxes());
+        assertThat(inherited.taxes()).extracting(TaxComponent::name).containsExactly("Ica", "SalD", "Iva");
+        assertThat(inherited.taxAmount()).isEqualTo(money("104.00")); // 400.00 x 26%
+        // linea original con IVA editado: la devolucion muestra un valor unico
+        assertThat(created.lines().get(1).taxes()).isEmpty();
+        assertThat(created.lines().get(1).taxRate()).isEqualTo(rate("5"));
+    }
+
+    @Test
+    void TAXES_return_of_an_original_without_breakdown_keeps_a_single_value() {
+        BillingDocument original = saleOriginal(); // documento viejo: sin desglose guardado
+        stored(original);
+        returnsOfOriginal();
+
+        BillingDocument created = create(command(null, "motivo", null, line(1, "1")));
+
+        assertThat(created.lines().get(0).taxes()).isEmpty();
+        assertThat(created.lines().get(0).taxRate()).isEqualTo(rate("19"));
     }
 
     @Test
