@@ -19,10 +19,12 @@ import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnLineAvailability;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingDocumentSummaryResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceLineResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingIssuerResponse;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingLineTaxResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnLineResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingTotalsResponse;
@@ -158,7 +160,13 @@ public class BillingRestMapper {
                 line.taxOverridden(),
                 BillingCents.cents(line.subtotal()),
                 BillingCents.cents(line.taxAmount()),
-                BillingCents.cents(line.total()));
+                BillingCents.cents(line.total()),
+                toTaxes(line.taxes()));
+    }
+
+    /** Desglose efectivo de la linea; lista vacia (nunca nula) si se muestra un valor unico. */
+    private static List<BillingLineTaxResponse> toTaxes(List<TaxComponent> taxes) {
+        return taxes.stream().map(t -> new BillingLineTaxResponse(t.name(), t.rate())).toList();
     }
 
     private static BillingTotalsResponse toTotals(DocumentTotals totals) {
@@ -256,7 +264,8 @@ public class BillingRestMapper {
                 line.taxRate().value(),
                 BillingCents.cents(line.subtotal()),
                 BillingCents.cents(line.taxAmount()),
-                BillingCents.cents(line.total()));
+                BillingCents.cents(line.total()),
+                toTaxes(line.taxes()));
     }
 
     public ReturnSummaryResponse toReturnSummaryResponse(ReturnSummary returnSummary) {
@@ -301,7 +310,8 @@ public class BillingRestMapper {
                 line.returned(),
                 line.available(),
                 BillingCents.cents(line.unitPrice()),
-                line.taxRate().value());
+                line.taxRate().value(),
+                toTaxes(line.taxes()));
     }
 
     public InvoiceWithReturnsResponse toWithReturnsResponse(InvoiceWithReturnsSummary row) {

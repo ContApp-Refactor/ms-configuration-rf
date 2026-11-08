@@ -14,9 +14,14 @@ import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Money;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
 import co.unicauca.edu.co.contables.billing.domain.model.Quantity;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxRate;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentEntity;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentLineEntity;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -35,6 +40,9 @@ import org.springframework.stereotype.Component;
  *       nuevas se agregan y las que ya no estan se retiran (orphanRemoval). Un reemplazo total
  *       violaria {@code uk_billing_line_no} porque Hibernate ejecuta los inserts antes que los deletes.</li>
  *   <li>Ni el tenant ni la version se copian al entity: los administra Hibernate.</li>
+ *   <li>El desglose de impuestos de la linea ({@code catalogTaxes}) se guarda como JSON en
+ *       {@code tax_breakdown}; vacio se guarda como {@code null} y {@code null} (lineas viejas) se lee
+ *       como lista vacia.</li>
  *   <li>Al reconstruir, el tercero y el emisor quedan {@code active=true}: la tabla guarda el
  *       snapshot congelado y la emision siempre vuelve a leer el tercero fresco, asi que el flag solo
  *       importa en el momento de leer el catalogo, no despues de persistir.</li>
@@ -42,6 +50,13 @@ import org.springframework.stereotype.Component;
  */
 @Component("billingDocumentPersistenceMapper")
 public class BillingDocumentPersistenceMapper {
+
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final TypeReference<List<TaxJson>> TAX_LIST = new TypeReference<>() { };
+
+    /** Forma persistida de un {@link TaxComponent}. */
+    private record TaxJson(String name, BigDecimal rate) {
+    }
 
     // ---------- dominio -> entidad ----------
 
@@ -148,6 +163,29 @@ public class BillingDocumentPersistenceMapper {
         row.setSubtotal(line.subtotal().value());
         row.setTaxAmount(line.taxAmount().value());
         row.setTotal(line.total().value());
+        row.setTaxBreakdown(writeTaxes(line.catalogTaxes()));
+    }
+
+    private static String writeTaxes(List<TaxComponent> taxes) {
+        if (taxes == null || taxes.isEmpty()) {
+            return null;
+        }
+        try {
+            return JSON.writeValueAsString(taxes.stream().map(t -> new TaxJson(t.name(), t.rate())).toList());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("No se pudo serializar el desglose de impuestos", e);
+        }
+    }
+
+    private static List<TaxComponent> readTaxes(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return JSON.readValue(json, TAX_LIST).stream().map(t -> TaxComponent.of(t.name(), t.rate())).toList();
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Desglose de impuestos persistido invalido: " + json, e);
+        }
     }
 
     // ---------- entidad -> dominio ----------
@@ -221,7 +259,8 @@ public class BillingDocumentPersistenceMapper {
                 Money.of(row.getCatalogUnitPrice()),
                 TaxRate.of(row.getCatalogTaxRate()),
                 row.getUnitPriceOverride() == null ? null : Money.of(row.getUnitPriceOverride()),
-                row.getTaxRateOverride() == null ? null : TaxRate.of(row.getTaxRateOverride()));
+                row.getTaxRateOverride() == null ? null : TaxRate.of(row.getTaxRateOverride()),
+                readTaxes(row.getTaxBreakdown()));
     }
 
     private static DocumentNumber number(String prefix, Long value) {

@@ -21,7 +21,7 @@ import org.hibernate.annotations.TenantId;
 
 /**
  * Linea de un documento. Guarda la referencia de catalogo, los overrides opcionales y los valores
- * efectivos/derivados (precio, IVA, subtotal, impuesto y total). La unicidad
+ * efectivos/derivados (precio, IVA, subtotal, impuesto y total) y el desglose de impuestos. La unicidad
  * {@code (document_id, line_no)} obliga a fusionar por numero de linea (D9) en lugar de reemplazar.
  */
 @Entity(name = "BillingDocumentLineEntity")
@@ -101,4 +101,12 @@ public class BillingDocumentLineEntity {
 
     @Column(name = "total", nullable = false, precision = 19, scale = 2)
     private BigDecimal total;
+
+    /**
+     * Desglose congelado de impuestos de la linea como JSON {@code [{"name":"Iva","rate":12.00}]}.
+     * Nulo en lineas previas al desglose o sin impuestos de categoria (valor unico). Columna
+     * nullable: {@code ddl-auto=update} la agrega sin tocar filas existentes.
+     */
+    @Column(name = "tax_breakdown", length = 2000)
+    private String taxBreakdown;
 }
