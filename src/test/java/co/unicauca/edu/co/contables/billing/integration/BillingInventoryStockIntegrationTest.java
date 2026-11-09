@@ -32,6 +32,7 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentStatus;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.transaction.BillingTransactionalCommandUseCases;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.integration.BillingLastPurchasePriceLookup;
 import co.unicauca.edu.co.contables.commons.multitenancy.utils.TenantContext;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.enums.InventoryConfigurationTypeEnum;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Enterprise;
@@ -110,6 +111,16 @@ class BillingInventoryStockIntegrationTest {
     @Autowired
     private co.unicauca.edu.co.contables.inventory.peps.infrastructure.adapters.output.jpa.repository.IProductRepository
             pepsProducts;
+    @Autowired
+    private co.unicauca.edu.co.contables.inventory.kardex.application.ports.input.kardex.IKardexQueryPort waQuery;
+    @Autowired
+    private co.unicauca.edu.co.contables.inventory.peps.application.ports.input.IKardexQueryPort pepsQuery;
+    @Autowired
+    private co.unicauca.edu.co.contables.inventory.kardex.application.ports.input.kardex.IKardexCommandPort waCommand;
+    @Autowired
+    private co.unicauca.edu.co.contables.inventory.peps.application.ports.input.IKardexCommandPort pepsCommand;
+    @Autowired
+    private BillingLastPurchasePriceLookup lastPurchasePrices;
     @Autowired
     private StockRepository stocks;
     @Autowired
@@ -480,5 +491,116 @@ class BillingInventoryStockIntegrationTest {
 
         emittedReturn(DocumentType.PURCHASE_RETURN, purchase, "1");
         assertThat(stockOf(productId)).as("devolucion de compra egresa").isEqualTo(2);
+    }
+
+    // ---------- ultimo precio de compra (consulta de solo lectura, kardex real sobre H2) ----------
+
+    private static final AtomicLong NEXT_SUPPLIER_INVOICE = new AtomicLong(1);
+
+    /** Factura de compra emitida con precio unitario explicito (override). */
+    private BillingDocument purchaseAt(long productId, String quantity, String unitPrice) {
+        BillingDocument draft = billing.create(ENTERPRISE_ID, DocumentType.PURCHASE_INVOICE, new InvoiceDraftCommand(
+                SUPPLIER_ID, null, SUPPLIER_INVOICE_NUMBER + "-LP-" + NEXT_SUPPLIER_INVOICE.getAndIncrement(),
+                List.of(new InvoiceLineCommand(productId, new BigDecimal(quantity), new BigDecimal(unitPrice), null)),
+                null));
+        return emit(DocumentType.PURCHASE_INVOICE, draft);
+    }
+
+    private void assertLastPrice(Optional<BigDecimal> actual, String expected) {
+        assertThat(actual).isPresent();
+        assertThat(actual.get()).isEqualByComparingTo(expected);
+    }
+
+    @Test
+    void weighted_average_last_entry_price_follows_purchases_and_adjustment_entries_and_ignores_the_rest() {
+        valuation(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
+        long productId = newInventoryProduct(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
+        assertThat(waQuery.findLastEntryUnitPrice(productId)).as("sin entradas").isEmpty();
+
+        purchaseAt(productId, "10", "100.00");
+        assertLastPrice(waQuery.findLastEntryUnitPrice(productId), "100.00");
+        BillingDocument second = purchaseAt(productId, "10", "120.00");
+        assertLastPrice(waQuery.findLastEntryUnitPrice(productId), "120.00");
+
+        BillingDocument sale = emittedInvoice(DocumentType.SALE_INVOICE, productId, "4");
+        emittedReturn(DocumentType.SALE_RETURN, sale, "1");
+        emittedReturn(DocumentType.PURCHASE_RETURN, second, "2");
+        assertLastPrice(waQuery.findLastEntryUnitPrice(productId), "120.00"); // venta/devoluciones no cuentan
+
+        co.unicauca.edu.co.contables.inventory.kardex.domain.model.Kardex adjustment =
+                new co.unicauca.edu.co.contables.inventory.kardex.domain.model.Kardex();
+        adjustment.setFactCode("AJ-WA-" + productId);
+        adjustment.setProductId(productId);
+        adjustment.setType(co.unicauca.edu.co.contables.inventory.kardex.domain.model.MovementType.ADJUSTMENTENTRY);
+        adjustment.setDate(java.time.ZonedDateTime.now());
+        adjustment.setQuantity(1);
+        adjustment.setUnitPrice(new BigDecimal("130.00"));
+        adjustment.setDetails("Ajuste de compra");
+        inTx(() -> waCommand.registerAdjustmentEntry(adjustment));
+        assertLastPrice(waQuery.findLastEntryUnitPrice(productId), "130.00");
+
+        // empate por fecha: gana el id mas alto
+        jdbc.update("update kardex set date = ? where product_id = ? and type in ('PURCHASE', 'ADJUSTMENTENTRY')",
+                java.sql.Timestamp.valueOf("2020-01-01 10:00:00"), productId);
+        assertLastPrice(waQuery.findLastEntryUnitPrice(productId), "130.00");
+    }
+
+    @Test
+    void peps_last_entry_price_follows_purchases_and_adjustment_entries_and_ignores_the_rest() {
+        valuation(InventoryConfigurationTypeEnum.PEPS);
+        long productId = newInventoryProduct(InventoryConfigurationTypeEnum.PEPS);
+        assertThat(pepsQuery.findLastEntryUnitPrice(productId)).as("sin entradas").isEmpty();
+
+        purchaseAt(productId, "10", "100.00");
+        assertLastPrice(pepsQuery.findLastEntryUnitPrice(productId), "100.00");
+        BillingDocument second = purchaseAt(productId, "10", "120.00");
+        assertLastPrice(pepsQuery.findLastEntryUnitPrice(productId), "120.00");
+
+        BillingDocument sale = emittedInvoice(DocumentType.SALE_INVOICE, productId, "4");
+        emittedReturn(DocumentType.SALE_RETURN, sale, "1");
+        emittedReturn(DocumentType.PURCHASE_RETURN, second, "2");
+        assertLastPrice(pepsQuery.findLastEntryUnitPrice(productId), "120.00"); // venta/devoluciones no cuentan
+
+        co.unicauca.edu.co.contables.inventory.peps.domain.model.Product pepsProduct =
+                new co.unicauca.edu.co.contables.inventory.peps.domain.model.Product();
+        pepsProduct.setProductId(productId);
+        pepsProduct.setState(true);
+        inTx(() -> pepsCommand.registerNonCommercialEntry(
+                co.unicauca.edu.co.contables.inventory.peps.domain.model.Kardex.createNonCommercialEntry(
+                        "NC-" + productId, "Sobrante", 1, new BigDecimal("999.00"), pepsProduct)));
+        assertLastPrice(pepsQuery.findLastEntryUnitPrice(productId), "120.00"); // entrada no comercial no cuenta
+
+        co.unicauca.edu.co.contables.inventory.peps.domain.model.Kardex adjustment =
+                new co.unicauca.edu.co.contables.inventory.peps.domain.model.Kardex();
+        adjustment.setFactCode("AJ-PEPS-" + productId);
+        adjustment.setProduct(pepsProduct);
+        adjustment.setDate(java.time.ZonedDateTime.now());
+        adjustment.setQuantity(1);
+        adjustment.setUnitPrice(new BigDecimal("130.00"));
+        adjustment.setDetails("Ajuste de compra");
+        inTx(() -> pepsCommand.registerAdjustmentEntry(adjustment));
+        assertLastPrice(pepsQuery.findLastEntryUnitPrice(productId), "130.00");
+
+        // empate por fecha: gana el id mas alto
+        jdbc.update("update peps_kardex set date = ? where product_id = ? and type in ('PURCHASE', 'ADJUSTMENTENTRY')",
+                java.sql.Timestamp.valueOf("2020-01-01 10:00:00"), productId);
+        assertLastPrice(pepsQuery.findLastEntryUnitPrice(productId), "130.00");
+    }
+
+    @Test
+    void lookup_uses_the_kardex_of_the_enterprise_valuation_method() {
+        valuation(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
+        long wa = newInventoryProduct(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
+        purchaseAt(wa, "5", "55.50");
+        Map<Long, co.unicauca.edu.co.contables.billing.domain.model.Money> waPrices =
+                lastPurchasePrices.findAll(ENTERPRISE_ID, List.of(wa, wa + 100_000L));
+        assertThat(waPrices).containsOnlyKeys(wa);
+        assertThat(waPrices.get(wa).value()).isEqualByComparingTo("55.50");
+
+        valuation(InventoryConfigurationTypeEnum.PEPS);
+        long peps = newInventoryProduct(InventoryConfigurationTypeEnum.PEPS);
+        purchaseAt(peps, "5", "77.25");
+        assertThat(lastPurchasePrices.findAll(ENTERPRISE_ID, List.of(peps)).get(peps).value())
+                .isEqualByComparingTo("77.25");
     }
 }
