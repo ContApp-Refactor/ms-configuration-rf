@@ -80,5 +80,15 @@ public class KardexQueryService implements IKardexQueryPort {
     public Optional<BigDecimal> findLastEntryUnitPrice(Long productId) {
         return kardexQueryRepositoryPort.findLastEntryUnitPrice(productId, LAST_PRICE_ENTRY_TYPES);
     }
+
+    /**
+     * @brief Gets the current weighted-average unit cost (balance unit price of the latest valid row)
+     * @param productId Product identifier
+     * @return Average unit cost or empty if the product has no row with a positive balance unit price
+     */
+    @Override
+    public Optional<BigDecimal> findCurrentAverageUnitCost(Long productId) {
+        return kardexQueryRepositoryPort.findCurrentAverageUnitCost(productId);
+    }
     
 }

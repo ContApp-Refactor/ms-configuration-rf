@@ -60,6 +60,13 @@ public interface IKardexQueryRepositoryPort {
      * @return Unit price (latest by date, ties by highest id) or empty if none (or price is null)
      */
     Optional<BigDecimal> findLastEntryUnitPrice(Long productId, Collection<MovementType> types);
+
+    /**
+     * @brief Gets the balance unit price (current weighted average) of the latest row with a positive balance
+     * @param productId Product identifier
+     * @return Balance unit price (latest by date, ties by highest id) or empty if none
+     */
+    Optional<BigDecimal> findCurrentAverageUnitCost(Long productId);
     
     /**
      * @brief Checks if a specific kardex combination already exists

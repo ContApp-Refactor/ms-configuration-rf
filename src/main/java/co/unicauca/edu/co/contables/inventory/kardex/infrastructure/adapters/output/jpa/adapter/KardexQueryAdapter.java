@@ -98,6 +98,18 @@ public class KardexQueryAdapter implements IKardexQueryRepositoryPort {
     }
 
     /**
+     * @brief Gets the current weighted average (balance unit price) of the latest row with a positive balance
+     * @param productId The product identifier
+     * @return Balance unit price or empty if none exists
+     */
+    @Override
+    public Optional<BigDecimal> findCurrentAverageUnitCost(Long productId) {
+        return kardexRepository
+                .findTopByProductIdAndBalanceUnitPriceGreaterThanOrderByDateDescIdDesc(productId, BigDecimal.ZERO)
+                .map(KardexEntity::getBalanceUnitPrice);
+    }
+
+    /**
      * @brief Checks if a Kardex record exists for the given parameters
      * @param factCode The fact/invoice code
      * @param productId The product identifier

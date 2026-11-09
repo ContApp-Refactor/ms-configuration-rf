@@ -15,9 +15,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Ultimo precio de compra de un producto (sugerencia de la FACTURA DE COMPRA): {@code unitPrice} de
- * la entrada comercial mas reciente (PURCHASE o ADJUSTMENTENTRY) del kardex del metodo de valoracion
- * de la empresa ({@code WEIGHTED_AVERAGE} o {@code PEPS}); cada metodo tiene su propio kardex.
+ * Precio sugerido de compra de un producto (FACTURA DE COMPRA) segun el metodo de valoracion de la
+ * empresa: en {@code PEPS}, el {@code unitPrice} de la entrada comercial mas reciente (PURCHASE o
+ * ADJUSTMENTENTRY); en {@code WEIGHTED_AVERAGE}, el costo promedio ponderado vigente (columna
+ * {@code balance_unit_price} de la fila mas reciente del kardex con balance positivo). Cada metodo
+ * tiene su propio kardex.
  *
  * <p>Es una consulta de solo lectura por puertos de entrada de Inventario y NUNCA rompe la factura:
  * si el metodo es nulo, la empresa es invalida/inexistente, el producto no tiene entradas o la
@@ -46,7 +48,7 @@ public class BillingLastPurchasePriceLookup {
     }
 
     /**
-     * Ultimo precio de compra de cada producto que lo tenga (el metodo de valoracion se resuelve una
+     * Precio sugerido de compra (ultimo en PEPS, promedio vigente en promedio ponderado) de cada producto que lo tenga (el metodo de valoracion se resuelve una
      * sola vez). Los productos sin precio o ante cualquier fallo quedan fuera del mapa.
      */
     public Map<Long, Money> findAll(String enterpriseId, Collection<Long> productIds) {
@@ -68,13 +70,13 @@ public class BillingLastPurchasePriceLookup {
         try {
             Optional<BigDecimal> price = method == InventoryConfigurationTypeEnum.PEPS
                     ? pepsKardex.findLastEntryUnitPrice(productId)
-                    : weightedAverageKardex.findLastEntryUnitPrice(productId);
+                    : weightedAverageKardex.findCurrentAverageUnitCost(productId);
             if (price == null || price.isEmpty() || price.get().signum() <= 0) {
                 return Optional.empty();
             }
             return Optional.of(Money.of(price.get()));
         } catch (RuntimeException ex) {
-            log.warn("No se pudo consultar el ultimo precio de compra del producto {}; se usa el costo del catalogo",
+            log.warn("No se pudo consultar el precio sugerido de compra del producto {}; se usa el costo del catalogo",
                     productId, ex);
             return Optional.empty();
         }
