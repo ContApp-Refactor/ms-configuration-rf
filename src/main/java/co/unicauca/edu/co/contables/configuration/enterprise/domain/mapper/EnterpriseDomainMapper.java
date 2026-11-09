@@ -2,6 +2,8 @@ package co.unicauca.edu.co.contables.configuration.enterprise.domain.mapper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
@@ -12,6 +14,7 @@ import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Enter
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.EnterpriseType;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Location;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.PersonType;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Subject;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.TaxLiability;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.TaxPayerType;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.DTO.request.EnterpriseCreateReq;
@@ -21,6 +24,7 @@ import co.unicauca.edu.co.contables.configuration.enterprise.presentation.DTO.re
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.DTO.response.DepartmentRes;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.DTO.response.EnterpriseRes;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.DTO.response.LocationRes;
+import co.unicauca.edu.co.contables.configuration.enterprise.presentation.DTO.response.SubjectRes;
 
 /**
  * @brief Mapeador de dominio para empresas.
@@ -50,6 +54,7 @@ public class EnterpriseDomainMapper {
                 .mainActivity(req.getMainActivity())
                 .secondaryActivity(req.getSecondaryActivity())
                 .taxLiabilities(toTaxLiabilities(req.getTaxLiabilities()))
+                .subjects(toSubjects(req.getSubjects()))
                 .taxPayerType(TaxPayerType.builder().id(req.getTaxPayerType()).build())
                 .enterpriseType(EnterpriseType.builder().id(req.getEnterpriseType()).build())
                 .personType(req.getPersonType() == null ? null
@@ -86,6 +91,7 @@ public class EnterpriseDomainMapper {
                 .mainActivity(req.getMainActivity())
                 .secondaryActivity(req.getSecondaryActivity())
                 .taxLiabilities(toTaxLiabilities(req.getTaxLiabilities()))
+                .subjects(toSubjects(req.getSubjects()))
                 .taxPayerType(TaxPayerType.builder().id(req.getTaxPayerType()).build())
                 .enterpriseType(EnterpriseType.builder().id(req.getEnterpriseType()).build())
                 .personType(req.getPersonType() == null ? null
@@ -123,6 +129,7 @@ public class EnterpriseDomainMapper {
                 .mainActivity(enterprise.getMainActivity())
                 .secondaryActivity(enterprise.getSecondaryActivity())
                 .taxLiabilities(enterprise.getTaxLiabilities())
+                .subjects(toSubjectResList(enterprise.getSubjects()))
                 .taxPayerType(enterprise.getTaxPayerType())
                 .enterpriseType(enterprise.getEnterpriseType())
                 .personType(enterprise.getPersonType())
@@ -147,6 +154,23 @@ public class EnterpriseDomainMapper {
                         : DepartmentRes.builder().id(location.getDepartment().getId())
                                 .name(location.getDepartment().getName()).build())
                 .build();
+    }
+
+    private List<Subject> toSubjects(List<UUID> ids) {
+        if (ids == null) {
+            return null;
+        }
+        return ids.stream().filter(Objects::nonNull).distinct()
+                .map(id -> Subject.builder().id(id).build()).toList();
+    }
+
+    private List<SubjectRes> toSubjectResList(List<Subject> subjects) {
+        if (subjects == null) {
+            return List.of();
+        }
+        return subjects.stream()
+                .map(s -> SubjectRes.builder().id(s.getId()).code(s.getCode()).name(s.getName()).build())
+                .toList();
     }
 
     private List<TaxLiability> toTaxLiabilities(List<Long> ids) {

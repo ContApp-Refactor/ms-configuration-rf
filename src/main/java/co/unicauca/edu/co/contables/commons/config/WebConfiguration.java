@@ -32,7 +32,13 @@ public class WebConfiguration implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/api/enterprises/logos/**")
-                .addResourceLocations("file:" + logoDir + "/");
+                .addResourceLocations(logoLocation());
+    }
+
+    /** URI absoluta con barra final: funciona con rutas relativas, absolutas Linux o Windows. */
+    private String logoLocation() {
+        String uri = java.nio.file.Paths.get(logoDir).toAbsolutePath().normalize().toUri().toString();
+        return uri.endsWith("/") ? uri : uri + "/";
     }
 
 }

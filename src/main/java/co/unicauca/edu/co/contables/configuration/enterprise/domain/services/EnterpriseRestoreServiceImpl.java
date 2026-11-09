@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.configuration.enterprise.domain.services;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
@@ -10,16 +11,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import co.unicauca.edu.co.contables.commons.security.IJwtUtils;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.EnterpriseEntity;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.SubjectEntity;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.EnterpriseTypeDataMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.LocationDataMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.PersonTypeDataMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.TaxLiabilityDataMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.TaxPayerTypeDataMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.EnterpriseRepository;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.SubjectRepository;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest.EnterpriseSnapshot;
-import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest.SubjectSnapshot;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.City;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Country;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Department;
@@ -50,13 +53,14 @@ public class EnterpriseRestoreServiceImpl implements IEnterpriseRestoreService {
     private final EnterpriseRepository enterpriseRepository;
     private final ILocationService locationService;
     private final IPersonTypeService personTypeService;
-    private final ISubjectService subjectService;
+    private final IJwtUtils jwtUtils;
 
     private final LocationDataMapper locationDataMapper;
     private final PersonTypeDataMapper personTypeDataMapper;
     private final TaxLiabilityDataMapper taxLiabilityDataMapper;
     private final TaxPayerTypeDataMapper taxPayerTypeDataMapper;
     private final EnterpriseTypeDataMapper enterpriseTypeDataMapper;
+    private final SubjectRepository subjectRepository;
 
     @Value("${app.backup.max-size-bytes:524288000}")
     private long maxUploadSizeBytes;
@@ -66,7 +70,7 @@ public class EnterpriseRestoreServiceImpl implements IEnterpriseRestoreService {
     // (this.restore(...)) desde dentro de la misma instancia, y el proxy de
     // Spring AOP que hace efectivo @Transactional no intercepta llamadas que
     // no pasan por él. Poniéndolo aquí, el restore interno completo (borrar
-    // fila vieja, crear fila nueva, upsert de materias) queda dentro de la
+    // fila vieja, crear fila nueva, creación de la fila nueva) queda dentro de la
     // misma transacción abierta por el proxy al entrar por este método.
     @Override
     @Transactional
@@ -104,15 +108,30 @@ public class EnterpriseRestoreServiceImpl implements IEnterpriseRestoreService {
                     ? restoreInPlace(manifest.getEnterprise(), targetEnterpriseId, equivalenceMap)
                     : restoreAsNew(manifest.getEnterprise());
 
-            restoreSubjects(manifest.getSubjects());
+            // El catalogo de materias NO viaja en la copia: el campo legado "subjects" se ignora.
+            // Solo se enlazan las materias de la empresa (enterprise.subjectCodes) que existan en el tenant.
             return resultId;
         } catch (DataIntegrityViolationException e) {
-            throw new RestoreFailedException(
-                    "El restore violó una restricción de integridad referencial; revise los ids de "
-                            + "ciudad/departamento/país y catálogos (responsabilidad tributaria, tipo de "
-                            + "contribuyente, tipo de empresa) contenidos en el backup",
-                    e);
+            throw new RestoreFailedException(buildIntegrityMessage(e), e);
         }
+    }
+
+    /**
+     * Construye un mensaje con la causa real de la violación de integridad. El texto
+     * orientado a ubicación/catálogos solo se usa cuando la causa es de verdad una
+     * llave foránea (SQLState 23503 o mensaje "foreign key").
+     */
+    public static String buildIntegrityMessage(DataIntegrityViolationException e) {
+        Throwable root = e.getMostSpecificCause();
+        String cause = root != null && root.getMessage() != null ? root.getMessage() : e.getMessage();
+        boolean foreignKey = (root instanceof SQLException sql && "23503".equals(sql.getSQLState()))
+                || (cause != null && cause.toLowerCase().contains("foreign key"));
+        if (foreignKey) {
+            return "El restore violó una llave foránea; revise los ids de ciudad/departamento/país y "
+                    + "catálogos (responsabilidad tributaria, tipo de contribuyente, tipo de empresa) "
+                    + "contenidos en el backup. Causa: " + cause;
+        }
+        return "El restore violó una restricción de integridad de la base de datos. Causa: " + cause;
     }
 
     private UUID restoreAsNew(EnterpriseSnapshot snapshot) {
@@ -157,6 +176,10 @@ public class EnterpriseRestoreServiceImpl implements IEnterpriseRestoreService {
         current.setEnterpriseType(enterpriseTypeDataMapper.toEntity(fromBackup.getEnterpriseType()));
         current.setPersonType(personTypeDataMapper.toEntity(newPersonType));
         current.setLocation(locationDataMapper.toEntity(newLocation));
+        // subjectCodes ausente (ZIP antiguo) = no hay informacion: se conservan las materias actuales.
+        if (snapshot.getSubjectCodes() != null) {
+            current.setSubjects(new java.util.ArrayList<>(findSubjectsByCodes(snapshot.getSubjectCodes())));
+        }
 
         enterpriseRepository.save(current);
 
@@ -170,30 +193,9 @@ public class EnterpriseRestoreServiceImpl implements IEnterpriseRestoreService {
         return targetEnterpriseId;
     }
 
-    /**
-     * Las materias (subjects) son datos del tenant, no de una empresa
-     * puntual (ver {@link BackupManifest}), así que tanto en restore
-     * {@code inplace} como en uno que crea empresa nueva se tratan igual:
-     * upsert por código. Nunca se borran materias existentes del tenant
-     * porque, al no estar atadas a una sola empresa, podrían seguir en uso
-     * por otra empresa del mismo tenant.
-     */
-    private void restoreSubjects(List<SubjectSnapshot> subjects) {
-        if (subjects == null) {
-            return;
-        }
-        for (SubjectSnapshot s : subjects) {
-            try {
-                subjectService.update(s.getCode(), Subject.builder().code(s.getCode()).name(s.getName()).build());
-            } catch (RuntimeException notFound) {
-                subjectService.create(Subject.builder().code(s.getCode()).name(s.getName()).build());
-            }
-        }
-    }
-
     private Enterprise toDomainEnterprise(EnterpriseSnapshot snapshot) {
         return Enterprise.builder()
-                .idUser(snapshot.getIdUser())
+                .idUser(jwtUtils.getId())
                 .name(snapshot.getName())
                 .nit(snapshot.getNit())
                 .DV(snapshot.getDV())
@@ -206,6 +208,9 @@ public class EnterpriseRestoreServiceImpl implements IEnterpriseRestoreService {
                 .state(snapshot.getState())
                 .inventoryConfigurationType(snapshot.getInventoryConfigurationType())
                 .taxLiabilities(toTaxLiabilities(snapshot.getTaxLiabilityIds()))
+                .subjects(snapshot.getSubjectCodes() == null ? null
+                        : snapshot.getSubjectCodes().stream().filter(c -> c != null && !c.isBlank())
+                                .map(c -> Subject.builder().code(c).build()).toList())
                 .taxPayerType(TaxPayerType.builder().id(snapshot.getTaxPayerTypeId()).build())
                 .enterpriseType(EnterpriseType.builder().id(snapshot.getEnterpriseTypeId()).build())
                 .personType(snapshot.getPersonType() == null ? null
@@ -224,6 +229,12 @@ public class EnterpriseRestoreServiceImpl implements IEnterpriseRestoreService {
                                         .build())
                                 .build())
                 .build();
+    }
+
+    /** Materias del tenant actual con esos codigos; los codigos inexistentes se omiten en silencio. */
+    private List<SubjectEntity> findSubjectsByCodes(List<String> codes) {
+        List<String> clean = codes.stream().filter(c -> c != null && !c.isBlank()).distinct().toList();
+        return clean.isEmpty() ? List.of() : subjectRepository.findByCodeIn(clean);
     }
 
     private List<TaxLiability> toTaxLiabilities(List<Long> ids) {

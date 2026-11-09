@@ -35,6 +35,7 @@ public class EnterpriseRes {
     private Long mainActivity;
     private Long secondaryActivity;
     private List<TaxLiability> taxLiabilities;
+    private List<SubjectRes> subjects;
     private TaxPayerType taxPayerType;
     private EnterpriseType enterpriseType;
     private PersonType personType;

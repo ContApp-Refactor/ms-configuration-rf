@@ -26,13 +26,11 @@ import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.E
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.SubjectEntity;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.TaxLiabilityEntity;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.EnterpriseRepository;
-import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.SubjectRepository;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.dto.BackupReferenceDto;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest.EnterpriseSnapshot;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest.LocationSnapshot;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest.PersonTypeSnapshot;
-import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest.SubjectSnapshot;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.BackupNotFoundException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.BackupTooLargeException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.EnterpriseNotFoundException;
@@ -43,9 +41,7 @@ import lombok.RequiredArgsConstructor;
  * @brief Implementación de la copia de seguridad (export) de una empresa.
  *
  * El backup es un ZIP con una sola entrada, {@code enterprise.json}, con el
- * contenido de {@link BackupManifest}. Las materias (subjects) se exportan
- * tal cual las ve el tenant actual (son datos del tenant, no de una empresa
- * puntual: ver {@link BackupManifest}).
+ * contenido de {@link BackupManifest}. El catalogo de materias NO se exporta; solo los codigos de las materias de la empresa.
  */
 @Service
 @RequiredArgsConstructor
@@ -54,7 +50,6 @@ public class EnterpriseBackupServiceImpl implements IEnterpriseBackupService {
     private static final String MANIFEST_ENTRY = "enterprise.json";
 
     private final EnterpriseRepository enterpriseRepository;
-    private final SubjectRepository subjectRepository;
     private final ObjectMapper objectMapper;
 
     @Value("${app.backup.dir:uploads/enterprises/backups}")
@@ -183,6 +178,10 @@ public class EnterpriseBackupServiceImpl implements IEnterpriseBackupService {
         List<Long> taxLiabilityIds = entity.getTaxLiabilities() == null ? List.of()
                 : entity.getTaxLiabilities().stream().map(TaxLiabilityEntity::getId).toList();
 
+        List<String> subjectCodes = entity.getSubjects() == null ? List.of()
+                : entity.getSubjects().stream().map(SubjectEntity::getCode).filter(java.util.Objects::nonNull)
+                        .sorted().toList();
+
         PersonTypeSnapshot personTypeSnapshot = entity.getPersonType() == null ? null
                 : PersonTypeSnapshot.builder()
                         .type(entity.getPersonType().getType())
@@ -216,22 +215,18 @@ public class EnterpriseBackupServiceImpl implements IEnterpriseBackupService {
                 .state(entity.getState())
                 .inventoryConfigurationType(entity.getInventoryConfigurationType())
                 .taxLiabilityIds(taxLiabilityIds)
+                .subjectCodes(subjectCodes)
                 .taxPayerTypeId(entity.getTaxPayerType() == null ? null : entity.getTaxPayerType().getId())
                 .enterpriseTypeId(entity.getEnterpriseType() == null ? null : entity.getEnterpriseType().getId())
                 .personType(personTypeSnapshot)
                 .location(locationSnapshot)
                 .build();
 
-        List<SubjectSnapshot> subjects = subjectRepository.findAll().stream()
-                .map((SubjectEntity s) -> SubjectSnapshot.builder().code(s.getCode()).name(s.getName()).build())
-                .toList();
-
         return BackupManifest.builder()
                 .version(1)
                 .exportedAt(LocalDateTime.now())
                 .sourceEnterpriseId(entity.getId())
                 .enterprise(enterpriseSnapshot)
-                .subjects(subjects)
                 .build();
     }
 }

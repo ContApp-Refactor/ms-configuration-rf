@@ -13,4 +13,6 @@ public interface SubjectRepository extends JpaRepository<SubjectEntity, UUID> {
     boolean existsByCode(String code);
 
     Optional<SubjectEntity> findByCode(String code);
+
+    java.util.List<SubjectEntity> findByCodeIn(java.util.Collection<String> codes);
 }

@@ -35,6 +35,8 @@ public class Enterprise {
     private StateEnum state;
     private InventoryConfigurationTypeEnum inventoryConfigurationType;
     private List<TaxLiability> taxLiabilities;
+    /** Materias de la empresa; null = sin informacion (no tocar al actualizar). */
+    private List<Subject> subjects;
     private TaxPayerType taxPayerType;
     private EnterpriseType enterpriseType;
     private PersonType personType;

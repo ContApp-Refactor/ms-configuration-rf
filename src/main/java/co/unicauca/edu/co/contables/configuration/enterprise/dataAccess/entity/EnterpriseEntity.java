@@ -48,6 +48,16 @@ public class EnterpriseEntity {
     @ManyToMany
     private List<TaxLiabilityEntity> taxLiabilities;
 
+    /**
+     * Materias asociadas a la empresa (catalogo de materias del tenant). Tabla puente
+     * {@code enterprise_subjects}. LAZY: se mapea a dominio siempre dentro de una transaccion.
+     */
+    @ManyToMany
+    @JoinTable(name = "enterprise_subjects",
+            joinColumns = @JoinColumn(name = "enterprise_id"),
+            inverseJoinColumns = @JoinColumn(name = "subjects_id"))
+    private List<SubjectEntity> subjects;
+
     @ManyToOne
     private TaxPayerTypeEntity taxPayerType;
 
