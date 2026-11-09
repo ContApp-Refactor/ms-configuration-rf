@@ -17,6 +17,7 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentNumber;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentTotals;
 import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
+import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnLineAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
@@ -25,6 +26,7 @@ import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.d
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingIssuerResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingLineTaxResponse;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingPaymentResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnLineResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingTotalsResponse;
@@ -59,7 +61,14 @@ public class BillingRestMapper {
                 request.date(),
                 request.supplierInvoiceNumber(),
                 lines,
-                request.version());
+                request.version(),
+                toPaymentCommand(request.payment()));
+    }
+
+    /** Metodo de pago opcional (solo venta). */
+    private static InvoiceDraftCommand.PaymentCommand toPaymentCommand(InvoiceDraftRequest.PaymentRequest payment) {
+        return payment == null ? null
+                : new InvoiceDraftCommand.PaymentCommand(payment.methodId());
     }
 
     private InvoiceLineCommand toLineCommand(InvoiceLineRequest line) {
@@ -114,7 +123,17 @@ public class BillingRestMapper {
                 doc.annulledAt(),
                 doc.annulReason(),
                 doc.version(),
-                toIssuer(doc.issuer()));
+                toIssuer(doc.issuer()),
+                toPayment(doc.payment()));
+    }
+
+    /** Metodo de pago de la venta; nulo en compras y en ventas sin el dato. */
+    private static BillingPaymentResponse toPayment(PaymentTerms payment) {
+        return payment == null
+                ? null
+                : new BillingPaymentResponse(
+                        payment.paymentMethodId() == null ? null : String.valueOf(payment.paymentMethodId()),
+                        payment.paymentMethodName());
     }
 
     /** Emisor congelado (RN-06); nulo mientras el documento sea borrador. */

@@ -11,6 +11,7 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentLine;
 import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Money;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
+import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.messaging.dto.BillingDocumentEventPayload;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.messaging.dto.BillingEventEnvelope;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -83,7 +84,7 @@ public class BillingEventSerializer {
                 lines(doc.lines()),
                 new BillingDocumentEventPayload.Totals(pesos(doc.totals().subtotal()), pesos(doc.totals().tax()),
                         pesos(doc.totals().total())),
-                null,
+                payment(doc.payment()),
                 original(doc.original()),
                 returnInfo(doc, event.returnContext()),
                 event instanceof BillingDocumentAnnulled
@@ -112,6 +113,12 @@ public class BillingEventSerializer {
                         pesos(l.unitPrice()), l.taxRate().value().setScale(2, RoundingMode.HALF_UP),
                         pesos(l.subtotal()), pesos(l.taxAmount()), pesos(l.total())))
                 .toList();
+    }
+
+    private static BillingDocumentEventPayload.Payment payment(PaymentTerms payment) {
+        return payment == null ? null
+                : new BillingDocumentEventPayload.Payment(payment.paymentMethodId(),
+                        payment.paymentMethodName());
     }
 
     private static BillingDocumentEventPayload.Original original(OriginalDocumentRef ref) {

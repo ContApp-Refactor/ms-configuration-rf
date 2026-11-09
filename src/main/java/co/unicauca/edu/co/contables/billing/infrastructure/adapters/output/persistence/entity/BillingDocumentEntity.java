@@ -117,6 +117,13 @@ public class BillingDocumentEntity {
     @Column(name = "issuer_dv", length = 2)
     private String issuerDv;
 
+    @Column(name = "payment_method_id")
+    private Long paymentMethodId;
+
+    /** Snapshot del nombre del metodo, congelado al emitir. */
+    @Column(name = "payment_method_name", length = 200)
+    private String paymentMethodName;
+
     @Column(name = "original_document_id")
     private UUID originalDocumentId;
 

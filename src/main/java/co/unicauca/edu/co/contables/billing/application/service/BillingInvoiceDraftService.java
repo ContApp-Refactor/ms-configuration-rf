@@ -8,6 +8,7 @@ import co.unicauca.edu.co.contables.billing.application.ports.output.BillingCloc
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingDocumentRepositoryPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingExecutionContextPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingIdGeneratorPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.PaymentCatalogPort;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingErrorCode;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingException;
 import co.unicauca.edu.co.contables.billing.domain.model.BillingDocument;
@@ -15,6 +16,7 @@ import co.unicauca.edu.co.contables.billing.domain.model.CounterpartySnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentLine;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.Money;
+import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Quantity;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxRate;
@@ -40,10 +42,19 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
     private final BillingClockPort clock;
     private final BillingIdGeneratorPort ids;
     private final SupplierInvoiceNumberGuard supplierNumbers;
+    /** Opcional: si esta, el borrador descarta la cuenta bancaria de un metodo que no la exige. */
+    private final PaymentCatalogPort paymentCatalog;
 
     public BillingInvoiceDraftService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
             BillingReferenceResolver resolver, BillingExecutionContextPort context, BillingClockPort clock,
             BillingIdGeneratorPort ids) {
+        this(repository, loader, resolver, context, clock, ids, null);
+    }
+
+    public BillingInvoiceDraftService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
+            BillingReferenceResolver resolver, BillingExecutionContextPort context, BillingClockPort clock,
+            BillingIdGeneratorPort ids, PaymentCatalogPort paymentCatalog) {
+        this.paymentCatalog = paymentCatalog;
         this.repository = Objects.requireNonNull(repository, "repository");
         this.loader = Objects.requireNonNull(loader, "loader");
         this.resolver = Objects.requireNonNull(resolver, "resolver");
@@ -65,7 +76,7 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
         BillingDocument document = BillingDocument.newInvoiceDraft(ids.newId(), enterpriseId, type,
                 command.issueDate() != null ? command.issueDate() : clock.today(), now, user);
         document.replaceInvoiceDraft(resolved.counterparty(), command.issueDate(),
-                command.supplierInvoiceNumber(), resolved.lines(), now, user);
+                command.supplierInvoiceNumber(), resolved.lines(), paymentOf(type, command), now, user);
         return repository.save(document);
     }
 
@@ -78,7 +89,8 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
         assertSupplierNumberUnique(enterpriseId, type, resolved, command, id);
 
         document.replaceInvoiceDraft(resolved.counterparty(), command.issueDate(),
-                command.supplierInvoiceNumber(), resolved.lines(), clock.now(), context.username());
+                command.supplierInvoiceNumber(), resolved.lines(), paymentOf(type, command), clock.now(),
+                context.username());
         return repository.save(document);
     }
 
@@ -113,6 +125,19 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
                     line.taxRateOverride() == null ? null : TaxRate.of(line.taxRateOverride())));
         }
         return new Resolved(counterparty, lines);
+    }
+
+    /**
+     * Metodo de pago del borrador. Solo la factura de VENTA lo guarda: en los demas tipos el dato
+     * se ignora (queda nulo). El borrador puede estar incompleto; la validez del metodo se exige al
+     * emitir.
+     */
+    private PaymentTerms paymentOf(DocumentType type, InvoiceDraftCommand command) {
+        InvoiceDraftCommand.PaymentCommand payment = command.payment();
+        if (type != DocumentType.SALE_INVOICE || payment == null) {
+            return null;
+        }
+        return PaymentTerms.draft(payment.paymentMethodId());
     }
 
     /** Unicidad del N.º de factura del proveedor (solo compras); ver {@link SupplierInvoiceNumberGuard}. */

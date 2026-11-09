@@ -38,6 +38,12 @@ public final class BillingRequestFingerprint {
             field(canonical, line.unitPriceOverride());
             field(canonical, line.taxRateOverride());
         }
+        // Solo si se envia metodo de pago: asi la huella de las peticiones sin pago no cambia
+        InvoiceDraftCommand.PaymentCommand payment = command.payment();
+        if (payment != null) {
+            canonical.append("payment;");
+            field(canonical, payment.paymentMethodId());
+        }
         return sha256(canonical.toString());
     }
 

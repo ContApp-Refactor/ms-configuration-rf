@@ -13,6 +13,7 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Money;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
+import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.Quantity;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxRate;
@@ -97,6 +98,10 @@ public class BillingDocumentPersistenceMapper {
         entity.setIssuerName(issuer == null ? null : issuer.name());
         entity.setIssuerNit(issuer == null ? null : issuer.nit());
         entity.setIssuerDv(issuer == null ? null : issuer.dv());
+
+        PaymentTerms payment = document.payment();
+        entity.setPaymentMethodId(payment == null ? null : payment.paymentMethodId());
+        entity.setPaymentMethodName(payment == null ? null : payment.paymentMethodName());
 
         OriginalDocumentRef original = document.original();
         entity.setOriginalDocumentId(original == null ? null : original.id());
@@ -220,7 +225,8 @@ public class BillingDocumentPersistenceMapper {
                 entity.getAnnulledAt(),
                 entity.getAnnulledBy(),
                 entity.getAnnulReason(),
-                entity.getVersion()));
+                entity.getVersion(),
+                payment(entity)));
     }
 
     /** Resumen armado solo con las columnas de cabecera (no toca las lineas). */
@@ -282,6 +288,14 @@ public class BillingDocumentPersistenceMapper {
                 entity.getCounterpartyEmail(),
                 entity.getCounterpartyPhone(),
                 true);
+    }
+
+    /** Sin metodo de pago (columna nula: compras, devoluciones, ventas historicas) no hay pago. */
+    private static PaymentTerms payment(BillingDocumentEntity entity) {
+        if (entity.getPaymentMethodId() == null) {
+            return null;
+        }
+        return new PaymentTerms(entity.getPaymentMethodId(), entity.getPaymentMethodName());
     }
 
     private static IssuerSnapshot issuer(BillingDocumentEntity entity) {

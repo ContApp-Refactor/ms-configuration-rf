@@ -16,6 +16,7 @@ import co.unicauca.edu.co.contables.billing.application.ports.output.BillingIdGe
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingOutboxPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.DocumentNumberSequencePort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.EnterprisePort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.PaymentCatalogPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ProductPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.StockMovementPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ThirdPartyPort;
@@ -52,14 +53,15 @@ public class BillingTransactionalCommandUseCases
             ThirdPartyPort thirdParties, ProductPort products, EnterprisePort enterprises,
             DocumentNumberSequencePort sequence, BillingOutboxPort outbox,
             BillingExecutionContextPort context, BillingClockPort clock, BillingIdGeneratorPort ids,
-            StockMovementPort stock, AccountingEntryPort accounting) {
+            StockMovementPort stock, AccountingEntryPort accounting, PaymentCatalogPort paymentCatalog) {
         BillingDocumentLoader loader = new BillingDocumentLoader(repository);
         BillingReferenceResolver resolver = new BillingReferenceResolver(thirdParties, products, enterprises);
-        this.draftService = new BillingInvoiceDraftService(repository, loader, resolver, context, clock, ids);
+        this.draftService = new BillingInvoiceDraftService(repository, loader, resolver, context, clock, ids,
+                paymentCatalog);
         this.returnDraftService = new BillingReturnDraftService(repository, loader, context, clock, ids);
         this.deletionService = new BillingDraftDeletionService(repository, loader);
         this.emissionService = new BillingEmissionService(repository, loader, resolver, sequence, outbox, context,
-                clock, ids, stock, accounting);
+                clock, ids, stock, accounting, paymentCatalog);
         this.annulmentService = new BillingAnnulmentService(repository, loader, outbox, context, clock, ids, stock,
                 accounting);
     }
