@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
  * <p>Reglas, en orden:
  * <ol>
  *   <li>"insuficiente"/"insufficient"/"already sold" -> {@code BILLING_STOCK_INSUFFICIENT};</li>
+ *   <li>fecha contable no valida (mes cerrado en el calendario contable) -> {@code BILLING_STOCK_PERIOD_CLOSED};</li>
  *   <li>no encontrado en una DEVOLUCION referido al documento original (factCode, "original",
  *       "to be returned", registro/record previo) -> {@code BILLING_STOCK_ORIGINAL_NOT_FOUND};</li>
  *   <li>venta sin ningun registro previo del producto en kardex (no hubo entradas) -> INSUFFICIENT;</li>
@@ -76,6 +77,12 @@ final class InventoryStockErrorTranslator {
         if (containsAny(lower, "insuficiente", "insufficient", "already sold")) {
             return new BillingException(BillingErrorCode.BILLING_STOCK_INSUFFICIENT,
                     "No hay existencias suficientes en Inventario para el " + productLabel + detail);
+        }
+        if (containsAny(lower, "accounting date", "fecha contable", "periodo contable", "período contable")) {
+            // fecha del documento en un mes cerrado (calendario contable): causa frecuente, mensaje sin tecnicismos
+            return new BillingException(BillingErrorCode.BILLING_STOCK_PERIOD_CLOSED,
+                    "Inventario rechazo el movimiento debido a que el mes esta cerrado o no existe. "
+                            + "Abre el mes en el calendario contable o cambia la fecha del documento.");
         }
         boolean notFound = (status != null && status == 404) || isNamed(ex, "EntityDoesNotExistException")
                 || containsAny(lower, "not found", "no se encontr", "no encontrado");
