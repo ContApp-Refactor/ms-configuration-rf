@@ -239,8 +239,8 @@ class BillingInventoryStockIntegrationTest {
 
     private BillingDocument invoice(DocumentType type, long productId, String quantity) {
         long counterparty = type == DocumentType.SALE_INVOICE ? CUSTOMER_ID : SUPPLIER_ID;
-        String supplierNumber = type == DocumentType.PURCHASE_INVOICE ? SUPPLIER_INVOICE_NUMBER + "-" + productId
-                : null;
+        String supplierNumber = type == DocumentType.PURCHASE_INVOICE ? SUPPLIER_INVOICE_NUMBER + "-" + productId + "-"
+                + NEXT_SUPPLIER_INVOICE.getAndIncrement() : null; // unico por proveedor (regla de unicidad)
         BillingDocument draft = billing.create(ENTERPRISE_ID, type, new InvoiceDraftCommand(counterparty, null,
                 supplierNumber, List.of(new InvoiceLineCommand(productId, new BigDecimal(quantity), null, null)),
                 null));
