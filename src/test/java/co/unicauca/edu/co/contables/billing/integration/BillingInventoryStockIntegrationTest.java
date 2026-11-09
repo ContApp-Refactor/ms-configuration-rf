@@ -598,17 +598,42 @@ class BillingInventoryStockIntegrationTest {
     void lookup_uses_the_kardex_of_the_enterprise_valuation_method() {
         valuation(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
         long wa = newInventoryProduct(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
-        purchaseAt(wa, "5", "55.50");
+        purchaseAt(wa, "10", "100.00");
+        purchaseAt(wa, "10", "130.00");
         Map<Long, co.unicauca.edu.co.contables.billing.domain.model.Money> waPrices =
                 lastPurchasePrices.findAll(ENTERPRISE_ID, List.of(wa, wa + 100_000L));
         assertThat(waPrices).containsOnlyKeys(wa);
-        assertThat(waPrices.get(wa).value()).isEqualByComparingTo("55.50");
+        assertThat(waPrices.get(wa).value()).as("promedio ponderado vigente, no el ultimo (130)")
+                .isEqualByComparingTo("115.00");
 
         valuation(InventoryConfigurationTypeEnum.PEPS);
         long peps = newInventoryProduct(InventoryConfigurationTypeEnum.PEPS);
         purchaseAt(peps, "5", "77.25");
         assertThat(lastPurchasePrices.findAll(ENTERPRISE_ID, List.of(peps)).get(peps).value())
                 .isEqualByComparingTo("77.25");
+    }
+
+    @Test
+    void weighted_average_current_average_cost_skips_rows_without_balance_and_falls_back_when_none() {
+        valuation(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
+        long productId = newInventoryProduct(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
+        assertThat(waQuery.findCurrentAverageUnitCost(productId)).as("sin kardex").isEmpty();
+
+        purchaseAt(productId, "10", "100.00");
+        purchaseAt(productId, "10", "130.00");
+        assertLastPrice(waQuery.findCurrentAverageUnitCost(productId), "115.00");
+
+        // la BD real tiene filas antiguas con balance nulo; el DDL de H2 lo hace NOT NULL, se relaja aqui
+        jdbc.execute("alter table kardex alter column balance_unit_price set null");
+        // fila mas reciente sin balance (dato antiguo de BD real): se salta y gana la anterior
+        jdbc.update("update kardex set balance_unit_price = null where id = "
+                + "(select max(id) from kardex where product_id = ?)", productId);
+        assertLastPrice(waQuery.findCurrentAverageUnitCost(productId), "100.00");
+
+        // ninguna fila con balance: vacio, el lookup deja al producto fuera (cae a cost)
+        jdbc.update("update kardex set balance_unit_price = null where product_id = ?", productId);
+        assertThat(waQuery.findCurrentAverageUnitCost(productId)).isEmpty();
+        assertThat(lastPurchasePrices.findAll(ENTERPRISE_ID, List.of(productId))).isEmpty();
     }
 
     // ---------- ultimo precio: una linea vs lineas repetidas (pruebas nuevas) ----------
@@ -622,18 +647,19 @@ class BillingInventoryStockIntegrationTest {
         return emit(DocumentType.PURCHASE_INVOICE, draft);
     }
 
-    private void assertThreeSingleLinePurchasesGiveLastPrice(InventoryConfigurationTypeEnum method,
-            java.util.function.LongFunction<Optional<BigDecimal>> query) {
+    /** PEPS: el sugerido es el ultimo precio de entrada; WA: el promedio vigente (balance del kardex). */
+    private void assertThreeSingleLinePurchasesGiveSuggestedPrice(InventoryConfigurationTypeEnum method,
+            java.util.function.LongFunction<Optional<BigDecimal>> query, String expected, String rejected) {
         valuation(method);
         long productId = newInventoryProduct(method);
         purchaseAt(productId, "10", "100.00");
         purchaseAt(productId, "10", "120.00");
         purchaseAt(productId, "10", "130.00");
         Optional<BigDecimal> kardexPrice = query.apply(productId);
-        assertLastPrice(kardexPrice, "130.00"); // ultimo, no el promedio (~116.67)
-        assertThat(kardexPrice.get()).isNotEqualByComparingTo("116.67");
+        assertLastPrice(kardexPrice, expected);
+        assertThat(kardexPrice.get()).isNotEqualByComparingTo(rejected);
         assertThat(lastPurchasePrices.findAll(ENTERPRISE_ID, List.of(productId)).get(productId).value())
-                .isEqualByComparingTo("130.00");
+                .isEqualByComparingTo(expected);
     }
 
     private void assertTwoLinesSameInvoiceStoreInvoiceWeightedAverage(InventoryConfigurationTypeEnum method,
@@ -649,21 +675,22 @@ class BillingInventoryStockIntegrationTest {
     }
 
     @Test
-    void weighted_average_three_single_line_purchases_suggest_the_last_price_not_the_average() {
-        assertThreeSingleLinePurchasesGiveLastPrice(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE,
-                waQuery::findLastEntryUnitPrice);
+    void weighted_average_three_single_line_purchases_suggest_the_current_average_not_the_last_price() {
+        // (10*100 + 10*120 + 10*130) / 30 = 116.67 (balance_unit_price, HALF_UP a 2 decimales)
+        assertThreeSingleLinePurchasesGiveSuggestedPrice(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE,
+                waQuery::findCurrentAverageUnitCost, "116.67", "130.00");
     }
 
     @Test
     void peps_three_single_line_purchases_suggest_the_last_price_not_the_average() {
-        assertThreeSingleLinePurchasesGiveLastPrice(InventoryConfigurationTypeEnum.PEPS,
-                pepsQuery::findLastEntryUnitPrice);
+        assertThreeSingleLinePurchasesGiveSuggestedPrice(InventoryConfigurationTypeEnum.PEPS,
+                pepsQuery::findLastEntryUnitPrice, "130.00", "116.67");
     }
 
     @Test
     void weighted_average_two_lines_of_the_same_product_in_one_invoice_store_the_invoice_average() {
         assertTwoLinesSameInvoiceStoreInvoiceWeightedAverage(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE,
-                waQuery::findLastEntryUnitPrice);
+                waQuery::findCurrentAverageUnitCost);
     }
 
     @Test

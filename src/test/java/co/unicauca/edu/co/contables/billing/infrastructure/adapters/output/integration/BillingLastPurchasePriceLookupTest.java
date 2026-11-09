@@ -22,8 +22,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Ultimo precio de compra para la factura de compra: sale del kardex del metodo de valoracion de la
- * empresa (WA o PEPS) y ante cualquier problema el producto queda fuera (fallback a cost, sin error).
+ * Precio sugerido de la factura de compra: ultimo precio de entrada en PEPS y costo promedio
+ * ponderado vigente en promedio ponderado; ante cualquier problema el producto queda fuera
+ * (fallback a cost, sin error).
  */
 @ExtendWith(MockitoExtension.class)
 class BillingLastPurchasePriceLookupTest {
@@ -49,9 +50,9 @@ class BillingLastPurchasePriceLookupTest {
     }
 
     @Test
-    void weighted_average_reads_the_wa_kardex_and_rounds_half_up_to_cents() {
+    void weighted_average_reads_the_current_average_cost_and_rounds_half_up_to_cents() {
         method(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
-        when(waKardex.findLastEntryUnitPrice(7L)).thenReturn(Optional.of(new BigDecimal("1234.565")));
+        when(waKardex.findCurrentAverageUnitCost(7L)).thenReturn(Optional.of(new BigDecimal("1234.565")));
 
         Map<Long, Money> prices = lookup().findAll(ENTERPRISE, List.of(7L));
 
@@ -59,6 +60,7 @@ class BillingLastPurchasePriceLookupTest {
         assertThat(prices.get(7L).value()).isEqualByComparingTo("1234.57");
         assertThat(prices.get(7L).toCents()).isEqualTo(123457L);
         verifyNoInteractions(pepsKardex);
+        verify(waKardex, never()).findLastEntryUnitPrice(any());
     }
 
     @Test
@@ -73,10 +75,29 @@ class BillingLastPurchasePriceLookupTest {
     }
 
     @Test
+    void peps_never_uses_the_average_cost() {
+        method(InventoryConfigurationTypeEnum.PEPS);
+        when(pepsKardex.findLastEntryUnitPrice(7L)).thenReturn(Optional.of(new BigDecimal("130.00")));
+
+        lookup().findAll(ENTERPRISE, List.of(7L));
+
+        verify(waKardex, never()).findCurrentAverageUnitCost(any());
+    }
+
+    @Test
+    void weighted_average_without_a_positive_average_falls_back_to_cost() {
+        method(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
+        when(waKardex.findCurrentAverageUnitCost(7L)).thenReturn(Optional.empty());
+
+        assertThat(lookup().findAll(ENTERPRISE, List.of(7L))).isEmpty();
+        verify(waKardex, never()).findLastEntryUnitPrice(any());
+    }
+
+    @Test
     void product_without_entries_is_left_out_so_the_caller_falls_back_to_cost() {
         method(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
-        when(waKardex.findLastEntryUnitPrice(7L)).thenReturn(Optional.empty());
-        when(waKardex.findLastEntryUnitPrice(8L)).thenReturn(Optional.of(new BigDecimal("5")));
+        when(waKardex.findCurrentAverageUnitCost(7L)).thenReturn(Optional.empty());
+        when(waKardex.findCurrentAverageUnitCost(8L)).thenReturn(Optional.of(new BigDecimal("5")));
 
         Map<Long, Money> prices = lookup().findAll(ENTERPRISE, List.of(7L, 8L));
 
@@ -94,7 +115,7 @@ class BillingLastPurchasePriceLookupTest {
     @Test
     void zero_price_is_discarded_so_the_caller_falls_back_to_cost() {
         method(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
-        when(waKardex.findLastEntryUnitPrice(7L)).thenReturn(Optional.of(new BigDecimal("0.00")));
+        when(waKardex.findCurrentAverageUnitCost(7L)).thenReturn(Optional.of(new BigDecimal("0.00")));
 
         assertThat(lookup().findAll(ENTERPRISE, List.of(7L))).isEmpty();
     }
@@ -126,8 +147,8 @@ class BillingLastPurchasePriceLookupTest {
     @Test
     void kardex_query_failure_falls_back_for_that_product_only() {
         method(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
-        when(waKardex.findLastEntryUnitPrice(7L)).thenThrow(new IllegalStateException("db down"));
-        when(waKardex.findLastEntryUnitPrice(8L)).thenReturn(Optional.of(new BigDecimal("9.50")));
+        when(waKardex.findCurrentAverageUnitCost(7L)).thenThrow(new IllegalStateException("db down"));
+        when(waKardex.findCurrentAverageUnitCost(8L)).thenReturn(Optional.of(new BigDecimal("9.50")));
 
         Map<Long, Money> prices = lookup().findAll(ENTERPRISE, List.of(7L, 8L));
 

@@ -100,4 +100,31 @@ class KardexLastEntryUnitPriceUnitTest {
         assertTrue(adapter.findLastEntryUnitPrice(7L, types).isEmpty());
         assertTrue(adapter.findLastEntryUnitPrice(8L, types).isEmpty());
     }
+
+    @Test
+    @DisplayName("promedio vigente: el servicio delega en el puerto de repositorio")
+    void service_delegates_current_average_cost() {
+        KardexQueryService service = new KardexQueryService(repositoryPort);
+        when(repositoryPort.findCurrentAverageUnitCost(7L)).thenReturn(Optional.of(new BigDecimal("115.00")));
+
+        assertEquals(new BigDecimal("115.00"), service.findCurrentAverageUnitCost(7L).orElseThrow());
+        verify(repositoryPort).findCurrentAverageUnitCost(7L);
+        verifyNoMoreInteractions(repositoryPort);
+    }
+
+    @Test
+    @DisplayName("promedio vigente: el adaptador devuelve balanceUnitPrice de la fila mas reciente con balance > 0")
+    void adapter_returns_balance_unit_price_of_latest_row_with_positive_balance() {
+        KardexQueryAdapter adapter = new KardexQueryAdapter(mapper, kardexRepository);
+        KardexEntity latest = new KardexEntity();
+        latest.setId(9L);
+        latest.setBalanceUnitPrice(new BigDecimal("116.67"));
+        when(kardexRepository.findTopByProductIdAndBalanceUnitPriceGreaterThanOrderByDateDescIdDesc(7L, BigDecimal.ZERO))
+                .thenReturn(Optional.of(latest));
+        when(kardexRepository.findTopByProductIdAndBalanceUnitPriceGreaterThanOrderByDateDescIdDesc(8L, BigDecimal.ZERO))
+                .thenReturn(Optional.empty());
+
+        assertEquals(new BigDecimal("116.67"), adapter.findCurrentAverageUnitCost(7L).orElseThrow());
+        assertTrue(adapter.findCurrentAverageUnitCost(8L).isEmpty());
+    }
 }
