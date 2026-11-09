@@ -39,6 +39,7 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
     private final BillingExecutionContextPort context;
     private final BillingClockPort clock;
     private final BillingIdGeneratorPort ids;
+    private final SupplierInvoiceNumberGuard supplierNumbers;
 
     public BillingInvoiceDraftService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
             BillingReferenceResolver resolver, BillingExecutionContextPort context, BillingClockPort clock,
@@ -49,6 +50,7 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
         this.context = Objects.requireNonNull(context, "context");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.ids = Objects.requireNonNull(ids, "ids");
+        this.supplierNumbers = new SupplierInvoiceNumberGuard(repository);
     }
 
     @Override
@@ -56,6 +58,7 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
         requireInvoiceType(type);
         Objects.requireNonNull(command, "command");
         Resolved resolved = resolve(enterpriseId, type, command);
+        assertSupplierNumberUnique(enterpriseId, type, resolved, command, null);
 
         Instant now = clock.now();
         String user = context.username();
@@ -72,6 +75,7 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
         Objects.requireNonNull(command, "command");
         BillingDocument document = loader.load(enterpriseId, type, id, command.expectedVersion());
         Resolved resolved = resolve(enterpriseId, type, command);
+        assertSupplierNumberUnique(enterpriseId, type, resolved, command, id);
 
         document.replaceInvoiceDraft(resolved.counterparty(), command.issueDate(),
                 command.supplierInvoiceNumber(), resolved.lines(), clock.now(), context.username());
@@ -109,6 +113,14 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
                     line.taxRateOverride() == null ? null : TaxRate.of(line.taxRateOverride())));
         }
         return new Resolved(counterparty, lines);
+    }
+
+    /** Unicidad del N.º de factura del proveedor (solo compras); ver {@link SupplierInvoiceNumberGuard}. */
+    private void assertSupplierNumberUnique(String enterpriseId, DocumentType type, Resolved resolved,
+            InvoiceDraftCommand command, UUID excludeId) {
+        supplierNumbers.assertUnique(enterpriseId, type,
+                resolved.counterparty() == null ? null : resolved.counterparty().thirdId(),
+                command.supplierInvoiceNumber(), excludeId);
     }
 
     private static void requireInvoiceType(DocumentType type) {

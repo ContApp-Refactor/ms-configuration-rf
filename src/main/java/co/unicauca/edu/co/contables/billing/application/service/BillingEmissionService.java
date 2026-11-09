@@ -58,6 +58,7 @@ public class BillingEmissionService implements EmitDocumentUseCase {
     private final BillingIdGeneratorPort ids;
     private final StockMovementPort stock;
     private final AccountingEntryPort accounting;
+    private final SupplierInvoiceNumberGuard supplierNumbers;
     private final ReturnAvailabilityCalculator calculator = new ReturnAvailabilityCalculator();
     private final ReturnEventContextFactory returnContexts = new ReturnEventContextFactory(calculator);
 
@@ -75,6 +76,7 @@ public class BillingEmissionService implements EmitDocumentUseCase {
         this.ids = Objects.requireNonNull(ids, "ids");
         this.stock = Objects.requireNonNull(stock, "stock");
         this.accounting = Objects.requireNonNull(accounting, "accounting");
+        this.supplierNumbers = new SupplierInvoiceNumberGuard(repository);
     }
 
     @Override
@@ -132,6 +134,9 @@ public class BillingEmissionService implements EmitDocumentUseCase {
 
     private BillingDocument emitInvoice(String enterpriseId, DocumentType type, BillingDocument document) {
         CounterpartySnapshot freshCounterparty = readCounterparty(enterpriseId, document);
+        // Revalida por si otro documento tomo el numero del proveedor entre el guardado y la emision
+        supplierNumbers.assertUnique(enterpriseId, type, freshCounterparty == null ? null
+                : freshCounterparty.thirdId(), document.supplierInvoiceNumber(), document.id());
         Map<Long, ProductSnapshot> catalog = readActiveProducts(enterpriseId, document);
         document.refreshCatalog(catalog);
         IssuerSnapshot issuer = readActiveIssuer(enterpriseId);
