@@ -22,6 +22,7 @@ import co.unicauca.edu.co.contables.billing.application.ports.input.command.Invo
 import co.unicauca.edu.co.contables.billing.application.ports.input.command.ReturnDraftCommand;
 import co.unicauca.edu.co.contables.billing.application.ports.input.command.ReturnLineCommand;
 import co.unicauca.edu.co.contables.billing.application.ports.output.EnterprisePort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.PaymentCatalogPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ProductPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ThirdPartyPort;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingErrorCode;
@@ -95,6 +96,8 @@ class BillingInventoryStockIntegrationTest {
     @MockitoBean
     private EnterprisePort enterprises;
     @MockitoBean
+    private PaymentCatalogPort paymentCatalog;
+    @MockitoBean
     private IEnterpriseService enterpriseService;
     @MockitoBean
     private co.unicauca.edu.co.contables.inventory.kardex.domain.port.config.IConfigClientPort waCalendar;
@@ -133,6 +136,8 @@ class BillingInventoryStockIntegrationTest {
     @BeforeEach
     void setUp() {
         TenantContext.setTenantId(TENANT);
+        when(paymentCatalog.findPaymentMethod(anyString(), org.mockito.ArgumentMatchers.eq(1L)))
+                .thenReturn(Optional.of(new PaymentCatalogPort.PaymentMethodRef(1L, "Efectivo", true)));
         when(waCalendar.isValidAccountingDate(anyString(), any())).thenReturn(true);
         when(pepsCalendar.isValidAccountingDate(anyString(), any())).thenReturn(true);
         when(enterprises.findIssuer(ENTERPRISE_ID)).thenReturn(Optional.of(issuer()));
@@ -243,7 +248,8 @@ class BillingInventoryStockIntegrationTest {
                 + NEXT_SUPPLIER_INVOICE.getAndIncrement() : null; // unico por proveedor (regla de unicidad)
         BillingDocument draft = billing.create(ENTERPRISE_ID, type, new InvoiceDraftCommand(counterparty, null,
                 supplierNumber, List.of(new InvoiceLineCommand(productId, new BigDecimal(quantity), null, null)),
-                null));
+                null, type == DocumentType.SALE_INVOICE
+                        ? new InvoiceDraftCommand.PaymentCommand(1L) : null));
         return draft;
     }
 
@@ -342,7 +348,8 @@ class BillingInventoryStockIntegrationTest {
         BillingDocument draft = billing.create(ENTERPRISE_ID, DocumentType.SALE_INVOICE, new InvoiceDraftCommand(
                 CUSTOMER_ID, null, null, List.of(
                         new InvoiceLineCommand(withStock, new BigDecimal("2"), null, null),
-                        new InvoiceLineCommand(withoutStock, new BigDecimal("3"), null, null)), null));
+                        new InvoiceLineCommand(withoutStock, new BigDecimal("3"), null, null)), null,
+                new InvoiceDraftCommand.PaymentCommand(1L)));
 
         assertThatThrownBy(() -> emit(DocumentType.SALE_INVOICE, draft))
                 .isInstanceOfSatisfying(BillingException.class, e -> {
@@ -602,5 +609,66 @@ class BillingInventoryStockIntegrationTest {
         purchaseAt(peps, "5", "77.25");
         assertThat(lastPurchasePrices.findAll(ENTERPRISE_ID, List.of(peps)).get(peps).value())
                 .isEqualByComparingTo("77.25");
+    }
+
+    // ---------- ultimo precio: una linea vs lineas repetidas (pruebas nuevas) ----------
+
+    private BillingDocument purchaseTwoLines(long productId, String q1, String p1, String q2, String p2) {
+        BillingDocument draft = billing.create(ENTERPRISE_ID, DocumentType.PURCHASE_INVOICE, new InvoiceDraftCommand(
+                SUPPLIER_ID, null, SUPPLIER_INVOICE_NUMBER + "-LP2-" + NEXT_SUPPLIER_INVOICE.getAndIncrement(),
+                List.of(new InvoiceLineCommand(productId, new BigDecimal(q1), new BigDecimal(p1), null),
+                        new InvoiceLineCommand(productId, new BigDecimal(q2), new BigDecimal(p2), null)),
+                null));
+        return emit(DocumentType.PURCHASE_INVOICE, draft);
+    }
+
+    private void assertThreeSingleLinePurchasesGiveLastPrice(InventoryConfigurationTypeEnum method,
+            java.util.function.LongFunction<Optional<BigDecimal>> query) {
+        valuation(method);
+        long productId = newInventoryProduct(method);
+        purchaseAt(productId, "10", "100.00");
+        purchaseAt(productId, "10", "120.00");
+        purchaseAt(productId, "10", "130.00");
+        Optional<BigDecimal> kardexPrice = query.apply(productId);
+        assertLastPrice(kardexPrice, "130.00"); // ultimo, no el promedio (~116.67)
+        assertThat(kardexPrice.get()).isNotEqualByComparingTo("116.67");
+        assertThat(lastPurchasePrices.findAll(ENTERPRISE_ID, List.of(productId)).get(productId).value())
+                .isEqualByComparingTo("130.00");
+    }
+
+    private void assertTwoLinesSameInvoiceStoreInvoiceWeightedAverage(InventoryConfigurationTypeEnum method,
+            java.util.function.LongFunction<Optional<BigDecimal>> query) {
+        valuation(method);
+        long productId = newInventoryProduct(method);
+        purchaseTwoLines(productId, "10", "100.00", "10", "130.00");
+        // (10*100 + 10*130) / 20 = 115.00: groupByProduct fusiona las lineas en un solo movimiento
+        assertLastPrice(query.apply(productId), "115.00");
+        assertThat(query.apply(productId).get()).isNotEqualByComparingTo("130.00");
+        assertThat(lastPurchasePrices.findAll(ENTERPRISE_ID, List.of(productId)).get(productId).value())
+                .isEqualByComparingTo("115.00");
+    }
+
+    @Test
+    void weighted_average_three_single_line_purchases_suggest_the_last_price_not_the_average() {
+        assertThreeSingleLinePurchasesGiveLastPrice(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE,
+                waQuery::findLastEntryUnitPrice);
+    }
+
+    @Test
+    void peps_three_single_line_purchases_suggest_the_last_price_not_the_average() {
+        assertThreeSingleLinePurchasesGiveLastPrice(InventoryConfigurationTypeEnum.PEPS,
+                pepsQuery::findLastEntryUnitPrice);
+    }
+
+    @Test
+    void weighted_average_two_lines_of_the_same_product_in_one_invoice_store_the_invoice_average() {
+        assertTwoLinesSameInvoiceStoreInvoiceWeightedAverage(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE,
+                waQuery::findLastEntryUnitPrice);
+    }
+
+    @Test
+    void peps_two_lines_of_the_same_product_in_one_invoice_store_the_invoice_average() {
+        assertTwoLinesSameInvoiceStoreInvoiceWeightedAverage(InventoryConfigurationTypeEnum.PEPS,
+                pepsQuery::findLastEntryUnitPrice);
     }
 }

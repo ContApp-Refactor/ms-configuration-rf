@@ -1,5 +1,6 @@
 package co.unicauca.edu.co.contables.billing.application.service;
 
+import co.unicauca.edu.co.contables.billing.support.FakePaymentCatalogPort;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.CUSTOMER_ID;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.ENTERPRISE_ID;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.LATER;
@@ -10,6 +11,7 @@ import static co.unicauca.edu.co.contables.billing.support.BillingTestData.TODAY
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.USER;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.annulledReturnOf;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.annulledSale;
+import static co.unicauca.edu.co.contables.billing.support.BillingTestData.methodTerms;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.customer;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.draftPurchase;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.draftSale;
@@ -122,6 +124,7 @@ class BillingEmissionServiceTest {
     private StockMovementPort stock;
     @Mock
     private AccountingEntryPort accounting;
+    private final FakePaymentCatalogPort paymentCatalog = new FakePaymentCatalogPort();
 
     private BillingEmissionService service;
 
@@ -133,7 +136,7 @@ class BillingEmissionServiceTest {
         lenient().when(repository.save(any(BillingDocument.class))).thenAnswer(inv -> inv.getArgument(0));
         service = new BillingEmissionService(repository, new BillingDocumentLoader(repository),
                 new BillingReferenceResolver(thirdParties, products, enterprises), sequence, outbox, context,
-                clock, ids, stock, accounting);
+                clock, ids, stock, accounting, paymentCatalog);
     }
 
     // ---------- helpers ----------
@@ -282,7 +285,7 @@ class BillingEmissionServiceTest {
         BillingDocument draft = draftSale();
         draft.replaceInvoiceDraft(customer(), TODAY, null, List.of(DocumentLine.forInvoice(1,
                 taxedProduct(1L, "19", TaxComponent.of("Iva", new BigDecimal("19"))), qty("2"), null, null)),
-                NOW, USER);
+                methodTerms(1L), NOW, USER);
         stored(draft);
         customerExists(customer());
         // al emitir la categoria ya tiene 3 impuestos: se relee y se congela ese desglose
@@ -310,7 +313,8 @@ class BillingEmissionServiceTest {
     void RN_10_emit_keeps_the_manual_price_override_when_the_catalog_changes() {
         BillingDocument draft = draftSale();
         draft.replaceInvoiceDraft(customer(), TODAY, null,
-                List.of(DocumentLine.forInvoice(1, product(1L), qty("2"), money("150.00"), null)), NOW, USER);
+                List.of(DocumentLine.forInvoice(1, product(1L), qty("2"), money("150.00"), null)),
+                methodTerms(1L), NOW, USER);
         stored(draft);
         customerExists(customer());
         when(products.findProduct(ENTERPRISE_ID, 1L, DocumentKind.SALE))
@@ -346,7 +350,7 @@ class BillingEmissionServiceTest {
         BillingDocument draft = draftSale();
         draft.replaceInvoiceDraft(customer(), TODAY, null,
                 List.of(lineOf(1, product(1L), "1"), lineOf(2, product(1L), "2"), lineOf(3, product(2L), "1")),
-                NOW, USER);
+                methodTerms(1L), NOW, USER);
         stored(draft);
         customerExists(customer());
         saleProductExists(1L);

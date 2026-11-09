@@ -105,7 +105,8 @@ class BillingSupplierInvoiceUniquenessTest {
         drafts = new BillingInvoiceDraftService(repository, new BillingDocumentLoader(repository), resolver, context,
                 clock, ids);
         emission = new BillingEmissionService(repository, new BillingDocumentLoader(repository), resolver, sequence,
-                outbox, context, clock, ids, stock, accounting);
+                outbox, context, clock, ids, stock, accounting,
+                new co.unicauca.edu.co.contables.billing.support.FakePaymentCatalogPort());
     }
 
     // ---------- helpers ----------

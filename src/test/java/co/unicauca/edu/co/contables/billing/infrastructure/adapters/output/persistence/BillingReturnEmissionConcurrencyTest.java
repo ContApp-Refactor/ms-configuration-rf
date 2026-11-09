@@ -105,7 +105,8 @@ class BillingReturnEmissionConcurrencyTest {
                 enterprise -> Optional.of(issuer()));
         FakeIntegrationPort integration = new FakeIntegrationPort();
         emission = new BillingEmissionService(adapter, loader, resolver, sequence, outbox, executionContext, clock,
-                UUID::randomUUID, integration, integration);
+                UUID::randomUUID, integration, integration,
+                new co.unicauca.edu.co.contables.billing.support.FakePaymentCatalogPort());
         annulment = new BillingAnnulmentService(adapter, loader, outbox, executionContext, clock, UUID::randomUUID,
                 integration, integration);
     }
