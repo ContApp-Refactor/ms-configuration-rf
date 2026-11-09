@@ -1,9 +1,12 @@
 package co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.output.jpa.adapter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -80,6 +83,18 @@ public class KardexQueryAdapter implements IKardexQueryRepositoryPort {
     public Kardex getLatestKardexByProductId(Long productId) {
         KardexEntity kardexEntity = kardexRepository.findTopByProductIdOrderByDateDesc(productId);
         return kardexEntity != null ? kardexEntityMapper.toDomain(kardexEntity) : null;
+    }
+
+    /**
+     * @brief Gets the unit price of the latest Kardex record of a product among the given types
+     * @param productId The product identifier
+     * @param types Movement types to consider
+     * @return Unit price or empty if none exists
+     */
+    @Override
+    public Optional<BigDecimal> findLastEntryUnitPrice(Long productId, Collection<MovementType> types) {
+        return kardexRepository.findTopByProductIdAndTypeInOrderByDateDescIdDesc(productId, types)
+                .map(KardexEntity::getUnitPrice);
     }
 
     /**

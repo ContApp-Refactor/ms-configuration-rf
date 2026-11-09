@@ -2,7 +2,9 @@ package co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.ou
 
 import java.time.ZonedDateTime;
 import org.springframework.stereotype.Repository;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +19,9 @@ public interface IKardexRepository extends JpaRepository<KardexEntity, Long> {
 
     // Find the latest Kardex entry by product ID
     KardexEntity findTopByProductIdOrderByDateDesc(Long productId);
+
+    // Find the latest Kardex entry of a product restricted to the given movement types (ties: highest id)
+    Optional<KardexEntity> findTopByProductIdAndTypeInOrderByDateDescIdDesc(Long productId, Collection<MovementType> types);
 
     // Find all Kardex entries by product ID
     Page<KardexEntity> findByProductId(Long productId, Pageable pageable);

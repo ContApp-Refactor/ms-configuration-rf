@@ -1,7 +1,10 @@
 package co.unicauca.edu.co.contables.inventory.kardex.domain.port.kardex;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +52,14 @@ public interface IKardexQueryRepositoryPort {
      * @return Latest kardex record or null if none exists
      */
     Kardex getLatestKardexByProductId(Long productId);
+
+    /**
+     * @brief Gets the unit price of the most recent kardex record of a product whose type is in {@code types}
+     * @param productId Product identifier
+     * @param types Movement types to consider
+     * @return Unit price (latest by date, ties by highest id) or empty if none (or price is null)
+     */
+    Optional<BigDecimal> findLastEntryUnitPrice(Long productId, Collection<MovementType> types);
     
     /**
      * @brief Checks if a specific kardex combination already exists

@@ -1,7 +1,9 @@
 package co.unicauca.edu.co.contables.inventory.kardex.application.service.kardex.query;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import co.unicauca.edu.co.contables.inventory.kardex.application.ports.input.kardex.IKardexQueryPort;
 import co.unicauca.edu.co.contables.inventory.kardex.domain.model.Kardex;
+import co.unicauca.edu.co.contables.inventory.kardex.domain.model.MovementType;
 import co.unicauca.edu.co.contables.inventory.kardex.domain.port.kardex.IKardexQueryRepositoryPort;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,10 @@ import lombok.extern.slf4j.Slf4j;
 @Service("kardexKardexQueryService")@RequiredArgsConstructor
 @Slf4j
 public class KardexQueryService implements IKardexQueryPort {
+
+    /** Commercial entry types that define the "last purchase price" (business rule). */
+    private static final List<MovementType> LAST_PRICE_ENTRY_TYPES =
+            List.of(MovementType.PURCHASE, MovementType.ADJUSTMENTENTRY);
 
     private final IKardexQueryRepositoryPort kardexQueryRepositoryPort;
 
@@ -62,6 +69,16 @@ public class KardexQueryService implements IKardexQueryPort {
     public Kardex getLatestKardexByProductId(Long productId) {
         log.info("Fetching latest kardex record for product: {}", productId);
         return kardexQueryRepositoryPort.getLatestKardexByProductId(productId);
+    }
+
+    /**
+     * @brief Gets the unit price of the latest PURCHASE/ADJUSTMENTENTRY of a product
+     * @param productId Product identifier
+     * @return Unit price or empty if the product has no such entry
+     */
+    @Override
+    public Optional<BigDecimal> findLastEntryUnitPrice(Long productId) {
+        return kardexQueryRepositoryPort.findLastEntryUnitPrice(productId, LAST_PRICE_ENTRY_TYPES);
     }
     
 }

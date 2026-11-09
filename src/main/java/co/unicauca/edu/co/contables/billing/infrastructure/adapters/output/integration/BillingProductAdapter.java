@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -23,7 +24,8 @@ import org.springframework.stereotype.Component;
 /**
  * Catalogo de productos resuelto <strong>en el mismo proceso</strong> mediante los puertos de
  * entrada del modulo inventory (D8, H0-1): precio de referencia = {@code Product.cost} (escala 2,
- * HALF_UP) tanto en ventas como en compras (provisional, RN-30) e IVA = el de la categoria del
+ * HALF_UP) en ventas; en compras (kind PURCHASE) = ultimo precio de compra del kardex
+ * ({@link BillingLastPurchasePriceLookup}) con {@code Product.cost} como respaldo; e IVA = el de la categoria del
  * producto segun {@link BillingVatRateResolver} (con {@code billing.default-vat-rate} como respaldo),
  * junto con su desglose por impuesto.
  * Se devuelven tambien los productos inactivos ({@code active=false}); la unidad de medida
@@ -35,12 +37,14 @@ public class BillingProductAdapter implements ProductPort {
     private final IProductServicePort productService;
     private final IUnitOfMeasureServicePort unitOfMeasureService;
     private final BillingVatRateResolver vatRateResolver;
+    private final BillingLastPurchasePriceLookup lastPurchasePrices;
 
     public BillingProductAdapter(IProductServicePort productService, IUnitOfMeasureServicePort unitOfMeasureService,
-            BillingVatRateResolver vatRateResolver) {
+            BillingVatRateResolver vatRateResolver, BillingLastPurchasePriceLookup lastPurchasePrices) {
         this.productService = productService;
         this.unitOfMeasureService = unitOfMeasureService;
         this.vatRateResolver = vatRateResolver;
+        this.lastPurchasePrices = lastPurchasePrices;
     }
 
     @Override
@@ -50,7 +54,8 @@ public class BillingProductAdapter implements ProductPort {
             return Optional.empty();
         }
         return Optional.of(snapshot(enterpriseId, productId, product,
-                vatRateResolver.resolveBreakdown(enterpriseId, product.getCategoryId())));
+                vatRateResolver.resolveBreakdown(enterpriseId, product.getCategoryId()),
+                purchasePrices(enterpriseId, List.of(productId), kind).get(productId)));
     }
 
     /**
@@ -76,8 +81,10 @@ public class BillingProductAdapter implements ProductPort {
         Map<Long, BillingVatRateResolver.Resolution> rates =
                 vatRateResolver.resolveAllBreakdowns(enterpriseId, categoryIds);
         Map<Long, ProductSnapshot> found = new LinkedHashMap<>();
+        Map<Long, Money> purchasePrices = purchasePrices(enterpriseId, loaded.keySet(), kind);
         loaded.forEach((productId, product) -> found.put(productId,
-                snapshot(enterpriseId, productId, product, rates.get(product.getCategoryId()))));
+                snapshot(enterpriseId, productId, product, rates.get(product.getCategoryId()),
+                        purchasePrices.get(productId))));
         return found;
     }
 
@@ -89,15 +96,26 @@ public class BillingProductAdapter implements ProductPort {
         }
     }
 
+    /**
+     * Compra: ultimo precio de compra del kardex (solo los productos que lo tienen; el resto cae al
+     * {@code cost}). Venta u otro tipo: no se consulta el kardex.
+     */
+    private Map<Long, Money> purchasePrices(String enterpriseId, Collection<Long> productIds, DocumentKind kind) {
+        if (kind != DocumentKind.PURCHASE) {
+            return Map.of();
+        }
+        return lastPurchasePrices.findAll(enterpriseId, productIds);
+    }
+
     private ProductSnapshot snapshot(String enterpriseId, long productId, Product product,
-            BillingVatRateResolver.Resolution vat) {
+            BillingVatRateResolver.Resolution vat, Money lastPurchasePrice) {
         return new ProductSnapshot(
                 productId,
                 product.getCode(),
                 product.getName(),
                 product.getUnitOfMeasureId(),
                 unitOfMeasureName(product.getUnitOfMeasureId(), enterpriseId),
-                Money.of(BigDecimal.valueOf(product.getCost())),
+                lastPurchasePrice != null ? lastPurchasePrice : Money.of(BigDecimal.valueOf(product.getCost())),
                 TaxRate.of(vat.rate()),
                 product.isState(),
                 vat.taxes());
