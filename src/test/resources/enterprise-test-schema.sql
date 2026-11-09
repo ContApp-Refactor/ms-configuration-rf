@@ -86,3 +86,18 @@ CREATE TABLE IF NOT EXISTS enterprise_tax_liabilities (
     FOREIGN KEY (enterprise_id) REFERENCES enterprise(id),
     FOREIGN KEY (tax_liabilities_id) REFERENCES tax_liability(id)
 );
+
+CREATE TABLE IF NOT EXISTS subjects (
+    id UUID PRIMARY KEY,
+    code VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    tenant_id VARCHAR(80)
+);
+
+CREATE TABLE IF NOT EXISTS enterprise_subjects (
+    enterprise_id UUID NOT NULL,
+    subjects_id UUID NOT NULL,
+    PRIMARY KEY (enterprise_id, subjects_id),
+    FOREIGN KEY (enterprise_id) REFERENCES enterprise(id),
+    FOREIGN KEY (subjects_id) REFERENCES subjects(id)
+);
