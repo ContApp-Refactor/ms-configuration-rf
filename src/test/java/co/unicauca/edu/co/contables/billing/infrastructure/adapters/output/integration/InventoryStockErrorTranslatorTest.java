@@ -49,6 +49,8 @@ class InventoryStockErrorTranslatorTest {
     @Test
     void other_business_rule_errors_are_rejected_and_server_errors_unavailable() {
         assertThat(code(new BusinessRuleException(400, "La fecha contable no es valida"), Operation.SALE))
+                .isEqualTo(BillingErrorCode.BILLING_STOCK_PERIOD_CLOSED);
+        assertThat(code(new BusinessRuleException(400, "Registro duplicado para la factura"), Operation.SALE))
                 .isEqualTo(BillingErrorCode.BILLING_STOCK_REJECTED);
         assertThat(code(new IllegalArgumentException("Quantity must be greater than 0"), Operation.PURCHASE))
                 .isEqualTo(BillingErrorCode.BILLING_STOCK_REJECTED);
@@ -56,6 +58,17 @@ class InventoryStockErrorTranslatorTest {
                 Operation.SALE)).isEqualTo(BillingErrorCode.BILLING_STOCK_UNAVAILABLE);
         assertThat(code(new IllegalStateException("boom"), Operation.SALE))
                 .isEqualTo(BillingErrorCode.BILLING_STOCK_UNAVAILABLE);
+    }
+
+    @Test
+    void closed_accounting_period_is_explained_in_plain_spanish() {
+        BillingException ex = InventoryStockErrorTranslator.translate(
+                new BusinessRuleException(400, "The accounting date is not valid for the operation."),
+                Operation.PURCHASE, 7L);
+        assertThat(ex.errorCode()).isEqualTo(BillingErrorCode.BILLING_STOCK_PERIOD_CLOSED);
+        assertThat(ex.getMessage()).startsWith("Inventario rechazo el movimiento debido a que el mes esta cerrado")
+                .contains("Abre el mes en el calendario contable")
+                .doesNotContain("accounting date").doesNotContain("detalle de Inventario");
     }
 
     @Test
@@ -165,9 +178,13 @@ class InventoryStockErrorTranslatorTest {
                     Operation.SALE_RETURN).errorCode()).isEqualTo(BillingErrorCode.BILLING_STOCK_REJECTED);
             BillingException calendar = translated(businessRule(400, "kardex.error.invalid.accounting.date"),
                     Operation.SALE);
-            assertThat(calendar.errorCode()).isEqualTo(BillingErrorCode.BILLING_STOCK_REJECTED);
+            assertThat(calendar.errorCode()).isEqualTo(BillingErrorCode.BILLING_STOCK_PERIOD_CLOSED);
+            // el mensaje explica la causa (mes cerrado) sin el texto tecnico de Inventario
             assertThat(calendar.getMessage()).doesNotContain("GC-004")
-                    .contains(messages.getMessage("kardex.error.invalid.accounting.date"));
+                    .startsWith("Inventario rechazo el movimiento debido a que el mes esta cerrado")
+                    .contains("calendario contable")
+                    .doesNotContain(messages.getMessage("kardex.error.invalid.accounting.date"))
+                    .doesNotContain("detalle de Inventario");
         }
 
         @Test
