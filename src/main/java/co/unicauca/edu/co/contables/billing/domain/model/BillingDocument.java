@@ -34,6 +34,7 @@ public class BillingDocument {
     private CounterpartySnapshot counterparty;
     private String supplierInvoiceNumber;
     private IssuerSnapshot issuer;
+    private PaymentTerms payment;
     private final OriginalDocumentRef original;
     private String returnReason;
     private List<DocumentLine> lines;
@@ -59,6 +60,7 @@ public class BillingDocument {
         this.counterparty = s.counterparty();
         this.supplierInvoiceNumber = s.supplierInvoiceNumber();
         this.issuer = s.issuer();
+        this.payment = this.type.supportsPayment() ? s.payment() : null;
         this.original = s.original();
         this.returnReason = s.returnReason();
         this.lines = s.lines();
@@ -131,6 +133,17 @@ public class BillingDocument {
      */
     public void replaceInvoiceDraft(CounterpartySnapshot newCounterparty, LocalDate newIssueDate,
             String newSupplierInvoiceNumber, List<DocumentLine> newLines, Instant at, String by) {
+        replaceInvoiceDraft(newCounterparty, newIssueDate, newSupplierInvoiceNumber, newLines, this.payment, at, by);
+    }
+
+    /**
+     * Como el reemplazo sin pago, pero tambien reemplaza el metodo de pago. Solo las facturas
+     * (venta y compra) lo conservan: en las devoluciones se ignora (quedan nulas). El vencimiento se recalcula
+     * con la fecha de factura resultante.
+     */
+    public void replaceInvoiceDraft(CounterpartySnapshot newCounterparty, LocalDate newIssueDate,
+            String newSupplierInvoiceNumber, List<DocumentLine> newLines, PaymentTerms newPayment, Instant at,
+            String by) {
         requireDraftInvoice();
         if (newCounterparty != null) {
             requireRole(newCounterparty);
@@ -145,7 +158,29 @@ public class BillingDocument {
         this.supplierInvoiceNumber = normalizedSupplierNumber;
         this.lines = renumbered;
         this.totals = DocumentTotals.fromLines(renumbered);
+        this.payment = type.supportsPayment() ? newPayment : null;
         touch(at, by);
+    }
+
+    /**
+     * Congela el nombre del metodo de pago (snapshot, como el emisor). Solo en borrador de factura;
+     * sin pago no hace nada.
+     */
+    public void freezePaymentMethodName(String methodName) {
+        requireDraftInvoice();
+        if (payment != null) {
+            this.payment = payment.withMethodName(methodName);
+        }
+    }
+
+    /**
+     * Congela el pago: nombre del metodo elegido. Solo en borrador de factura; sin pago no hace nada.
+     */
+    public void freezePayment(String methodName) {
+        requireDraftInvoice();
+        if (payment != null) {
+            this.payment = payment.withMethodName(methodName);
+        }
     }
 
     /**
@@ -164,11 +199,11 @@ public class BillingDocument {
         for (DocumentLine line : renumbered) {
             if (line.sourceLineNo() == null) {
                 throw new BillingException(BillingErrorCode.BILLING_INVALID_LINE,
-                        "Toda linea de devolucion debe referenciar una linea de la factura original");
+                        "Todo item de devolucion debe referenciar un item de la factura original");
             }
             if (!seen.add(line.sourceLineNo())) {
                 throw new BillingException(BillingErrorCode.BILLING_INVALID_LINE,
-                        "La linea " + line.sourceLineNo() + " de la factura original esta repetida");
+                        "El item " + line.sourceLineNo() + " de la factura original esta repetido");
             }
         }
 
@@ -208,7 +243,8 @@ public class BillingDocument {
         requireDraftInvoice();
         return new BillingDocument(new BillingDocumentState(newId, enterpriseId, type, DocumentStatus.BORRADOR,
                 null, today, counterparty, null, null, null, null, lines, at, by, at, by,
-                null, null, null, null, null, null));
+                null, null, null, null, null, null,
+                payment == null ? null : payment.withoutSnapshot()));
     }
 
     // ---------- reglas de transicion ----------
@@ -272,7 +308,7 @@ public class BillingDocument {
         }
         if (type.isInvoice() && hasEmittedReturns) {
             throw new BillingException(BillingErrorCode.BILLING_HAS_EMITTED_RETURNS,
-                    "La factura tiene devoluciones emitidas; anule primero las devoluciones");
+                    "La factura ya tiene devoluciones emitidas y no puede anularse");
         }
         transitionTo(DocumentStatus.ANULADA);
         this.annulReason = trimmed;
@@ -341,6 +377,11 @@ public class BillingDocument {
         return issuer;
     }
 
+    /** Condiciones de pago: solo existen en la factura de venta y pueden ser nulas (borrador o historico). */
+    public PaymentTerms payment() {
+        return payment;
+    }
+
     public OriginalDocumentRef original() {
         return original;
     }
@@ -407,7 +448,7 @@ public class BillingDocument {
     public BillingDocumentState state() {
         return new BillingDocumentState(id, enterpriseId, type, status, number, issueDate, counterparty,
                 supplierInvoiceNumber, issuer, original, returnReason, lines, createdAt, createdBy, updatedAt,
-                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, version);
+                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, version, payment);
     }
 
     // ---------- internos ----------
@@ -462,7 +503,7 @@ public class BillingDocument {
             throw incomplete("El documento requiere tercero");
         }
         if (lines.isEmpty()) {
-            throw incomplete("El documento requiere al menos una linea");
+            throw incomplete("El documento requiere al menos un item");
         }
         if (type.isInvoice()) {
             if (!totals.total().isPositive()) {
@@ -471,6 +512,7 @@ public class BillingDocument {
             if (type == DocumentType.PURCHASE_INVOICE && isBlank(supplierInvoiceNumber)) {
                 throw incomplete("La factura de compra requiere el numero de factura del proveedor");
             }
+
         } else if (isBlank(returnReason)) {
             throw incomplete("La devolucion requiere un motivo");
         }
@@ -478,6 +520,17 @@ public class BillingDocument {
         if (!candidate.active()) {
             throw new BillingException(BillingErrorCode.BILLING_INACTIVE_REFERENCE, "El tercero esta inactivo");
         }
+        if (type.supportsPayment()) {
+            assertPaymentComplete();
+        }
+    }
+
+    private void assertPaymentComplete() {
+        if (payment == null) {
+            throw new BillingException(BillingErrorCode.BILLING_PAYMENT_METHOD_REQUIRED,
+                    "La factura requiere un metodo de pago");
+        }
+        payment.assertComplete();
     }
 
     private void transitionTo(DocumentStatus target) {

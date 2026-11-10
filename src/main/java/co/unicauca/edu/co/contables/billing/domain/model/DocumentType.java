@@ -29,6 +29,11 @@ public enum DocumentType {
         return !returnDocument;
     }
 
+    /** El metodo de pago aplica a las facturas (venta y compra); las devoluciones no lo llevan. */
+    public boolean supportsPayment() {
+        return isInvoice();
+    }
+
     public String prefix() {
         return prefix;
     }

@@ -52,7 +52,7 @@ public final class ReturnAvailabilityCalculator {
             anyReturned |= returned.signum() > 0;
             anyAvailable |= available.signum() > 0;
             lines.add(new ReturnLineAvailability(line.lineNo(), line.productId(), line.productName(), sold,
-                    returned, available, line.unitPrice(), line.taxRate()));
+                    returned, available, line.unitPrice(), line.taxRate(), line.taxes()));
         }
         boolean returnable = invoice.status() == DocumentStatus.EMITIDA && anyAvailable;
         return new ReturnAvailability(invoice.id(), lines, status(anyReturned, anyAvailable), returnable);
@@ -79,20 +79,20 @@ public final class ReturnAvailabilityCalculator {
             Integer sourceLineNo = requested.sourceLineNo();
             if (sourceLineNo == null) {
                 throw new BillingException(BillingErrorCode.BILLING_INVALID_LINE,
-                        "Toda linea de devolucion debe referenciar una linea de la factura original");
+                        "Todo item de devolucion debe referenciar un item de la factura original");
             }
             if (!seen.add(sourceLineNo)) {
                 throw new BillingException(BillingErrorCode.BILLING_INVALID_LINE,
-                        "La linea " + sourceLineNo + " de la factura original esta repetida");
+                        "El item " + sourceLineNo + " de la factura original esta repetido");
             }
             ReturnLineAvailability target = byLine.get(sourceLineNo);
             if (target == null) {
                 throw new BillingException(BillingErrorCode.BILLING_RETURN_LINE_NOT_FOUND,
-                        "La factura no tiene la linea " + sourceLineNo);
+                        "La factura no tiene el item " + sourceLineNo);
             }
             if (requested.quantity().value().compareTo(target.available()) > 0) {
                 throw new BillingException(BillingErrorCode.BILLING_RETURN_QUANTITY_EXCEEDED,
-                        "La linea " + sourceLineNo + " admite como maximo " + target.available().toPlainString()
+                        "El item " + sourceLineNo + " admite como maximo " + target.available().toPlainString()
                                 + " unidades a devolver");
             }
         }

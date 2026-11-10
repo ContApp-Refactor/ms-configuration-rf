@@ -15,12 +15,18 @@ import co.unicauca.edu.co.contables.billing.domain.model.CounterpartySnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentLine;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentNumber;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentTotals;
+import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
+import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnLineAvailability;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingDocumentSummaryResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceLineResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceResponse;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingIssuerResponse;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingLineTaxResponse;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingPaymentResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnLineResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingTotalsResponse;
@@ -55,7 +61,14 @@ public class BillingRestMapper {
                 request.date(),
                 request.supplierInvoiceNumber(),
                 lines,
-                request.version());
+                request.version(),
+                toPaymentCommand(request.payment()));
+    }
+
+    /** Metodo de pago opcional (solo venta). */
+    private static InvoiceDraftCommand.PaymentCommand toPaymentCommand(InvoiceDraftRequest.PaymentRequest payment) {
+        return payment == null ? null
+                : new InvoiceDraftCommand.PaymentCommand(payment.methodId());
     }
 
     private InvoiceLineCommand toLineCommand(InvoiceLineRequest line) {
@@ -109,7 +122,26 @@ public class BillingRestMapper {
                 doc.emittedAt(),
                 doc.annulledAt(),
                 doc.annulReason(),
-                doc.version());
+                doc.version(),
+                toIssuer(doc.issuer()),
+                toPayment(doc.payment()));
+    }
+
+    /** Metodo de pago de la venta; nulo en compras y en ventas sin el dato. */
+    private static BillingPaymentResponse toPayment(PaymentTerms payment) {
+        return payment == null
+                ? null
+                : new BillingPaymentResponse(
+                        payment.paymentMethodId() == null ? null : String.valueOf(payment.paymentMethodId()),
+                        payment.paymentMethodName());
+    }
+
+    /** Emisor congelado (RN-06); nulo mientras el documento sea borrador. */
+    private static BillingIssuerResponse toIssuer(IssuerSnapshot issuer) {
+        return issuer == null
+                ? null
+                : new BillingIssuerResponse(issuer.enterpriseId(), issuer.name(), issuer.nit(), issuer.dv(),
+                        issuer.active());
     }
 
     public BillingDocumentSummaryResponse toSummaryResponse(BillingDocumentSummary summary) {
@@ -147,7 +179,13 @@ public class BillingRestMapper {
                 line.taxOverridden(),
                 BillingCents.cents(line.subtotal()),
                 BillingCents.cents(line.taxAmount()),
-                BillingCents.cents(line.total()));
+                BillingCents.cents(line.total()),
+                toTaxes(line.taxes()));
+    }
+
+    /** Desglose efectivo de la linea; lista vacia (nunca nula) si se muestra un valor unico. */
+    private static List<BillingLineTaxResponse> toTaxes(List<TaxComponent> taxes) {
+        return taxes.stream().map(t -> new BillingLineTaxResponse(t.name(), t.rate())).toList();
     }
 
     private static BillingTotalsResponse toTotals(DocumentTotals totals) {
@@ -228,7 +266,8 @@ public class BillingRestMapper {
                 doc.emittedAt(),
                 doc.annulledAt(),
                 doc.annulReason(),
-                doc.version());
+                doc.version(),
+                toIssuer(doc.issuer()));
     }
 
     private BillingReturnLineResponse toReturnLineResponse(DocumentLine line) {
@@ -244,7 +283,8 @@ public class BillingRestMapper {
                 line.taxRate().value(),
                 BillingCents.cents(line.subtotal()),
                 BillingCents.cents(line.taxAmount()),
-                BillingCents.cents(line.total()));
+                BillingCents.cents(line.total()),
+                toTaxes(line.taxes()));
     }
 
     public ReturnSummaryResponse toReturnSummaryResponse(ReturnSummary returnSummary) {
@@ -289,7 +329,8 @@ public class BillingRestMapper {
                 line.returned(),
                 line.available(),
                 BillingCents.cents(line.unitPrice()),
-                line.taxRate().value());
+                line.taxRate().value(),
+                toTaxes(line.taxes()));
     }
 
     public InvoiceWithReturnsResponse toWithReturnsResponse(InvoiceWithReturnsSummary row) {

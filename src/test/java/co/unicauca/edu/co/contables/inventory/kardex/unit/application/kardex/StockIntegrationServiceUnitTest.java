@@ -59,34 +59,34 @@ public class StockIntegrationServiceUnitTest {
     
     
     @Test
-    @DisplayName("Should handle exception when buy stock API fails")
+    @DisplayName("Should propagate exception when buy stock API fails")
     void testCallApiStockServiceForBuyWithException() {
         // Arrange
         RuntimeException exception = new RuntimeException("API Error");
         doThrow(exception).when(stockClient).buyStock(stock);
-        
-        // Act - El método captura la excepción y solo la loguea, no la re-lanza
-        assertDoesNotThrow(() -> {
-            stockIntegrationService.callApiStockService(stock, true);
-        });
-        
+
+        // Act - la excepción se propaga para que la transacción haga rollback
+        RuntimeException thrown = assertThrows(RuntimeException.class,
+            () -> stockIntegrationService.callApiStockService(stock, true));
+
         // Assert
+        assertSame(exception, thrown);
         verify(stockClient).buyStock(stock);
     }
-    
+
     @Test
-    @DisplayName("Should handle exception when sell stock API fails")
+    @DisplayName("Should propagate exception when sell stock API fails")
     void testCallApiStockServiceForSellWithException() {
         // Arrange
         RuntimeException exception = new RuntimeException("API Error");
         doThrow(exception).when(stockClient).sellStock(stock);
-        
-        // Act - El método captura la excepción y solo la loguea, no la re-lanza
-        assertDoesNotThrow(() -> {
-            stockIntegrationService.callApiStockService(stock, false);
-        });
-        
+
+        // Act - la excepción se propaga para que la transacción haga rollback
+        RuntimeException thrown = assertThrows(RuntimeException.class,
+            () -> stockIntegrationService.callApiStockService(stock, false));
+
         // Assert
+        assertSame(exception, thrown);
         verify(stockClient).sellStock(stock);
     }
     

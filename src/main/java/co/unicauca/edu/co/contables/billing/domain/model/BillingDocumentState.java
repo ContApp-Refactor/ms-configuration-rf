@@ -31,16 +31,29 @@ public record BillingDocumentState(
         Instant annulledAt,
         String annulledBy,
         String annulReason,
-        Long version) {
+        Long version,
+        PaymentTerms payment) {
 
     public BillingDocumentState {
         lines = lines == null ? List.of() : List.copyOf(lines);
+    }
+
+    /** Constructor historico (sin condiciones de pago): compras, devoluciones y documentos anteriores. */
+    public BillingDocumentState(UUID id, String enterpriseId, DocumentType type, DocumentStatus status,
+            DocumentNumber number, LocalDate issueDate, CounterpartySnapshot counterparty,
+            String supplierInvoiceNumber, IssuerSnapshot issuer, OriginalDocumentRef original, String returnReason,
+            List<DocumentLine> lines, Instant createdAt, String createdBy, Instant updatedAt, String updatedBy,
+            Instant emittedAt, String emittedBy, Instant annulledAt, String annulledBy, String annulReason,
+            Long version) {
+        this(id, enterpriseId, type, status, number, issueDate, counterparty, supplierInvoiceNumber, issuer,
+                original, returnReason, lines, createdAt, createdBy, updatedAt, updatedBy, emittedAt, emittedBy,
+                annulledAt, annulledBy, annulReason, version, null);
     }
 
     /** Copia con otra version (la asigna la persistencia). */
     public BillingDocumentState withVersion(Long newVersion) {
         return new BillingDocumentState(id, enterpriseId, type, status, number, issueDate, counterparty,
                 supplierInvoiceNumber, issuer, original, returnReason, lines, createdAt, createdBy, updatedAt,
-                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, newVersion);
+                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, newVersion, payment);
     }
 }

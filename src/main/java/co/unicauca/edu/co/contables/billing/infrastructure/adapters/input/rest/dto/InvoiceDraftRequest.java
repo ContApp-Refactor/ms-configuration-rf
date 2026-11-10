@@ -19,5 +19,20 @@ public record InvoiceDraftRequest(
         LocalDate date,
         @Size(max = 50) String supplierInvoiceNumber,
         @NotNull @Size(max = 500) List<@NotNull @Valid InvoiceLineRequest> lines,
-        Long version) {
+        Long version,
+        @Valid PaymentRequest payment) {
+
+    /** Compatibilidad: sin forma de pago (compras). */
+    public InvoiceDraftRequest(String clientId, LocalDate date, String supplierInvoiceNumber,
+            List<InvoiceLineRequest> lines, Long version) {
+        this(clientId, date, supplierInvoiceNumber, lines, version, null);
+    }
+
+    /**
+     * Metodo de pago de la factura de VENTA; en compras
+     * se ignora. Campos desconocidos de clientes anteriores (form, termDays, dueDate, bankAccountId) no se leen.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record PaymentRequest(Long methodId) {
+    }
 }

@@ -20,7 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import co.unicauca.edu.co.contables.billing.application.ports.input.view.BillingDocumentSummary;
 import co.unicauca.edu.co.contables.billing.domain.model.BillingDocument;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentLine;
+import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Quantity;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxRate;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentEntity;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentLineEntity;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.mapper.BillingDocumentPersistenceMapper;
@@ -227,5 +230,54 @@ class BillingDocumentPersistenceMapperTest {
         BillingDocumentEntity entity = mapper.newEntity(doc);
 
         assertThat(entity.getVersion()).as("newEntity nunca copia la version: la asigna JPA").isNull();
+    }
+
+    // ---- desglose de impuestos (columna JSON tax_breakdown) ----
+
+    private static BillingDocument draftWithTaxedLine(TaxRate override, TaxComponent... taxes) {
+        BillingDocument doc = draftSale();
+        ProductSnapshot product = new ProductSnapshot(1L, "P1", "Producto 1", 1L, "Unidad", money("100.00"),
+                rate("26"), true, List.of(taxes));
+        doc.replaceInvoiceDraft(customer(), TODAY, null,
+                List.of(DocumentLine.forInvoice(1, product, Quantity.of(new BigDecimal("1")), null, override)),
+                NOW, USER);
+        return doc;
+    }
+
+    @Test
+    void TAXES_breakdown_is_stored_as_json_and_round_trips_in_order() {
+        BillingDocument doc = draftWithTaxedLine(null, TaxComponent.of("Ica", new BigDecimal("6")),
+                TaxComponent.of("SalD", new BigDecimal("8")), TaxComponent.of("Iva", new BigDecimal("12")));
+
+        BillingDocumentEntity entity = mapper.newEntity(doc);
+        BillingDocumentLineEntity row = entity.getLines().get(0);
+
+        assertThat(row.getTaxBreakdown()).contains("\"name\":\"Ica\"").contains("\"rate\":6.00");
+        assertThat(row.getTaxRate()).isEqualByComparingTo("26.00");
+        assertThat(row.getTaxAmount()).isEqualByComparingTo("26.00");
+        BillingDocument back = mapper.toDomain(entity);
+        assertThat(back.lines().get(0).taxes()).extracting(TaxComponent::name).containsExactly("Ica", "SalD", "Iva");
+        assertThat(back.state()).isEqualTo(doc.state());
+    }
+
+    @Test
+    void TAXES_line_without_breakdown_stores_null_and_old_rows_read_as_empty() {
+        BillingDocumentEntity entity = mapper.newEntity(readySaleDraft());
+        BillingDocumentLineEntity row = entity.getLines().get(0);
+
+        assertThat(row.getTaxBreakdown()).isNull();
+        assertThat(mapper.toDomain(entity).lines().get(0).taxes()).isEmpty();
+    }
+
+    @Test
+    void TAXES_override_keeps_the_catalog_breakdown_stored_but_shows_a_single_value() {
+        BillingDocument doc = draftWithTaxedLine(rate("5"), TaxComponent.of("Iva", new BigDecimal("19")));
+
+        BillingDocumentEntity entity = mapper.newEntity(doc);
+        DocumentLine back = mapper.toDomain(entity).lines().get(0);
+
+        assertThat(entity.getLines().get(0).getTaxBreakdown()).contains("Iva");
+        assertThat(back.taxes()).isEmpty();
+        assertThat(back.taxRate()).isEqualTo(rate("5"));
     }
 }

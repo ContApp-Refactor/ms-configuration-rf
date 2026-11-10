@@ -7,6 +7,7 @@ import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.d
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.EmitRequest;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.ReturnDraftRequest;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.ReturnSummaryResponse;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.support.BillingIdempotencyHeader;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.support.BillingPermissions;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.support.BillingReturnEndpointSupport;
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,8 +50,9 @@ public class BillingSaleReturnController {
     @PreAuthorize(BillingPermissions.SALE_RETURN_CREATE)
     public ResponseEntity<BillingReturnResponse> create(
             @RequestParam("enterpriseId") @NotBlank @Size(max = 50) String enterpriseId,
-            @Valid @RequestBody ReturnDraftRequest request) {
-        return support.create(TYPE, BASE_PATH, enterpriseId, request);
+            @Valid @RequestBody ReturnDraftRequest request,
+            @RequestHeader(name = BillingIdempotencyHeader.NAME, required = false) String idempotencyKey) {
+        return support.create(TYPE, BASE_PATH, enterpriseId, request, idempotencyKey);
     }
 
     @PutMapping("/{id}")
@@ -79,6 +82,8 @@ public class BillingSaleReturnController {
         return support.emit(TYPE, enterpriseId, id, request);
     }
 
+    // PENDIENTE DE DECISION (nota 15): anular una devolucion NO se ofrece en el front. Este endpoint se conserva
+    // sin uso desde la UI hasta confirmar si se elimina o se deja; no lo borres ni lo expongas sin esa confirmacion.
     @PostMapping("/{id}/annul")
     @PreAuthorize(BillingPermissions.SALE_RETURN_ANNUL)
     public ResponseEntity<BillingReturnResponse> annul(

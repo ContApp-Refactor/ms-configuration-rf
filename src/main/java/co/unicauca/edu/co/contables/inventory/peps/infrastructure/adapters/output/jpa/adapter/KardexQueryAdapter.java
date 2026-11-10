@@ -1,13 +1,16 @@
 package co.unicauca.edu.co.contables.inventory.peps.infrastructure.adapters.output.jpa.adapter;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
+import co.unicauca.edu.co.contables.inventory.peps.domain.enums.MovementType;
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.Kardex;
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.KardexMigration;
 import co.unicauca.edu.co.contables.inventory.peps.domain.port.output.query.IKardexQueryOutputPort;
@@ -159,6 +162,18 @@ public class KardexQueryAdapter implements IKardexQueryOutputPort{
     @Override
     public boolean existsByProduct_ProductId(Long productId) {
       return kardexRepository.existsByProduct_ProductId(productId);
+    }
+
+    /**
+     * @brief Gets the unit price of the latest Kardex entry of a product among the given types
+     * @param productId The product ID
+     * @param types Movement types to consider
+     * @return Unit price or empty if none exists
+     */
+    @Override
+    public Optional<BigDecimal> findLastEntryUnitPrice(Long productId, Collection<MovementType> types) {
+        return kardexRepository.findTopByProduct_ProductIdAndTypeInOrderByDateDescIdKardexDesc(productId, types)
+                .map(KardexEntity::getUnitPrice);
     }
 
   

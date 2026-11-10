@@ -56,6 +56,15 @@ public interface BillingDocumentRepositoryPort {
     /** Suma de las cantidades de linea de cada documento pedido; los inexistentes no aparecen. */
     Map<UUID, BigDecimal> soldQuantities(String enterpriseId, Collection<UUID> documentIds);
 
+    /**
+     * Factura de compra (solo PURCHASE_INVOICE, nunca devoluciones) de la empresa y del proveedor
+     * dado, en BORRADOR o EMITIDA (las ANULADA no cuentan), cuyo N.º de factura del proveedor
+     * coincide con {@code supplierInvoiceNumber} sin distinguir mayusculas ni espacios en los
+     * bordes. {@code excludeId} (opcional) deja fuera al propio documento.
+     */
+    Optional<BillingDocumentSummary> findPurchaseInvoiceBySupplierNumber(String enterpriseId, long counterpartyId,
+            String supplierInvoiceNumber, UUID excludeId);
+
     /** Inserta o actualiza (control optimista por version); devuelve el estado persistido. */
     BillingDocument save(BillingDocument document);
 

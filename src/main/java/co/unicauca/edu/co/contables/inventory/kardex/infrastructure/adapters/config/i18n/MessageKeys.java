@@ -18,6 +18,7 @@ public final class MessageKeys {
     public static final String ERROR_DUPLICATE_RECORD = "kardex.error.duplicate.record";
     public static final String ERROR_MISSING_RECORD = "kardex.error.missing.record";
     public static final String ERROR_OPERATION_NOT_ALLOWED = "kardex.error.operation.not.allowed";
+    public static final String ERROR_INSUFFICIENT_STOCK = "kardex.error.insufficient.stock";
     public static final String ERROR_INVALID_TYPE = "kardex.error.invalid.type";
     public static final String INVALID_ACCOUNTING_DATE = "kardex.error.invalid.accounting.date";
     public static final String DATE_CANNOT_BE_FUTURE = "kardex.error.date.cannot.be.future";

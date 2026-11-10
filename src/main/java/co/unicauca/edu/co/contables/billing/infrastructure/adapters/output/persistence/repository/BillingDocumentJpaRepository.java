@@ -55,6 +55,20 @@ public interface BillingDocumentJpaRepository extends JpaRepository<BillingDocum
     List<Object[]> sumEmittedReturnsByOriginal(@Param("enterpriseId") String enterpriseId,
             @Param("documentType") String documentType);
 
+    /**
+     * Facturas de compra BORRADOR/EMITIDA del proveedor con ese N.º de factura del proveedor
+     * (comparacion sin mayusculas ni espacios en los bordes; {@code normalizedNumber} ya viene en
+     * minuscula y recortado). Las ANULADA quedan fuera a proposito. {@code excludeId} no puede ser
+     * nulo (PostgreSQL no tipa bien un parametro nulo): el adaptador pasa un UUID nulo-sentinela.
+     */
+    @Query("select d from BillingDocumentEntity d where d.enterpriseId = :enterpriseId "
+            + "and d.documentType = 'PURCHASE_INVOICE' and d.counterpartyId = :counterpartyId "
+            + "and d.status in ('BORRADOR', 'EMITIDA') and d.id <> :excludeId "
+            + "and lower(trim(d.supplierInvoiceNumber)) = :normalizedNumber order by d.createdAt asc")
+    List<BillingDocumentEntity> findPurchaseInvoicesBySupplierNumber(
+            @Param("enterpriseId") String enterpriseId, @Param("counterpartyId") Long counterpartyId,
+            @Param("normalizedNumber") String normalizedNumber, @Param("excludeId") UUID excludeId);
+
     List<BillingDocumentEntity> findByEnterpriseIdAndDocumentTypeOrderByUpdatedAtDesc(
             String enterpriseId, String documentType);
 

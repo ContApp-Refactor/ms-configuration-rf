@@ -21,7 +21,7 @@ import org.hibernate.annotations.TenantId;
         @Index(name = "idx_bank_account_account_number", columnList = "account_number"),
         @Index(name = "idx_bank_account_bank_id", columnList = "bank_id")
     }
-)
+)     
 @Getter
 @Setter
 @NoArgsConstructor

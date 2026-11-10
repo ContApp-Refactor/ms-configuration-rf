@@ -1,8 +1,11 @@
 package co.unicauca.edu.co.contables.inventory.peps.domain.port.output.query;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import co.unicauca.edu.co.contables.inventory.peps.domain.enums.MovementType;
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.Kardex;
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.KardexMigration;
 
@@ -94,4 +97,12 @@ public interface IKardexQueryOutputPort {
      * @return True if exists, false otherwise
      */
     boolean existsByProduct_ProductId(Long productId);
+
+    /**
+     * @brief Gets the unit price of the most recent kardex record of a product whose type is in {@code types}
+     * @param productId Product identifier
+     * @param types Movement types to consider
+     * @return Unit price (latest by date, ties by highest id) or empty if none (or price is null)
+     */
+    Optional<BigDecimal> findLastEntryUnitPrice(Long productId, Collection<MovementType> types);
 }

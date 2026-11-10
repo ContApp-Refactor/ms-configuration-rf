@@ -1,12 +1,15 @@
 package co.unicauca.edu.co.contables.billing.application.service;
 
 import co.unicauca.edu.co.contables.billing.application.ports.input.EmitDocumentUseCase;
+import co.unicauca.edu.co.contables.billing.application.ports.output.AccountingEntryPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingClockPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingDocumentRepositoryPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingExecutionContextPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingIdGeneratorPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingOutboxPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.DocumentNumberSequencePort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.PaymentCatalogPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.StockMovementPort;
 import co.unicauca.edu.co.contables.billing.domain.event.BillingDocumentEmitted;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingErrorCode;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingException;
@@ -17,6 +20,7 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentNumber;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentStatus;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
+import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.service.ReturnAvailabilityCalculator;
 import java.time.Instant;
@@ -38,6 +42,11 @@ import java.util.UUID;
  *
  * <p>Devoluciones: cargar -> bloquear la original -> estado y disponibilidad -> emisor ->
  * precondiciones -> secuencia -> emitir -> guardar -> outbox con {@code ReturnEventContext}.
+ *
+ * <p>Idempotente: el documento se carga CON bloqueo de fila, asi que dos emisiones simultaneas se
+ * serializan; si ya esta EMITIDA se devuelve tal cual, sin numero, puertos ni evento nuevos. Los
+ * puertos de stock y asientos se invocan despues de guardar y antes del outbox, DENTRO de la
+ * transaccion: si alguno falla se revierte todo (estado, numero y evento).
  */
 public class BillingEmissionService implements EmitDocumentUseCase {
 
@@ -49,12 +58,17 @@ public class BillingEmissionService implements EmitDocumentUseCase {
     private final BillingExecutionContextPort context;
     private final BillingClockPort clock;
     private final BillingIdGeneratorPort ids;
+    private final StockMovementPort stock;
+    private final AccountingEntryPort accounting;
+    private final PaymentCatalogPort paymentCatalog;
+    private final SupplierInvoiceNumberGuard supplierNumbers;
     private final ReturnAvailabilityCalculator calculator = new ReturnAvailabilityCalculator();
     private final ReturnEventContextFactory returnContexts = new ReturnEventContextFactory(calculator);
 
     public BillingEmissionService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
             BillingReferenceResolver resolver, DocumentNumberSequencePort sequence, BillingOutboxPort outbox,
-            BillingExecutionContextPort context, BillingClockPort clock, BillingIdGeneratorPort ids) {
+            BillingExecutionContextPort context, BillingClockPort clock, BillingIdGeneratorPort ids,
+            StockMovementPort stock, AccountingEntryPort accounting, PaymentCatalogPort paymentCatalog) {
         this.repository = Objects.requireNonNull(repository, "repository");
         this.loader = Objects.requireNonNull(loader, "loader");
         this.resolver = Objects.requireNonNull(resolver, "resolver");
@@ -63,12 +77,20 @@ public class BillingEmissionService implements EmitDocumentUseCase {
         this.context = Objects.requireNonNull(context, "context");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.ids = Objects.requireNonNull(ids, "ids");
+        this.stock = Objects.requireNonNull(stock, "stock");
+        this.accounting = Objects.requireNonNull(accounting, "accounting");
+        this.paymentCatalog = Objects.requireNonNull(paymentCatalog, "paymentCatalog");
+        this.supplierNumbers = new SupplierInvoiceNumberGuard(repository);
     }
 
     @Override
     public BillingDocument emit(String enterpriseId, DocumentType type, UUID id, Long version) {
         Objects.requireNonNull(type, "type");
-        BillingDocument document = loader.load(enterpriseId, type, id, version);
+        BillingDocument document = loader.loadForUpdate(enterpriseId, type, id, null);
+        if (document.status() == DocumentStatus.EMITIDA) {
+            return document; // repeticion: mismo resultado, sin numero ni evento nuevos
+        }
+        document.ensureVersion(version);
         requireDraft(document);
         return type.isReturn() ? emitReturn(enterpriseId, type, document) : emitInvoice(enterpriseId, type, document);
     }
@@ -108,6 +130,7 @@ public class BillingEmissionService implements EmitDocumentUseCase {
         document.emit(DocumentNumber.of(type, numberValue), issuer, null, now, context.username());
 
         BillingDocument saved = repository.save(document);
+        integrate(saved);
         outbox.append(new BillingDocumentEmitted(ids.newId(), now, saved,
                 returnContexts.forReturn(saved, original, returns)));
         return saved;
@@ -115,9 +138,13 @@ public class BillingEmissionService implements EmitDocumentUseCase {
 
     private BillingDocument emitInvoice(String enterpriseId, DocumentType type, BillingDocument document) {
         CounterpartySnapshot freshCounterparty = readCounterparty(enterpriseId, document);
+        // Revalida por si otro documento tomo el numero del proveedor entre el guardado y la emision
+        supplierNumbers.assertUnique(enterpriseId, type, freshCounterparty == null ? null
+                : freshCounterparty.thirdId(), document.supplierInvoiceNumber(), document.id());
         Map<Long, ProductSnapshot> catalog = readActiveProducts(enterpriseId, document);
         document.refreshCatalog(catalog);
         IssuerSnapshot issuer = readActiveIssuer(enterpriseId);
+        freezePaymentMethod(enterpriseId, document);
         document.assertEmittable();
 
         long numberValue = sequence.nextValue(enterpriseId, type);
@@ -125,8 +152,15 @@ public class BillingEmissionService implements EmitDocumentUseCase {
         document.emit(DocumentNumber.of(type, numberValue), issuer, freshCounterparty, now, context.username());
 
         BillingDocument saved = repository.save(document);
+        integrate(saved);
         outbox.append(new BillingDocumentEmitted(ids.newId(), now, saved, null));
         return saved;
+    }
+
+    /** Integraciones sincronas de la misma transaccion; cualquier excepcion revierte la emision completa. */
+    private void integrate(BillingDocument emitted) {
+        stock.onEmitted(emitted);
+        accounting.onEmitted(emitted);
     }
 
     // ---------- internos ----------
@@ -158,6 +192,27 @@ public class BillingEmissionService implements EmitDocumentUseCase {
             }
         }
         return catalog;
+    }
+
+    /**
+     * Solo facturas (venta y compra): el metodo de pago debe existir, estar activo y ser de la empresa; se
+     * congela su nombre. La obligatoriedad del metodo la exige el dominio en {@code assertEmittable}.
+     */
+    private void freezePaymentMethod(String enterpriseId, BillingDocument document) {
+        PaymentTerms payment = document.payment();
+        if (!document.type().supportsPayment() || payment == null
+                || payment.paymentMethodId() == null) {
+            return;
+        }
+        PaymentCatalogPort.PaymentMethodRef method = paymentCatalog
+                .findPaymentMethod(enterpriseId, payment.paymentMethodId())
+                .orElseThrow(() -> new BillingException(BillingErrorCode.BILLING_PAYMENT_METHOD_INVALID,
+                        "El metodo de pago " + payment.paymentMethodId() + " no existe"));
+        if (!method.active()) {
+            throw new BillingException(BillingErrorCode.BILLING_PAYMENT_METHOD_INVALID,
+                    "El metodo de pago " + method.name() + " esta inactivo");
+        }
+        document.freezePayment(method.name());
     }
 
     private IssuerSnapshot readActiveIssuer(String enterpriseId) {

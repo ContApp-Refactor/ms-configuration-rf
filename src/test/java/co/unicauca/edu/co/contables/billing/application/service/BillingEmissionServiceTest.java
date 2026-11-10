@@ -1,5 +1,6 @@
 package co.unicauca.edu.co.contables.billing.application.service;
 
+import co.unicauca.edu.co.contables.billing.support.FakePaymentCatalogPort;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.CUSTOMER_ID;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.ENTERPRISE_ID;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.LATER;
@@ -10,6 +11,7 @@ import static co.unicauca.edu.co.contables.billing.support.BillingTestData.TODAY
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.USER;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.annulledReturnOf;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.annulledSale;
+import static co.unicauca.edu.co.contables.billing.support.BillingTestData.methodTerms;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.customer;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.draftPurchase;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.draftSale;
@@ -27,12 +29,14 @@ import static co.unicauca.edu.co.contables.billing.support.BillingTestData.lineO
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.money;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.product;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.qty;
+import static co.unicauca.edu.co.contables.billing.support.BillingTestData.rate;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.readyPurchaseDraft;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.readySaleDraft;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.supplier;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.uuid;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.withVersion;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -46,6 +50,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import co.unicauca.edu.co.contables.billing.application.ports.output.AccountingEntryPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingClockPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingDocumentRepositoryPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingExecutionContextPort;
@@ -54,6 +59,7 @@ import co.unicauca.edu.co.contables.billing.application.ports.output.BillingOutb
 import co.unicauca.edu.co.contables.billing.application.ports.output.DocumentNumberSequencePort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.EnterprisePort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ProductPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.StockMovementPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ThirdPartyPort;
 import co.unicauca.edu.co.contables.billing.domain.event.BillingDocumentEmitted;
 import co.unicauca.edu.co.contables.billing.domain.event.BillingDomainEvent;
@@ -68,8 +74,12 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentLine;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentStatus;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
+import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnStatus;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,7 +105,8 @@ class BillingEmissionServiceTest {
     private BillingDocumentRepositoryPort repository;
     @Mock
     private ThirdPartyPort thirdParties;
-    @Mock
+    // findProducts (por lote) es un metodo default del puerto: delega en findProduct, que es lo que se stubbea
+    @Mock(answer = org.mockito.Answers.CALLS_REAL_METHODS)
     private ProductPort products;
     @Mock
     private EnterprisePort enterprises;
@@ -109,6 +120,11 @@ class BillingEmissionServiceTest {
     private BillingClockPort clock;
     @Mock
     private BillingIdGeneratorPort ids;
+    @Mock
+    private StockMovementPort stock;
+    @Mock
+    private AccountingEntryPort accounting;
+    private final FakePaymentCatalogPort paymentCatalog = new FakePaymentCatalogPort();
 
     private BillingEmissionService service;
 
@@ -120,13 +136,14 @@ class BillingEmissionServiceTest {
         lenient().when(repository.save(any(BillingDocument.class))).thenAnswer(inv -> inv.getArgument(0));
         service = new BillingEmissionService(repository, new BillingDocumentLoader(repository),
                 new BillingReferenceResolver(thirdParties, products, enterprises), sequence, outbox, context,
-                clock, ids);
+                clock, ids, stock, accounting, paymentCatalog);
     }
 
     // ---------- helpers ----------
 
+    /** La emision carga el documento CON bloqueo de fila (serializa emisiones simultaneas, idempotencia). */
     private void stored(BillingDocument doc) {
-        when(repository.findById(ENTERPRISE_ID, doc.id())).thenReturn(Optional.of(doc));
+        when(repository.findByIdForUpdate(ENTERPRISE_ID, doc.id())).thenReturn(Optional.of(doc));
     }
 
     private void customerExists(CounterpartySnapshot snapshot) {
@@ -178,7 +195,7 @@ class BillingEmissionServiceTest {
         emitSale();
 
         InOrder order = inOrder(repository, thirdParties, products, enterprises, sequence, outbox);
-        order.verify(repository).findById(ENTERPRISE_ID, DOC_ID);
+        order.verify(repository).findByIdForUpdate(ENTERPRISE_ID, DOC_ID);
         order.verify(thirdParties).findCounterparty(ENTERPRISE_ID, CUSTOMER_ID, CounterpartyRole.CUSTOMER);
         order.verify(products).findProduct(ENTERPRISE_ID, 1L, DocumentKind.SALE);
         order.verify(enterprises).findIssuer(ENTERPRISE_ID);
@@ -258,11 +275,46 @@ class BillingEmissionServiceTest {
         assertThat(emitted.totals().total().value()).isEqualByComparingTo("476.00");
     }
 
+    private static ProductSnapshot taxedProduct(long id, String sum, TaxComponent... taxes) {
+        return new ProductSnapshot(id, "P" + id, "Producto " + id, 1L, "Unidad", money("100.00"),
+                rate(sum), true, List.of(taxes));
+    }
+
+    @Test
+    void TAXES_emit_freezes_the_breakdown_read_at_emission_and_the_amount_uses_the_sum() {
+        BillingDocument draft = draftSale();
+        draft.replaceInvoiceDraft(customer(), TODAY, null, List.of(DocumentLine.forInvoice(1,
+                taxedProduct(1L, "19", TaxComponent.of("Iva", new BigDecimal("19"))), qty("2"), null, null)),
+                methodTerms(1L), NOW, USER);
+        stored(draft);
+        customerExists(customer());
+        // al emitir la categoria ya tiene 3 impuestos: se relee y se congela ese desglose
+        when(products.findProduct(ENTERPRISE_ID, 1L, DocumentKind.SALE)).thenReturn(Optional.of(taxedProduct(1L,
+                "26", TaxComponent.of("Ica", new BigDecimal("6")), TaxComponent.of("SalD", new BigDecimal("8")),
+                TaxComponent.of("Iva", new BigDecimal("12")))));
+        issuerExists();
+        sequenceReturns(8L);
+
+        BillingDocument emitted = emitSale();
+
+        DocumentLine line = emitted.lines().get(0);
+        assertThat(line.taxes()).extracting(TaxComponent::name).containsExactly("Ica", "SalD", "Iva");
+        assertThat(line.taxRate().value()).isEqualByComparingTo("26.00");
+        assertThat(line.taxAmount().value()).isEqualByComparingTo("52.00"); // 200.00 x 26%
+        assertThat(emitted.totals().total().value()).isEqualByComparingTo("252.00");
+        // emitida: el catalogo ya no se refresca (si cambian las tarifas la factura no cambia)
+        assertThatThrownBy(() -> emitted.refreshCatalog(Map.of(1L,
+                taxedProduct(1L, "5", TaxComponent.of("Iva", new BigDecimal("5"))))))
+                .isInstanceOf(BillingException.class);
+        assertThat(emitted.lines().get(0).taxes()).hasSize(3);
+    }
+
     @Test
     void RN_10_emit_keeps_the_manual_price_override_when_the_catalog_changes() {
         BillingDocument draft = draftSale();
         draft.replaceInvoiceDraft(customer(), TODAY, null,
-                List.of(DocumentLine.forInvoice(1, product(1L), qty("2"), money("150.00"), null)), NOW, USER);
+                List.of(DocumentLine.forInvoice(1, product(1L), qty("2"), money("150.00"), null)),
+                methodTerms(1L), NOW, USER);
         stored(draft);
         customerExists(customer());
         when(products.findProduct(ENTERPRISE_ID, 1L, DocumentKind.SALE))
@@ -298,7 +350,7 @@ class BillingEmissionServiceTest {
         BillingDocument draft = draftSale();
         draft.replaceInvoiceDraft(customer(), TODAY, null,
                 List.of(lineOf(1, product(1L), "1"), lineOf(2, product(1L), "2"), lineOf(3, product(2L), "1")),
-                NOW, USER);
+                methodTerms(1L), NOW, USER);
         stored(draft);
         customerExists(customer());
         saleProductExists(1L);
@@ -485,14 +537,99 @@ class BillingEmissionServiceTest {
     // ---------- estado, tipo, version ----------
 
     @Test
-    void EMT_4_an_emitted_document_cannot_be_emitted_again_and_nothing_is_read() {
-        stored(emittedSale());
+    void IDM_1_emitting_an_already_emitted_document_returns_it_as_is_and_does_nothing_else() {
+        BillingDocument emitted = emittedSale();
+        stored(emitted);
+
+        BillingDocument result = emitSale();
+
+        assertThat(result).isSameAs(emitted);
+        assertThat(result.number().display()).isEqualTo("FV-000007");
+        verifyNoInteractions(thirdParties, products, enterprises, stock, accounting);
+        assertNothingConsumedOrWritten();
+    }
+
+    @Test
+    void IDM_1_re_emitting_with_a_stale_version_still_returns_the_emitted_document() {
+        BillingDocument emitted = withVersion(emittedSale(), 4L);
+        stored(emitted);
+
+        BillingDocument result = service.emit(ENTERPRISE_ID, DocumentType.SALE_INVOICE, DOC_ID, 3L);
+
+        assertThat(result).isSameAs(emitted);
+        assertNothingConsumedOrWritten();
+        verifyNoInteractions(stock, accounting);
+    }
+
+    @Test
+    void IDM_1_twenty_consecutive_emits_consume_a_single_number_and_append_a_single_event() {
+        stored(readySaleDraft());
+        customerExists(customer());
+        saleProductExists(1L);
+        issuerExists();
+        sequenceReturns(8L);
+
+        BillingDocument first = emitSale();
+        for (int i = 0; i < 19; i++) {
+            // el repositorio devuelve el documento ya emitido, como lo haria la base de datos
+            stored(first);
+            assertThat(emitSale().number().display()).isEqualTo("FV-000008");
+        }
+
+        verify(sequence, times(1)).nextValue(ENTERPRISE_ID, DocumentType.SALE_INVOICE);
+        verify(outbox, times(1)).append(any(BillingDomainEvent.class));
+        verify(repository, times(1)).save(any(BillingDocument.class));
+        verify(stock, times(1)).onEmitted(any(BillingDocument.class));
+        verify(accounting, times(1)).onEmitted(any(BillingDocument.class));
+    }
+
+    // ---------- puertos de integracion dentro de la transaccion (stock / asientos) ----------
+
+    @Test
+    void INT_1_emit_calls_stock_then_accounting_after_saving_and_before_the_outbox() {
+        stored(readySaleDraft());
+        customerExists(customer());
+        saleProductExists(1L);
+        issuerExists();
+        sequenceReturns(8L);
+
+        BillingDocument emitted = emitSale();
+
+        InOrder order = inOrder(repository, stock, accounting, outbox);
+        order.verify(repository).save(emitted);
+        order.verify(stock).onEmitted(emitted);
+        order.verify(accounting).onEmitted(emitted);
+        order.verify(outbox).append(any(BillingDocumentEmitted.class));
+    }
+
+    @Test
+    void INT_2_a_failing_stock_port_propagates_so_nothing_is_published_and_accounting_is_not_called() {
+        stored(readySaleDraft());
+        customerExists(customer());
+        saleProductExists(1L);
+        issuerExists();
+        sequenceReturns(8L);
+        doThrow(new IllegalStateException("inventario no disponible")).when(stock).onEmitted(any());
 
         Throwable thrown = catchThrowable(this::emitSale);
 
-        assertCode(thrown, BillingErrorCode.BILLING_INVALID_STATE);
-        verifyNoInteractions(thirdParties, products, enterprises);
-        assertNothingConsumedOrWritten();
+        assertThat(thrown).isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(outbox, accounting);
+    }
+
+    @Test
+    void INT_2_a_failing_accounting_port_propagates_so_nothing_is_published() {
+        stored(readySaleDraft());
+        customerExists(customer());
+        saleProductExists(1L);
+        issuerExists();
+        sequenceReturns(8L);
+        doThrow(new IllegalStateException("contabilidad no disponible")).when(accounting).onEmitted(any());
+
+        Throwable thrown = catchThrowable(this::emitSale);
+
+        assertThat(thrown).isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(outbox);
     }
 
     @Test
@@ -508,7 +645,7 @@ class BillingEmissionServiceTest {
 
     @Test
     void QRY_1_emitting_a_missing_document_is_not_found() {
-        when(repository.findById(ENTERPRISE_ID, DOC_ID)).thenReturn(Optional.empty());
+        when(repository.findByIdForUpdate(ENTERPRISE_ID, DOC_ID)).thenReturn(Optional.empty());
 
         Throwable thrown = catchThrowable(this::emitSale);
 
@@ -554,7 +691,7 @@ class BillingEmissionServiceTest {
 
     @Test
     void STA_3_emitting_a_missing_return_is_not_found_and_consumes_nothing() {
-        when(repository.findById(ENTERPRISE_ID, DOC_ID)).thenReturn(Optional.empty());
+        when(repository.findByIdForUpdate(ENTERPRISE_ID, DOC_ID)).thenReturn(Optional.empty());
 
         Throwable thrown = catchThrowable(
                 () -> service.emit(ENTERPRISE_ID, DocumentType.SALE_RETURN, DOC_ID, null));
@@ -577,7 +714,7 @@ class BillingEmissionServiceTest {
         ArgumentCaptor<BillingDomainEvent> captor = ArgumentCaptor.forClass(BillingDomainEvent.class);
         verify(outbox).append(captor.capture());
         assertThat(captor.getValue().returnContext()).isNull();
-        verify(repository, never()).findByIdForUpdate(any(), any());
+        verify(repository, times(1)).findByIdForUpdate(any(), any()); // solo la propia factura
         verify(repository, never()).findReturnsOf(any(), any());
     }
 
@@ -629,7 +766,7 @@ class BillingEmissionServiceTest {
         BillingDocument emitted = emitReturn();
 
         InOrder order = inOrder(repository, enterprises, sequence, outbox);
-        order.verify(repository).findById(ENTERPRISE_ID, DOC_ID);
+        order.verify(repository).findByIdForUpdate(ENTERPRISE_ID, DOC_ID);
         order.verify(repository).findByIdForUpdate(ENTERPRISE_ID, ORIGINAL_ID);
         order.verify(repository).findReturnsOf(ENTERPRISE_ID, ORIGINAL_ID);
         order.verify(enterprises).findIssuer(ENTERPRISE_ID);
@@ -875,15 +1012,51 @@ class BillingEmissionServiceTest {
     }
 
     @Test
-    void EMT_4_an_emitted_return_cannot_be_emitted_again_and_the_original_is_not_locked() {
+    void IDM_2_emitting_an_already_emitted_return_returns_it_as_is_without_locking_the_original() {
         BillingDocument original = saleOriginal();
-        stored(emittedReturnOf(original, DOC_ID, 1L, returnLineOf(original, 1, "4")));
+        BillingDocument emittedReturn = emittedReturnOf(original, DOC_ID, 1L, returnLineOf(original, 1, "4"));
+        stored(emittedReturn);
+
+        BillingDocument result = emitReturn();
+
+        assertThat(result).isSameAs(emittedReturn);
+        verify(repository, never()).findByIdForUpdate(ENTERPRISE_ID, ORIGINAL_ID);
+        verifyNoInteractions(stock, accounting);
+        assertNothingConsumedOrWritten();
+    }
+
+    @Test
+    void INT_2_a_failing_stock_port_aborts_the_return_emission_before_the_event() {
+        BillingDocument original = saleOriginal();
+        stored(saleReturnDraft(original, "4"));
+        originalLocked(original);
+        returnsOfOriginal();
+        issuerExists();
+        returnSequenceReturns(DocumentType.SALE_RETURN, 1L);
+        doThrow(new IllegalStateException("no se pudo reponer el inventario")).when(stock).onEmitted(any());
 
         Throwable thrown = catchThrowable(this::emitReturn);
 
-        assertCode(thrown, BillingErrorCode.BILLING_INVALID_STATE);
-        verify(repository, never()).findByIdForUpdate(any(), any());
-        assertNothingConsumedOrWritten();
+        assertThat(thrown).isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(outbox, accounting);
+    }
+
+    @Test
+    void INT_1_return_emit_calls_stock_then_accounting_after_saving_and_before_the_outbox() {
+        BillingDocument original = saleOriginal();
+        stored(saleReturnDraft(original, "4"));
+        originalLocked(original);
+        returnsOfOriginal();
+        issuerExists();
+        returnSequenceReturns(DocumentType.SALE_RETURN, 1L);
+
+        BillingDocument emitted = emitReturn();
+
+        InOrder order = inOrder(repository, stock, accounting, outbox);
+        order.verify(repository).save(emitted);
+        order.verify(stock).onEmitted(emitted);
+        order.verify(accounting).onEmitted(emitted);
+        order.verify(outbox).append(any(BillingDocumentEmitted.class));
     }
 
     @Test
@@ -904,7 +1077,7 @@ class BillingEmissionServiceTest {
         Throwable thrown = catchThrowable(this::emitReturn);
 
         assertCode(thrown, BillingErrorCode.BILLING_DOCUMENT_NOT_FOUND);
-        verify(repository, never()).findByIdForUpdate(any(), any());
+        verify(repository, times(1)).findByIdForUpdate(any(), any()); // solo la propia, nunca la original
         assertNothingConsumedOrWritten();
     }
 
@@ -929,7 +1102,7 @@ class BillingEmissionServiceTest {
                 () -> service.emit(ENTERPRISE_ID, DocumentType.SALE_RETURN, DOC_ID, 2L));
 
         assertCode(thrown, BillingErrorCode.BILLING_CONCURRENT_MODIFICATION);
-        verify(repository, never()).findByIdForUpdate(any(), any());
+        verify(repository, times(1)).findByIdForUpdate(any(), any()); // solo la propia, nunca la original
         assertNothingConsumedOrWritten();
     }
 
