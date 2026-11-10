@@ -208,7 +208,7 @@ class BillingInvoicePaymentServiceTest {
     }
 
     @Test
-    void a_purchase_draft_ignores_payment_data() {
+    void a_purchase_draft_keeps_the_payment_method() {
         counterpartyAndProductExist(DocumentKind.PURCHASE);
         when(ids.newId()).thenReturn(DOC_ID);
         InvoiceDraftCommand purchase = new InvoiceDraftCommand(SUPPLIER_ID, null, SUPPLIER_INVOICE_NUMBER,
@@ -217,7 +217,7 @@ class BillingInvoicePaymentServiceTest {
 
         BillingDocument created = drafts.create(ENTERPRISE_ID, DocumentType.PURCHASE_INVOICE, purchase);
 
-        assertThat(created.payment()).isNull();
+        assertThat(created.payment()).isEqualTo(new PaymentTerms(7L, null));
     }
 
     // ---------- emision ----------
@@ -329,7 +329,33 @@ class BillingInvoicePaymentServiceTest {
     }
 
     @Test
-    void a_purchase_invoice_emits_without_payment_and_never_touches_the_payment_catalog() {
+    void a_purchase_invoice_requires_payment_to_emit() {
+        BillingDocument purchase = readyPurchaseDraft();
+        purchase.replaceInvoiceDraft(purchase.counterparty(), TODAY, SUPPLIER_INVOICE_NUMBER, purchase.lines(), null,
+                NOW, USER);
+        when(repository.findByIdForUpdate(ENTERPRISE_ID, purchase.id())).thenReturn(Optional.of(purchase));
+        counterpartyAndProductExist(DocumentKind.PURCHASE);
+        when(enterprises.findIssuer(ENTERPRISE_ID)).thenReturn(Optional.of(issuer()));
+
+        assertCode(catchThrowable(() -> emission.emit(ENTERPRISE_ID, DocumentType.PURCHASE_INVOICE, purchase.id(), null)),
+                BillingErrorCode.BILLING_PAYMENT_METHOD_REQUIRED);
+        verifyNoInteractions(sequence, outbox);
+    }
+
+    @Test
+    void a_purchase_invoice_with_invalid_method_fails_and_with_valid_method_freezes_the_name() {
+        BillingDocument bad = readyPurchaseDraft();
+        bad.replaceInvoiceDraft(bad.counterparty(), TODAY, SUPPLIER_INVOICE_NUMBER, bad.lines(), PaymentTerms.draft(99L),
+                NOW, USER);
+        when(repository.findByIdForUpdate(ENTERPRISE_ID, bad.id())).thenReturn(Optional.of(bad));
+        counterpartyAndProductExist(DocumentKind.PURCHASE);
+        when(enterprises.findIssuer(ENTERPRISE_ID)).thenReturn(Optional.of(issuer()));
+        assertCode(catchThrowable(() -> emission.emit(ENTERPRISE_ID, DocumentType.PURCHASE_INVOICE, bad.id(), null)),
+                BillingErrorCode.BILLING_PAYMENT_METHOD_INVALID);
+    }
+
+    @Test
+    void a_purchase_invoice_emits_freezing_the_method_name() {
         BillingDocument purchase = readyPurchaseDraft();
         when(repository.findByIdForUpdate(ENTERPRISE_ID, purchase.id())).thenReturn(Optional.of(purchase));
         counterpartyAndProductExist(DocumentKind.PURCHASE);
@@ -339,6 +365,6 @@ class BillingInvoicePaymentServiceTest {
         BillingDocument emitted = emission.emit(ENTERPRISE_ID, DocumentType.PURCHASE_INVOICE, purchase.id(), null);
 
         assertThat(emitted.status()).isEqualTo(DocumentStatus.EMITIDA);
-        assertThat(emitted.payment()).isNull();
+        assertThat(emitted.payment()).isEqualTo(new PaymentTerms(1L, "Efectivo"));
     }
 }

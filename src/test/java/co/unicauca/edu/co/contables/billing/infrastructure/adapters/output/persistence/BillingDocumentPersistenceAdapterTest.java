@@ -1152,7 +1152,8 @@ class BillingDocumentPersistenceAdapterTest {
         BillingDocument doc = BillingDocument.newInvoiceDraft(id, ENTERPRISE_ID, DocumentType.PURCHASE_INVOICE,
                 TODAY, NOW, USER);
         doc.replaceInvoiceDraft(supplierWithId(supplierId), TODAY, supplierNumber,
-                List.of(lineOf(1, product(1L), "2")), NOW, USER);
+                List.of(lineOf(1, product(1L), "2")),
+                co.unicauca.edu.co.contables.billing.support.BillingTestData.methodTerms(1L), NOW, USER);
         return doc;
     }
 

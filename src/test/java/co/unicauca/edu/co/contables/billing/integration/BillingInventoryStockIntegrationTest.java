@@ -248,8 +248,7 @@ class BillingInventoryStockIntegrationTest {
                 + NEXT_SUPPLIER_INVOICE.getAndIncrement() : null; // unico por proveedor (regla de unicidad)
         BillingDocument draft = billing.create(ENTERPRISE_ID, type, new InvoiceDraftCommand(counterparty, null,
                 supplierNumber, List.of(new InvoiceLineCommand(productId, new BigDecimal(quantity), null, null)),
-                null, type == DocumentType.SALE_INVOICE
-                        ? new InvoiceDraftCommand.PaymentCommand(1L) : null));
+                null, new InvoiceDraftCommand.PaymentCommand(1L)));
         return draft;
     }
 
@@ -509,7 +508,7 @@ class BillingInventoryStockIntegrationTest {
         BillingDocument draft = billing.create(ENTERPRISE_ID, DocumentType.PURCHASE_INVOICE, new InvoiceDraftCommand(
                 SUPPLIER_ID, null, SUPPLIER_INVOICE_NUMBER + "-LP-" + NEXT_SUPPLIER_INVOICE.getAndIncrement(),
                 List.of(new InvoiceLineCommand(productId, new BigDecimal(quantity), new BigDecimal(unitPrice), null)),
-                null));
+                null, new InvoiceDraftCommand.PaymentCommand(1L)));
         return emit(DocumentType.PURCHASE_INVOICE, draft);
     }
 
@@ -643,7 +642,7 @@ class BillingInventoryStockIntegrationTest {
                 SUPPLIER_ID, null, SUPPLIER_INVOICE_NUMBER + "-LP2-" + NEXT_SUPPLIER_INVOICE.getAndIncrement(),
                 List.of(new InvoiceLineCommand(productId, new BigDecimal(q1), new BigDecimal(p1), null),
                         new InvoiceLineCommand(productId, new BigDecimal(q2), new BigDecimal(p2), null)),
-                null));
+                null, new InvoiceDraftCommand.PaymentCommand(1L)));
         return emit(DocumentType.PURCHASE_INVOICE, draft);
     }
 

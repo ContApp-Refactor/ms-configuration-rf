@@ -143,7 +143,7 @@ public final class BillingTestData {
         String supplierNumber = type.kind().counterpartyRole() == CounterpartyRole.SUPPLIER
                 ? SUPPLIER_INVOICE_NUMBER : null;
         doc.replaceInvoiceDraft(counterpartyFor(type), TODAY, supplierNumber,
-                List.of(lineOf(1, product(1L), "2")), type == DocumentType.SALE_INVOICE ? methodTerms(1L) : null,
+                List.of(lineOf(1, product(1L), "2")), methodTerms(1L),
                 NOW, USER);
         return doc;
     }
@@ -195,7 +195,7 @@ public final class BillingTestData {
         BillingDocument doc = BillingDocument.newInvoiceDraft(id, ENTERPRISE_ID, type, TODAY, NOW, USER);
         String supplierNumber = type.kind() == DocumentKind.PURCHASE ? SUPPLIER_INVOICE_NUMBER : null;
         doc.replaceInvoiceDraft(counterpartyFor(type), TODAY, supplierNumber, lines,
-                type == DocumentType.SALE_INVOICE ? methodTerms(1L) : null, NOW, USER);
+                methodTerms(1L), NOW, USER);
         doc.emit(DocumentNumber.of(type, numberValue), issuer(), null, LATER, OTHER_USER);
         return doc;
     }

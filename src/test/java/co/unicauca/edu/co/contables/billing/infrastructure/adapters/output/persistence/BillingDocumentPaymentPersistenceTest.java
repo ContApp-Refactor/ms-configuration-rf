@@ -102,14 +102,21 @@ class BillingDocumentPaymentPersistenceTest {
     }
 
     @Test
-    void a_purchase_or_a_sale_without_payment_maps_all_new_columns_to_null() {
-        BillingDocumentEntity purchase = mapper.newEntity(emittedPurchase());
+    void a_sale_without_payment_maps_all_new_columns_to_null() {
         BillingDocumentEntity sale = mapper.newEntity(saleWith(null));
 
-        for (BillingDocumentEntity entity : new BillingDocumentEntity[] {purchase, sale}) {
-            assertThat(entity.getPaymentMethodId()).isNull();
-            assertThat(entity.getPaymentMethodName()).isNull();
-        }
+        assertThat(sale.getPaymentMethodId()).isNull();
+        assertThat(sale.getPaymentMethodName()).isNull();
+    }
+
+    @Test
+    void a_purchase_invoice_round_trips_its_payment() {
+        BillingDocument purchase = emittedPurchase();
+        purchase.payment();
+        BillingDocumentEntity entity = mapper.newEntity(purchase);
+
+        assertThat(entity.getPaymentMethodId()).isEqualTo(1L);
+        assertThat(mapper.toDomain(entity).payment().paymentMethodId()).isEqualTo(1L);
     }
 
     @Test

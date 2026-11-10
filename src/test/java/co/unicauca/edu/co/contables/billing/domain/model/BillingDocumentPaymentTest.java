@@ -145,23 +145,36 @@ class BillingDocumentPaymentTest {
     // ---------- solo ventas ----------
 
     @Test
-    void a_purchase_invoice_ignores_payment_and_never_requires_it() {
+    void a_purchase_invoice_keeps_payment_and_requires_it_to_emit() {
         BillingDocument purchase = readyPurchaseDraft();
 
-        purchase.replaceInvoiceDraft(purchase.counterparty(), TODAY, "F-77", purchase.lines(), methodTerms(1L),
+        purchase.replaceInvoiceDraft(purchase.counterparty(), TODAY, "F-77", purchase.lines(), methodTerms(2L),
                 NOW, USER);
+        assertThat(purchase.payment().paymentMethodId()).isEqualTo(2L);
         purchase.emit(DocumentNumber.of(DocumentType.PURCHASE_INVOICE, 5L), issuer(), null, LATER, OTHER_USER);
-
-        assertThat(purchase.payment()).isNull();
         assertThat(purchase.status()).isEqualTo(DocumentStatus.EMITIDA);
+
+        BillingDocument noPayment = readyPurchaseDraft();
+        noPayment.replaceInvoiceDraft(noPayment.counterparty(), TODAY, "F-77", noPayment.lines(), null, NOW, USER);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> noPayment.emit(
+                DocumentNumber.of(DocumentType.PURCHASE_INVOICE, 6L), issuer(), null, LATER, OTHER_USER))
+                .isInstanceOf(co.unicauca.edu.co.contables.billing.domain.exception.BillingException.class);
     }
 
     @Test
-    void restoring_a_non_sale_document_drops_any_payment_in_the_state() {
-        BillingDocument purchase = readyPurchaseDraft();
-        BillingDocumentState withPayment = new BillingDocumentState(purchase.id(), purchase.enterpriseId(),
-                purchase.type(), purchase.status(), null, TODAY, purchase.counterparty(), "F-77", null, null, null,
-                purchase.lines(), NOW, USER, NOW, USER, null, null, null, null, null, 1L, methodTerms(1L));
+    void returns_never_carry_payment_and_only_invoices_support_it() {
+        assertThat(DocumentType.SALE_INVOICE.supportsPayment()).isTrue();
+        assertThat(DocumentType.PURCHASE_INVOICE.supportsPayment()).isTrue();
+        assertThat(DocumentType.SALE_RETURN.supportsPayment()).isFalse();
+        assertThat(DocumentType.PURCHASE_RETURN.supportsPayment()).isFalse();
+    }
+
+    @Test
+    void restoring_a_return_drops_any_payment_in_the_state() {
+        BillingDocument sale = readyPurchaseDraft();
+        BillingDocumentState withPayment = new BillingDocumentState(sale.id(), sale.enterpriseId(),
+                DocumentType.PURCHASE_RETURN, sale.status(), null, TODAY, sale.counterparty(), "F-77", null, null, null,
+                sale.lines(), NOW, USER, NOW, USER, null, null, null, null, null, 1L, methodTerms(1L));
 
         assertThat(BillingDocument.restore(withPayment).payment()).isNull();
     }

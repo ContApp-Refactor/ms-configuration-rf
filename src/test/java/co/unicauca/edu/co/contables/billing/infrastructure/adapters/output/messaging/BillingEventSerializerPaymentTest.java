@@ -83,8 +83,20 @@ class BillingEventSerializerPaymentTest {
     }
 
     @Test
-    void a_purchase_invoice_keeps_payment_null() throws Exception {
-        JsonNode payload = payloadOf(emittedPurchase());
+    void a_purchase_invoice_publishes_the_two_payment_fields() throws Exception {
+        BillingDocument doc = emittedPurchase();
+        JsonNode payment = payloadOf(doc).get("payment");
+
+        assertThat(names(payment)).containsExactly("paymentMethodId", "paymentMethodName");
+        assertThat(payment.get("paymentMethodId").asLong()).isEqualTo(1L);
+    }
+
+    @Test
+    void a_return_keeps_payment_null() throws Exception {
+        BillingDocument original = emittedPurchase();
+        JsonNode payload = payloadOf(co.unicauca.edu.co.contables.billing.support.BillingTestData
+                .emittedReturnOf(original, uuid(5), 1L,
+                        co.unicauca.edu.co.contables.billing.support.BillingTestData.returnLineOf(original, 1, "1")));
 
         assertThat(payload.has("payment")).isTrue();
         assertThat(payload.get("payment").isNull()).isTrue();
