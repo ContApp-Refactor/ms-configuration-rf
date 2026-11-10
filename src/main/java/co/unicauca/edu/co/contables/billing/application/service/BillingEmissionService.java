@@ -195,12 +195,12 @@ public class BillingEmissionService implements EmitDocumentUseCase {
     }
 
     /**
-     * Solo factura de VENTA: el metodo de pago debe existir, estar activo y ser de la empresa; se
+     * Solo facturas (venta y compra): el metodo de pago debe existir, estar activo y ser de la empresa; se
      * congela su nombre. La obligatoriedad del metodo la exige el dominio en {@code assertEmittable}.
      */
     private void freezePaymentMethod(String enterpriseId, BillingDocument document) {
         PaymentTerms payment = document.payment();
-        if (document.type() != DocumentType.SALE_INVOICE || payment == null
+        if (!document.type().supportsPayment() || payment == null
                 || payment.paymentMethodId() == null) {
             return;
         }

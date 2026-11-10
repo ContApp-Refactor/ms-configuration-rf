@@ -128,13 +128,13 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
     }
 
     /**
-     * Metodo de pago del borrador. Solo la factura de VENTA lo guarda: en los demas tipos el dato
+     * Metodo de pago del borrador. Solo las facturas (venta y compra) lo guardan: en las devoluciones el dato
      * se ignora (queda nulo). El borrador puede estar incompleto; la validez del metodo se exige al
      * emitir.
      */
     private PaymentTerms paymentOf(DocumentType type, InvoiceDraftCommand command) {
         InvoiceDraftCommand.PaymentCommand payment = command.payment();
-        if (type != DocumentType.SALE_INVOICE || payment == null) {
+        if (!type.supportsPayment() || payment == null) {
             return null;
         }
         return PaymentTerms.draft(payment.paymentMethodId());

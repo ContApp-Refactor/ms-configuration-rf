@@ -60,7 +60,7 @@ public class BillingDocument {
         this.counterparty = s.counterparty();
         this.supplierInvoiceNumber = s.supplierInvoiceNumber();
         this.issuer = s.issuer();
-        this.payment = this.type == DocumentType.SALE_INVOICE ? s.payment() : null;
+        this.payment = this.type.supportsPayment() ? s.payment() : null;
         this.original = s.original();
         this.returnReason = s.returnReason();
         this.lines = s.lines();
@@ -137,8 +137,8 @@ public class BillingDocument {
     }
 
     /**
-     * Como el reemplazo sin pago, pero tambien reemplaza el metodo de pago. Solo la factura de
-     * VENTA las conserva: en los demas tipos se ignoran (quedan nulas). El vencimiento se recalcula
+     * Como el reemplazo sin pago, pero tambien reemplaza el metodo de pago. Solo las facturas
+     * (venta y compra) lo conservan: en las devoluciones se ignora (quedan nulas). El vencimiento se recalcula
      * con la fecha de factura resultante.
      */
     public void replaceInvoiceDraft(CounterpartySnapshot newCounterparty, LocalDate newIssueDate,
@@ -158,7 +158,7 @@ public class BillingDocument {
         this.supplierInvoiceNumber = normalizedSupplierNumber;
         this.lines = renumbered;
         this.totals = DocumentTotals.fromLines(renumbered);
-        this.payment = type == DocumentType.SALE_INVOICE ? newPayment : null;
+        this.payment = type.supportsPayment() ? newPayment : null;
         touch(at, by);
     }
 
@@ -520,7 +520,7 @@ public class BillingDocument {
         if (!candidate.active()) {
             throw new BillingException(BillingErrorCode.BILLING_INACTIVE_REFERENCE, "El tercero esta inactivo");
         }
-        if (type == DocumentType.SALE_INVOICE) {
+        if (type.supportsPayment()) {
             assertPaymentComplete();
         }
     }
@@ -528,7 +528,7 @@ public class BillingDocument {
     private void assertPaymentComplete() {
         if (payment == null) {
             throw new BillingException(BillingErrorCode.BILLING_PAYMENT_METHOD_REQUIRED,
-                    "La factura de venta requiere un metodo de pago");
+                    "La factura requiere un metodo de pago");
         }
         payment.assertComplete();
     }
