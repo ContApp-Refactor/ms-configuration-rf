@@ -112,7 +112,7 @@ class BillingEventSerializerTest {
 
         assertThat(fieldNames(payload)).containsExactly("documentId", "documentVersion", "documentType", "kind",
                 "number", "issueDate", "emittedAt", "emittedBy", "currency", "issuer", "counterparty",
-                "supplierInvoiceNumber", "lines", "totals", "payment", "original", "return", "annulment");
+                "supplierInvoiceNumber", "lines", "totals", "payment", "original", "return", "annulment", "withholdings");
     }
 
     // ---------- carga ----------
@@ -171,7 +171,7 @@ class BillingEventSerializerTest {
         assertThat(line.get("unitOfMeasureName").asText()).isEqualTo("Unidad");
 
         JsonNode totals = payload.get("totals");
-        assertThat(fieldNames(totals)).containsExactly("subtotal", "tax", "total");
+        assertThat(fieldNames(totals)).containsExactly("subtotal", "tax", "total", "withholdings");
         assertThat(totals.get("subtotal").decimalValue()).isEqualByComparingTo("200.00");
         assertThat(totals.get("tax").decimalValue()).isEqualByComparingTo("38.00");
         assertThat(totals.get("total").decimalValue()).isEqualByComparingTo("238.00");
