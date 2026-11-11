@@ -36,6 +36,7 @@ public class BillingDocument {
     private IssuerSnapshot issuer;
     private PaymentTerms payment;
     private List<Withholding> withholdings;
+    private String verificationCode;
     private final OriginalDocumentRef original;
     private String returnReason;
     private List<DocumentLine> lines;
@@ -63,6 +64,7 @@ public class BillingDocument {
         this.issuer = s.issuer();
         this.payment = this.type.supportsPayment() ? s.payment() : null;
         this.withholdings = this.type.isInvoice() ? s.withholdings() : List.of();
+        this.verificationCode = this.type.isInvoice() ? s.verificationCode() : null;
         this.original = s.original();
         this.returnReason = s.returnReason();
         this.lines = s.lines();
@@ -320,6 +322,18 @@ public class BillingDocument {
     }
 
     /**
+     * Asigna el codigo de verificacion (QR) de una factura recien emitida. Se fija una sola vez: si ya
+     * existe, o el documento no es una factura emitida, no hace nada (el codigo nunca cambia).
+     */
+    public void assignVerificationCode(String code) {
+        if (!type.isInvoice() || status != DocumentStatus.EMITIDA || verificationCode != null
+                || code == null || code.isBlank()) {
+            return;
+        }
+        this.verificationCode = code;
+    }
+
+    /**
      * Anula un documento EMITIDA (ANL-1): motivo recortado de 1 a 500 caracteres, conserva el
      * numero. Una factura con devoluciones emitidas no puede anularse (ANL-2).
      */
@@ -417,6 +431,11 @@ public class BillingDocument {
         return withholdings;
     }
 
+    /** Codigo de verificacion opaco (QR): solo facturas emitidas; nulo en borrador, devoluciones y anteriores. */
+    public String verificationCode() {
+        return verificationCode;
+    }
+
     public OriginalDocumentRef original() {
         return original;
     }
@@ -483,7 +502,8 @@ public class BillingDocument {
     public BillingDocumentState state() {
         return new BillingDocumentState(id, enterpriseId, type, status, number, issueDate, counterparty,
                 supplierInvoiceNumber, issuer, original, returnReason, lines, createdAt, createdBy, updatedAt,
-                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, version, payment, withholdings);
+                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, version, payment, withholdings,
+                verificationCode);
     }
 
     // ---------- internos ----------

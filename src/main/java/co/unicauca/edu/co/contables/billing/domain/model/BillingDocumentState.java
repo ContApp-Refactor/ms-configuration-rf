@@ -33,11 +33,24 @@ public record BillingDocumentState(
         String annulReason,
         Long version,
         PaymentTerms payment,
-        List<Withholding> withholdings) {
+        List<Withholding> withholdings,
+        String verificationCode) {
 
     public BillingDocumentState {
         lines = lines == null ? List.of() : List.copyOf(lines);
         withholdings = withholdings == null ? List.of() : List.copyOf(withholdings);
+    }
+
+    /** Constructor sin codigo de verificacion (borradores y documentos anteriores a este dato). */
+    public BillingDocumentState(UUID id, String enterpriseId, DocumentType type, DocumentStatus status,
+            DocumentNumber number, LocalDate issueDate, CounterpartySnapshot counterparty,
+            String supplierInvoiceNumber, IssuerSnapshot issuer, OriginalDocumentRef original, String returnReason,
+            List<DocumentLine> lines, Instant createdAt, String createdBy, Instant updatedAt, String updatedBy,
+            Instant emittedAt, String emittedBy, Instant annulledAt, String annulledBy, String annulReason,
+            Long version, PaymentTerms payment, List<Withholding> withholdings) {
+        this(id, enterpriseId, type, status, number, issueDate, counterparty, supplierInvoiceNumber, issuer,
+                original, returnReason, lines, createdAt, createdBy, updatedAt, updatedBy, emittedAt, emittedBy,
+                annulledAt, annulledBy, annulReason, version, payment, withholdings, null);
     }
 
     /** Constructor sin retenciones (documentos historicos y devoluciones). */
@@ -68,6 +81,7 @@ public record BillingDocumentState(
     public BillingDocumentState withVersion(Long newVersion) {
         return new BillingDocumentState(id, enterpriseId, type, status, number, issueDate, counterparty,
                 supplierInvoiceNumber, issuer, original, returnReason, lines, createdAt, createdBy, updatedAt,
-                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, newVersion, payment, withholdings);
+                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, newVersion, payment, withholdings,
+                verificationCode);
     }
 }

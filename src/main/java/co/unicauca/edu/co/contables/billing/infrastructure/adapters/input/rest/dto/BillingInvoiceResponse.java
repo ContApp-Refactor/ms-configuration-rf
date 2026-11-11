@@ -33,7 +33,8 @@ public record BillingInvoiceResponse(
         Long version,
         BillingIssuerResponse issuer,
         BillingPaymentResponse payment,
-        List<BillingWithholdingResponse> withholdings) {
+        List<BillingWithholdingResponse> withholdings,
+        String verificationCode) {
 
     public BillingInvoiceResponse {
         withholdings = withholdings == null ? List.of() : List.copyOf(withholdings);
@@ -47,6 +48,6 @@ public record BillingInvoiceResponse(
             Long version, BillingIssuerResponse issuer, BillingPaymentResponse payment) {
         this(id, number, status, kind, documentType, clientId, clientName, clientDocument, supplierInvoiceNumber,
                 date, lines, totals, returnStatus, createdAt, updatedAt, emittedAt, annulledAt, annulReason, version,
-                issuer, payment, List.of());
+                issuer, payment, List.of(), null);
     }
 }

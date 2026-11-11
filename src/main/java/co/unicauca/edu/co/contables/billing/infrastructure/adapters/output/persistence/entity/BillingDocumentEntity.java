@@ -163,6 +163,10 @@ public class BillingDocumentEntity {
     @Column(name = "withholdings", length = 4000)
     private String withholdings;
 
+    /** Codigo de verificacion (QR) congelado al emitir una factura; nulo en borrador y documentos anteriores. */
+    @Column(name = "verification_code", length = 100)
+    private String verificationCode;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

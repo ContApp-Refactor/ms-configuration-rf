@@ -34,7 +34,8 @@ public record BillingDocumentEventPayload(
         Original original,
         @JsonProperty("return") ReturnInfo returnInfo,
         Annulment annulment,
-        List<Withholding> withholdings) {
+        List<Withholding> withholdings,
+        String verificationCode) {
 
     public record Issuer(String enterpriseId, String name, String nit, String dv) {
     }

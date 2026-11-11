@@ -141,7 +141,8 @@ public class BillingRestMapper {
                 doc.version(),
                 toIssuer(doc.issuer()),
                 toPayment(doc.payment()),
-                toWithholdings(doc));
+                toWithholdings(doc),
+                doc.verificationCode());
     }
 
     private static List<BillingWithholdingResponse> toWithholdings(BillingDocument doc) {

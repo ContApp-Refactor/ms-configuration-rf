@@ -137,6 +137,7 @@ public class BillingDocumentPersistenceMapper {
         entity.setUpdatedAt(document.updatedAt());
         entity.setUpdatedBy(document.updatedBy());
         entity.setEmittedAt(document.emittedAt());
+        entity.setVerificationCode(document.verificationCode());
         entity.setEmittedBy(document.emittedBy());
         entity.setAnnulledAt(document.annulledAt());
         entity.setAnnulledBy(document.annulledBy());
@@ -269,7 +270,8 @@ public class BillingDocumentPersistenceMapper {
                 entity.getAnnulReason(),
                 entity.getVersion(),
                 payment(entity),
-                readWithholdings(entity.getWithholdings())));
+                readWithholdings(entity.getWithholdings()),
+                entity.getVerificationCode()));
     }
 
     /** Resumen armado solo con las columnas de cabecera (no toca las lineas). */

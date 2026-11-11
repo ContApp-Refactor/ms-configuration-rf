@@ -91,7 +91,8 @@ public class BillingEventSerializer {
                         ? new BillingDocumentEventPayload.Annulment(doc.annulledAt(), doc.annulledBy(),
                                 doc.annulReason())
                         : null,
-                withholdings(doc));
+                withholdings(doc),
+                doc.verificationCode());
     }
 
     private static BillingDocumentEventPayload.Issuer issuer(IssuerSnapshot issuer) {

@@ -21,6 +21,7 @@ import co.unicauca.edu.co.contables.billing.application.ports.output.ProductPort
 import co.unicauca.edu.co.contables.billing.application.ports.output.StockMovementPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.TaxCatalogPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ThirdPartyPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.VerificationCodeGenerator;
 import co.unicauca.edu.co.contables.billing.application.service.BillingAnnulmentService;
 import co.unicauca.edu.co.contables.billing.application.service.BillingDocumentLoader;
 import co.unicauca.edu.co.contables.billing.application.service.BillingDraftDeletionService;
@@ -57,7 +58,7 @@ public class BillingTransactionalCommandUseCases
             BillingExecutionContextPort context, BillingClockPort clock, BillingIdGeneratorPort ids,
             StockMovementPort stock, AccountingEntryPort accounting, PaymentCatalogPort paymentCatalog) {
         this(repository, thirdParties, products, enterprises, sequence, outbox, context, clock, ids, stock,
-                accounting, paymentCatalog, null);
+                accounting, paymentCatalog, null, () -> null);
     }
 
     @Autowired
@@ -66,7 +67,7 @@ public class BillingTransactionalCommandUseCases
             DocumentNumberSequencePort sequence, BillingOutboxPort outbox,
             BillingExecutionContextPort context, BillingClockPort clock, BillingIdGeneratorPort ids,
             StockMovementPort stock, AccountingEntryPort accounting, PaymentCatalogPort paymentCatalog,
-            TaxCatalogPort taxCatalog) {
+            TaxCatalogPort taxCatalog, VerificationCodeGenerator verificationCodes) {
         BillingDocumentLoader loader = new BillingDocumentLoader(repository);
         BillingReferenceResolver resolver = new BillingReferenceResolver(thirdParties, products, enterprises);
         this.draftService = new BillingInvoiceDraftService(repository, loader, resolver, context, clock, ids,
@@ -74,7 +75,7 @@ public class BillingTransactionalCommandUseCases
         this.returnDraftService = new BillingReturnDraftService(repository, loader, context, clock, ids);
         this.deletionService = new BillingDraftDeletionService(repository, loader);
         this.emissionService = new BillingEmissionService(repository, loader, resolver, sequence, outbox, context,
-                clock, ids, stock, accounting, paymentCatalog, taxCatalog);
+                clock, ids, stock, accounting, paymentCatalog, taxCatalog, verificationCodes);
         this.annulmentService = new BillingAnnulmentService(repository, loader, outbox, context, clock, ids, stock,
                 accounting);
     }
