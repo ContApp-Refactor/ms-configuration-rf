@@ -89,9 +89,10 @@ CREATE TABLE IF NOT EXISTS enterprise_tax_liabilities (
 
 CREATE TABLE IF NOT EXISTS subjects (
     id UUID PRIMARY KEY,
-    code VARCHAR(255) NOT NULL UNIQUE,
+    code VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    tenant_id VARCHAR(80)
+    tenant_id VARCHAR(80),
+    CONSTRAINT uq_subjects_tenant_code UNIQUE (tenant_id, code)
 );
 
 CREATE TABLE IF NOT EXISTS enterprise_subjects (
