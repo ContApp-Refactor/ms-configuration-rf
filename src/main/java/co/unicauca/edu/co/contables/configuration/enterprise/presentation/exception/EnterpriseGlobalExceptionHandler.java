@@ -38,6 +38,11 @@ public class EnterpriseGlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex, request);
     }
 
+    @ExceptionHandler(SubjectInUseException.class)
+    public ResponseEntity<ErrorResponse> handleSubjectInUse(SubjectInUseException ex, WebRequest request) {
+        return build(HttpStatus.CONFLICT, ex, request);
+    }
+
     @ExceptionHandler(EnterpriseNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleEnterpriseNotFound(EnterpriseNotFoundException ex,
             WebRequest request) {

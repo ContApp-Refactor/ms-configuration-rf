@@ -30,6 +30,8 @@ public class Enterprise {
     private String branch;
     private String email;
     private String logo;
+    /** Solo para actualizacion: true = quitar el logo (si no viene uno nuevo). No se persiste. */
+    private Boolean removeLogo;
     private Long mainActivity;
     private Long secondaryActivity;
     private StateEnum state;

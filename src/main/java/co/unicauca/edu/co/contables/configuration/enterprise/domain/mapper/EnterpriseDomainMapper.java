@@ -86,6 +86,7 @@ public class EnterpriseDomainMapper {
                 .branch(req.getBranch())
                 .email(req.getEmail())
                 .logo(req.getLogo())
+                .removeLogo(req.getRemoveLogo())
                 .state(req.getState())
                 .inventoryConfigurationType(req.getInventoryConfigurationType())
                 .mainActivity(req.getMainActivity())

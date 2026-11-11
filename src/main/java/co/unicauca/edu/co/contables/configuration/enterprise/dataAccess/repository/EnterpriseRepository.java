@@ -19,6 +19,10 @@ public interface EnterpriseRepository extends JpaRepository<EnterpriseEntity, UU
 
     boolean existsByNit(String nit);
 
+    /** Indica si alguna empresa (del tenant actual) tiene asignada la materia. */
+    @Query("SELECT COUNT(e) > 0 FROM EnterpriseEntity e JOIN e.subjects s WHERE s.id = :subjectId")
+    boolean existsBySubjectId(@Param("subjectId") UUID subjectId);
+
     @Query("SELECT e FROM EnterpriseEntity e WHERE LOWER(e.name) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(e.nit) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<EnterpriseEntity> searchByNameOrNit(@Param("q") String q);
 }

@@ -55,6 +55,9 @@ public class EnterpriseServiceImpl implements IEnterpriseService {
     public Enterprise create(Enterprise enterprise) {
         enterprise.setLocation(locationService.create(enterprise.getLocation()));
         enterprise.setPersonType(personTypeService.create(enterprise.getPersonType()));
+        if (enterprise.getInventoryConfigurationType() == null) {
+            enterprise.setInventoryConfigurationType(InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
+        }
 
         EnterpriseEntity entity = dataMapper.toEntity(enterprise);
         if (entity == null) {
@@ -83,7 +86,13 @@ public class EnterpriseServiceImpl implements IEnterpriseService {
         current.setPhone(enterprise.getPhone());
         current.setBranch(enterprise.getBranch());
         current.setEmail(enterprise.getEmail());
-        current.setLogo(enterprise.getLogo());
+        // Logo nuevo gana; logo null = no tocar; quitar solo con removeLogo=true explicito.
+        // El archivo en disco NO se borra: la empresa duplicada/restaurada puede referenciar la misma clave.
+        if (enterprise.getLogo() != null) {
+            current.setLogo(enterprise.getLogo());
+        } else if (Boolean.TRUE.equals(enterprise.getRemoveLogo())) {
+            current.setLogo(null);
+        }
         current.setMainActivity(enterprise.getMainActivity());
         current.setSecondaryActivity(enterprise.getSecondaryActivity());
         current.setTaxLiabilities(taxLiabilityDataMapper.toEntityList(enterprise.getTaxLiabilities()));
@@ -91,6 +100,9 @@ public class EnterpriseServiceImpl implements IEnterpriseService {
         current.setEnterpriseType(enterpriseTypeDataMapper.toEntity(enterprise.getEnterpriseType()));
         current.setPersonType(personTypeDataMapper.toEntity(enterprise.getPersonType()));
         current.setLocation(locationDataMapper.toEntity(enterprise.getLocation()));
+        if (enterprise.getInventoryConfigurationType() != null) {
+            current.setInventoryConfigurationType(enterprise.getInventoryConfigurationType());
+        }
         // null = no tocar; lista vacia = quitar todas; con elementos = reemplazar el conjunto.
         if (enterprise.getSubjects() != null) {
             current.setSubjects(resolveSubjects(enterprise.getSubjects()));

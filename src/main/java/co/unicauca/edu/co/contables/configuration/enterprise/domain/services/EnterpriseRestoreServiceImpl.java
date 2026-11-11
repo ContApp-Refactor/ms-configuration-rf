@@ -108,6 +108,10 @@ public class EnterpriseRestoreServiceImpl implements IEnterpriseRestoreService {
                     ? restoreInPlace(manifest.getEnterprise(), targetEnterpriseId, equivalenceMap)
                     : restoreAsNew(manifest.getEnterprise());
 
+            // Con ids UUID los save() no hacen flush: sin esto la violacion ocurriria en el commit,
+            // fuera de este try, y se veria como un 409 generico.
+            enterpriseRepository.flush();
+
             // El catalogo de materias NO viaja en la copia: el campo legado "subjects" se ignora.
             // Solo se enlazan las materias de la empresa (enterprise.subjectCodes) que existan en el tenant.
             return resultId;

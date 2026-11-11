@@ -5,9 +5,11 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.SubjectDataMapper;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.EnterpriseRepository;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.SubjectRepository;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Subject;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.SubjectCodeAlreadyExistsException;
+import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.SubjectInUseException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.SubjectNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class SubjectServiceImpl implements ISubjectService {
 
     private final SubjectRepository repository;
+    private final EnterpriseRepository enterpriseRepository;
     private final SubjectDataMapper dataMapper;
 
     @Override
@@ -66,6 +69,9 @@ public class SubjectServiceImpl implements ISubjectService {
     public void delete(String code) {
         var existing = repository.findByCode(code)
                 .orElseThrow(() -> new SubjectNotFoundException(code));
+        if (enterpriseRepository.existsBySubjectId(existing.getId())) {
+            throw new SubjectInUseException(code);
+        }
         repository.delete(existing);
     }
 }

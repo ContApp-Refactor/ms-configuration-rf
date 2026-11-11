@@ -12,7 +12,7 @@ import java.util.UUID;
  * Mapea la tabla 'subjects'.
  */
 @Entity
-@Table(name = "subjects")
+@Table(name = "subjects", uniqueConstraints = @UniqueConstraint(name = "uq_subjects_tenant_code", columnNames = {"tenant_id", "code"}))
 @Data
 public class SubjectEntity {
 
@@ -20,7 +20,7 @@ public class SubjectEntity {
     @GeneratedValue
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String code;
 
     @Column(nullable = false)

@@ -44,6 +44,12 @@ public class EnterpriseUpdateReq {
 
     private String logo;
 
+    /**
+     * Accion explicita para quitar el logo. Solo aplica si true y no se envia un logo nuevo;
+     * ausente/false conserva el comportamiento anterior (logo null = no tocar).
+     */
+    private Boolean removeLogo;
+
     private Long mainActivity;
     private Long secondaryActivity;
 
