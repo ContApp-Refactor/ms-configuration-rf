@@ -84,9 +84,6 @@ public class EnterpriseServiceImpl implements IEnterpriseService {
         current.setEnterpriseType(enterpriseTypeDataMapper.toEntity(enterprise.getEnterpriseType()));
         current.setPersonType(personTypeDataMapper.toEntity(enterprise.getPersonType()));
         current.setLocation(locationDataMapper.toEntity(enterprise.getLocation()));
-        if (enterprise.getInventoryConfigurationType() != null) {
-            current.setInventoryConfigurationType(enterprise.getInventoryConfigurationType());
-        }
 
         // Este update copia los campos uno por uno y se saltaba el método de valoración,
         // así que la empresa nunca guardaba la selección hecha en el formulario
