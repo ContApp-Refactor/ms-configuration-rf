@@ -19,7 +19,9 @@ import co.unicauca.edu.co.contables.billing.application.ports.output.EnterpriseP
 import co.unicauca.edu.co.contables.billing.application.ports.output.PaymentCatalogPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ProductPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.StockMovementPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.TaxCatalogPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ThirdPartyPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.VerificationCodeGenerator;
 import co.unicauca.edu.co.contables.billing.application.service.BillingAnnulmentService;
 import co.unicauca.edu.co.contables.billing.application.service.BillingDocumentLoader;
 import co.unicauca.edu.co.contables.billing.application.service.BillingDraftDeletionService;
@@ -30,6 +32,7 @@ import co.unicauca.edu.co.contables.billing.application.service.BillingReturnDra
 import co.unicauca.edu.co.contables.billing.domain.model.BillingDocument;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,14 +57,25 @@ public class BillingTransactionalCommandUseCases
             DocumentNumberSequencePort sequence, BillingOutboxPort outbox,
             BillingExecutionContextPort context, BillingClockPort clock, BillingIdGeneratorPort ids,
             StockMovementPort stock, AccountingEntryPort accounting, PaymentCatalogPort paymentCatalog) {
+        this(repository, thirdParties, products, enterprises, sequence, outbox, context, clock, ids, stock,
+                accounting, paymentCatalog, null, () -> null);
+    }
+
+    @Autowired
+    public BillingTransactionalCommandUseCases(BillingDocumentRepositoryPort repository,
+            ThirdPartyPort thirdParties, ProductPort products, EnterprisePort enterprises,
+            DocumentNumberSequencePort sequence, BillingOutboxPort outbox,
+            BillingExecutionContextPort context, BillingClockPort clock, BillingIdGeneratorPort ids,
+            StockMovementPort stock, AccountingEntryPort accounting, PaymentCatalogPort paymentCatalog,
+            TaxCatalogPort taxCatalog, VerificationCodeGenerator verificationCodes) {
         BillingDocumentLoader loader = new BillingDocumentLoader(repository);
         BillingReferenceResolver resolver = new BillingReferenceResolver(thirdParties, products, enterprises);
         this.draftService = new BillingInvoiceDraftService(repository, loader, resolver, context, clock, ids,
-                paymentCatalog);
+                paymentCatalog, taxCatalog);
         this.returnDraftService = new BillingReturnDraftService(repository, loader, context, clock, ids);
         this.deletionService = new BillingDraftDeletionService(repository, loader);
         this.emissionService = new BillingEmissionService(repository, loader, resolver, sequence, outbox, context,
-                clock, ids, stock, accounting, paymentCatalog);
+                clock, ids, stock, accounting, paymentCatalog, taxCatalog, verificationCodes);
         this.annulmentService = new BillingAnnulmentService(repository, loader, outbox, context, clock, ids, stock,
                 accounting);
     }

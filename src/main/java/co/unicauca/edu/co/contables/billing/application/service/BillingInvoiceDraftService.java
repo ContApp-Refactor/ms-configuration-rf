@@ -9,6 +9,7 @@ import co.unicauca.edu.co.contables.billing.application.ports.output.BillingDocu
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingExecutionContextPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingIdGeneratorPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.PaymentCatalogPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.TaxCatalogPort;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingErrorCode;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingException;
 import co.unicauca.edu.co.contables.billing.domain.model.BillingDocument;
@@ -20,6 +21,7 @@ import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Quantity;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxRate;
+import co.unicauca.edu.co.contables.billing.domain.model.Withholding;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +46,8 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
     private final SupplierInvoiceNumberGuard supplierNumbers;
     /** Opcional: si esta, el borrador descarta la cuenta bancaria de un metodo que no la exige. */
     private final PaymentCatalogPort paymentCatalog;
+    /** Resuelve el impuesto de cada retencion; sin catalogo de impuestos no se admiten retenciones. */
+    private final WithholdingResolver withholdingResolver;
 
     public BillingInvoiceDraftService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
             BillingReferenceResolver resolver, BillingExecutionContextPort context, BillingClockPort clock,
@@ -54,7 +58,14 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
     public BillingInvoiceDraftService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
             BillingReferenceResolver resolver, BillingExecutionContextPort context, BillingClockPort clock,
             BillingIdGeneratorPort ids, PaymentCatalogPort paymentCatalog) {
+        this(repository, loader, resolver, context, clock, ids, paymentCatalog, null);
+    }
+
+    public BillingInvoiceDraftService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
+            BillingReferenceResolver resolver, BillingExecutionContextPort context, BillingClockPort clock,
+            BillingIdGeneratorPort ids, PaymentCatalogPort paymentCatalog, TaxCatalogPort taxCatalog) {
         this.paymentCatalog = paymentCatalog;
+        this.withholdingResolver = new WithholdingResolver(taxCatalog);
         this.repository = Objects.requireNonNull(repository, "repository");
         this.loader = Objects.requireNonNull(loader, "loader");
         this.resolver = Objects.requireNonNull(resolver, "resolver");
@@ -69,6 +80,7 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
         requireInvoiceType(type);
         Objects.requireNonNull(command, "command");
         Resolved resolved = resolve(enterpriseId, type, command);
+        List<Withholding> withholdings = withholdingResolver.resolve(enterpriseId, type, command.withholdings());
         assertSupplierNumberUnique(enterpriseId, type, resolved, command, null);
 
         Instant now = clock.now();
@@ -76,7 +88,7 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
         BillingDocument document = BillingDocument.newInvoiceDraft(ids.newId(), enterpriseId, type,
                 command.issueDate() != null ? command.issueDate() : clock.today(), now, user);
         document.replaceInvoiceDraft(resolved.counterparty(), command.issueDate(),
-                command.supplierInvoiceNumber(), resolved.lines(), paymentOf(type, command), now, user);
+                command.supplierInvoiceNumber(), resolved.lines(), paymentOf(type, command), withholdings, now, user);
         return repository.save(document);
     }
 
@@ -86,11 +98,12 @@ public class BillingInvoiceDraftService implements SaveInvoiceDraftUseCase, Dupl
         Objects.requireNonNull(command, "command");
         BillingDocument document = loader.load(enterpriseId, type, id, command.expectedVersion());
         Resolved resolved = resolve(enterpriseId, type, command);
+        List<Withholding> withholdings = withholdingResolver.resolve(enterpriseId, type, command.withholdings());
         assertSupplierNumberUnique(enterpriseId, type, resolved, command, id);
 
         document.replaceInvoiceDraft(resolved.counterparty(), command.issueDate(),
-                command.supplierInvoiceNumber(), resolved.lines(), paymentOf(type, command), clock.now(),
-                context.username());
+                command.supplierInvoiceNumber(), resolved.lines(), paymentOf(type, command), withholdings,
+                clock.now(), context.username());
         return repository.save(document);
     }
 

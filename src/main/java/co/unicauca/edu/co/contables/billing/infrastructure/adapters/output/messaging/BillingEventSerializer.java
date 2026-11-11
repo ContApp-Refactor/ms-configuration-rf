@@ -83,14 +83,16 @@ public class BillingEventSerializer {
                 doc.supplierInvoiceNumber(),
                 lines(doc.lines()),
                 new BillingDocumentEventPayload.Totals(pesos(doc.totals().subtotal()), pesos(doc.totals().tax()),
-                        pesos(doc.totals().total())),
+                        pesos(doc.totals().total()), pesos(doc.totals().withholdings())),
                 payment(doc.payment()),
                 original(doc.original()),
                 returnInfo(doc, event.returnContext()),
                 event instanceof BillingDocumentAnnulled
                         ? new BillingDocumentEventPayload.Annulment(doc.annulledAt(), doc.annulledBy(),
                                 doc.annulReason())
-                        : null);
+                        : null,
+                withholdings(doc),
+                doc.verificationCode());
     }
 
     private static BillingDocumentEventPayload.Issuer issuer(IssuerSnapshot issuer) {
@@ -112,6 +114,13 @@ public class BillingEventSerializer {
                         l.quantity().value().setScale(3, RoundingMode.HALF_UP), pesos(l.catalogUnitPrice()),
                         pesos(l.unitPrice()), l.taxRate().value().setScale(2, RoundingMode.HALF_UP),
                         pesos(l.subtotal()), pesos(l.taxAmount()), pesos(l.total())))
+                .toList();
+    }
+
+    private static List<BillingDocumentEventPayload.Withholding> withholdings(BillingDocument doc) {
+        return doc.withholdings().stream()
+                .map(w -> new BillingDocumentEventPayload.Withholding(w.code().name(), w.taxId(), w.taxName(),
+                        w.rate().value(), pesos(w.amountOn(doc.totals().subtotal()))))
                 .toList();
     }
 

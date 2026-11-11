@@ -12,6 +12,7 @@ import co.unicauca.edu.co.contables.billing.application.ports.input.view.ReturnS
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingDocumentRepositoryPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.EnterprisePort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ProductPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.TaxCatalogPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.ThirdPartyPort;
 import co.unicauca.edu.co.contables.billing.application.service.BillingDocumentLoader;
 import co.unicauca.edu.co.contables.billing.application.service.BillingDocumentQueryService;
@@ -21,6 +22,7 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnAvailability;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,9 +40,15 @@ public class BillingTransactionalQueryUseCases implements GetDocumentUseCase, Li
 
     public BillingTransactionalQueryUseCases(BillingDocumentRepositoryPort repository, ThirdPartyPort thirdParties,
             ProductPort products, EnterprisePort enterprises) {
+        this(repository, thirdParties, products, enterprises, null);
+    }
+
+    @Autowired
+    public BillingTransactionalQueryUseCases(BillingDocumentRepositoryPort repository, ThirdPartyPort thirdParties,
+            ProductPort products, EnterprisePort enterprises, TaxCatalogPort taxCatalog) {
         BillingDocumentLoader loader = new BillingDocumentLoader(repository);
         BillingReferenceResolver resolver = new BillingReferenceResolver(thirdParties, products, enterprises);
-        this.queryService = new BillingDocumentQueryService(repository, loader, resolver);
+        this.queryService = new BillingDocumentQueryService(repository, loader, resolver, taxCatalog);
     }
 
     @Override

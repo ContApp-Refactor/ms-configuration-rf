@@ -8,7 +8,8 @@ import java.util.List;
  * Factura completa. Ids como string; {@code number} es el consecutivo con prefijo (FV-000123) o
  * nulo en borrador; {@code kind} es SALE o PURCHASE; {@code returnStatus} es derivado y puede ser
  * nulo; {@code issuer} es el emisor congelado al emitir (RN-06) y es nulo en borrador. {@code payment} es la forma de pago de la factura de venta
- * (nulo en compras y en ventas anteriores a este dato).
+ * (nulo en compras y en ventas anteriores a este dato). {@code withholdings} son las retenciones
+ * (lista vacia, nunca nula, si no hay): en borrador con la tarifa vigente; en emitida/anulada, el snapshot.
  */
 public record BillingInvoiceResponse(
         String id,
@@ -31,5 +32,22 @@ public record BillingInvoiceResponse(
         String annulReason,
         Long version,
         BillingIssuerResponse issuer,
-        BillingPaymentResponse payment) {
+        BillingPaymentResponse payment,
+        List<BillingWithholdingResponse> withholdings,
+        String verificationCode) {
+
+    public BillingInvoiceResponse {
+        withholdings = withholdings == null ? List.of() : List.copyOf(withholdings);
+    }
+
+    /** Sin retenciones. */
+    public BillingInvoiceResponse(String id, String number, String status, String kind, String documentType,
+            String clientId, String clientName, String clientDocument, String supplierInvoiceNumber, LocalDate date,
+            List<BillingInvoiceLineResponse> lines, BillingTotalsResponse totals, String returnStatus,
+            Instant createdAt, Instant updatedAt, Instant emittedAt, Instant annulledAt, String annulReason,
+            Long version, BillingIssuerResponse issuer, BillingPaymentResponse payment) {
+        this(id, number, status, kind, documentType, clientId, clientName, clientDocument, supplierInvoiceNumber,
+                date, lines, totals, returnStatus, createdAt, updatedAt, emittedAt, annulledAt, annulReason, version,
+                issuer, payment, List.of(), null);
+    }
 }

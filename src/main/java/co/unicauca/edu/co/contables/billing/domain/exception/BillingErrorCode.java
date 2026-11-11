@@ -27,6 +27,10 @@ public enum BillingErrorCode {
     // Metodo de pago de la factura de venta (se exige al emitir; cuenta bancaria solo si el metodo es de banco)
     BILLING_PAYMENT_METHOD_REQUIRED(ErrorCategory.UNPROCESSABLE),
     BILLING_PAYMENT_METHOD_INVALID(ErrorCategory.UNPROCESSABLE),
+    // Retenciones de la factura (codigo no permitido o repetido, impuesto invalido, total negativo)
+    BILLING_WITHHOLDING_INVALID(ErrorCategory.UNPROCESSABLE),
+    BILLING_WITHHOLDING_TAX_INVALID(ErrorCategory.UNPROCESSABLE),
+    BILLING_TOTAL_NEGATIVE(ErrorCategory.UNPROCESSABLE),
     BILLING_RETURN_QUANTITY_EXCEEDED(ErrorCategory.UNPROCESSABLE),
     BILLING_RETURN_LINE_NOT_FOUND(ErrorCategory.UNPROCESSABLE),
     // Integracion de stock con Inventario (el movimiento de inventario rechazo la emision)
