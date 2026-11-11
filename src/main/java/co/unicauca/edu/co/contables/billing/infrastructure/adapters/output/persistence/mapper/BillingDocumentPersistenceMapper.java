@@ -17,6 +17,8 @@ import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.Quantity;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxRate;
+import co.unicauca.edu.co.contables.billing.domain.model.Withholding;
+import co.unicauca.edu.co.contables.billing.domain.model.WithholdingCode;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentEntity;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentLineEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -57,6 +59,16 @@ public class BillingDocumentPersistenceMapper {
 
     /** Forma persistida de un {@link TaxComponent}. */
     private record TaxJson(String name, BigDecimal rate) {
+    }
+
+    private static final TypeReference<List<WithholdingJson>> WITHHOLDING_LIST = new TypeReference<>() { };
+
+    /**
+     * Forma persistida de una {@link Withholding}. {@code amountCents} es el snapshot del monto al
+     * guardar (consulta/auditoria); al leer el monto se deriva del subtotal y la tarifa.
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+    private record WithholdingJson(String code, long taxId, String taxName, BigDecimal ratePct, Long amountCents) {
     }
 
     // ---------- dominio -> entidad ----------
@@ -117,6 +129,8 @@ public class BillingDocumentPersistenceMapper {
         entity.setSubtotal(totals.subtotal().value());
         entity.setTaxTotal(totals.tax().value());
         entity.setTotal(totals.total().value());
+        entity.setWithholdingTotal(totals.withholdings().value());
+        entity.setWithholdings(writeWithholdings(document.withholdings(), totals.subtotal()));
 
         entity.setCreatedAt(document.createdAt());
         entity.setCreatedBy(document.createdBy());
@@ -169,6 +183,34 @@ public class BillingDocumentPersistenceMapper {
         row.setTaxAmount(line.taxAmount().value());
         row.setTotal(line.total().value());
         row.setTaxBreakdown(writeTaxes(line.catalogTaxes()));
+    }
+
+    private static String writeWithholdings(List<Withholding> withholdings, Money subtotal) {
+        if (withholdings == null || withholdings.isEmpty()) {
+            return null;
+        }
+        try {
+            return JSON.writeValueAsString(withholdings.stream()
+                    .map(w -> new WithholdingJson(w.code().name(), w.taxId(), w.taxName(), w.rate().value(),
+                            w.amountOn(subtotal).toCents()))
+                    .toList());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("No se pudo serializar las retenciones", e);
+        }
+    }
+
+    private static List<Withholding> readWithholdings(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return JSON.readValue(json, WITHHOLDING_LIST).stream()
+                    .map(w -> new Withholding(WithholdingCode.valueOf(w.code()), w.taxId(), w.taxName(),
+                            TaxRate.of(w.ratePct())))
+                    .toList();
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Retenciones persistidas invalidas: " + json, e);
+        }
     }
 
     private static String writeTaxes(List<TaxComponent> taxes) {
@@ -226,7 +268,8 @@ public class BillingDocumentPersistenceMapper {
                 entity.getAnnulledBy(),
                 entity.getAnnulReason(),
                 entity.getVersion(),
-                payment(entity)));
+                payment(entity),
+                readWithholdings(entity.getWithholdings())));
     }
 
     /** Resumen armado solo con las columnas de cabecera (no toca las lineas). */
@@ -244,7 +287,8 @@ public class BillingDocumentPersistenceMapper {
                 entity.getOriginalDocumentId(),
                 original == null ? null : original.number(),
                 new DocumentTotals(Money.of(entity.getSubtotal()), Money.of(entity.getTaxTotal()),
-                        Money.of(entity.getTotal())),
+                        Money.of(entity.getTotal()),
+                        entity.getWithholdingTotal() == null ? Money.zero() : Money.of(entity.getWithholdingTotal())),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getEmittedAt(),

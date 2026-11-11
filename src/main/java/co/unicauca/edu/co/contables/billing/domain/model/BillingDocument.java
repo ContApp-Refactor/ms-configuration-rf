@@ -35,6 +35,7 @@ public class BillingDocument {
     private String supplierInvoiceNumber;
     private IssuerSnapshot issuer;
     private PaymentTerms payment;
+    private List<Withholding> withholdings;
     private final OriginalDocumentRef original;
     private String returnReason;
     private List<DocumentLine> lines;
@@ -61,10 +62,11 @@ public class BillingDocument {
         this.supplierInvoiceNumber = s.supplierInvoiceNumber();
         this.issuer = s.issuer();
         this.payment = this.type.supportsPayment() ? s.payment() : null;
+        this.withholdings = this.type.isInvoice() ? s.withholdings() : List.of();
         this.original = s.original();
         this.returnReason = s.returnReason();
         this.lines = s.lines();
-        this.totals = DocumentTotals.fromLines(this.lines);
+        this.totals = DocumentTotals.fromLines(this.lines, this.withholdings);
         this.createdAt = Objects.requireNonNull(s.createdAt(), "createdAt");
         this.createdBy = s.createdBy();
         this.updatedAt = Objects.requireNonNull(s.updatedAt(), "updatedAt");
@@ -136,20 +138,33 @@ public class BillingDocument {
         replaceInvoiceDraft(newCounterparty, newIssueDate, newSupplierInvoiceNumber, newLines, this.payment, at, by);
     }
 
-    /**
-     * Como el reemplazo sin pago, pero tambien reemplaza el metodo de pago. Solo las facturas
-     * (venta y compra) lo conservan: en las devoluciones se ignora (quedan nulas). El vencimiento se recalcula
-     * con la fecha de factura resultante.
-     */
+    /** Reemplazo con metodo de pago que conserva las retenciones actuales. */
     public void replaceInvoiceDraft(CounterpartySnapshot newCounterparty, LocalDate newIssueDate,
             String newSupplierInvoiceNumber, List<DocumentLine> newLines, PaymentTerms newPayment, Instant at,
             String by) {
+        replaceInvoiceDraft(newCounterparty, newIssueDate, newSupplierInvoiceNumber, newLines, newPayment,
+                this.withholdings, at, by);
+    }
+
+    /**
+     * Como el reemplazo sin retenciones, pero tambien reemplaza el metodo de pago y las retenciones.
+     * Solo las facturas (venta y compra) los conservan: en las devoluciones se ignoran. Las
+     * retenciones se validan (codigo permitido, sin repetir) y el total neto no puede ser negativo
+     * (BILLING_TOTAL_NEGATIVE); si algo falla el documento queda intacto.
+     */
+    public void replaceInvoiceDraft(CounterpartySnapshot newCounterparty, LocalDate newIssueDate,
+            String newSupplierInvoiceNumber, List<DocumentLine> newLines, PaymentTerms newPayment,
+            List<Withholding> newWithholdings, Instant at, String by) {
         requireDraftInvoice();
+        List<Withholding> checkedWithholdings = checkWithholdings(newWithholdings);
         if (newCounterparty != null) {
             requireRole(newCounterparty);
         }
         String normalizedSupplierNumber = normalizeSupplierInvoiceNumber(newSupplierInvoiceNumber);
         List<DocumentLine> renumbered = renumberAll(newLines);
+
+        DocumentTotals newTotals = DocumentTotals.fromLines(renumbered, checkedWithholdings);
+        assertTotalNotNegative(newTotals);
 
         this.counterparty = newCounterparty;
         if (newIssueDate != null) {
@@ -157,7 +172,8 @@ public class BillingDocument {
         }
         this.supplierInvoiceNumber = normalizedSupplierNumber;
         this.lines = renumbered;
-        this.totals = DocumentTotals.fromLines(renumbered);
+        this.withholdings = checkedWithholdings;
+        this.totals = newTotals;
         this.payment = type.supportsPayment() ? newPayment : null;
         touch(at, by);
     }
@@ -181,6 +197,17 @@ public class BillingDocument {
         if (payment != null) {
             this.payment = payment.withMethodName(methodName);
         }
+    }
+
+    /**
+     * Actualiza nombre y tasa de las retenciones con el catalogo vigente (se hace al emitir, antes
+     * de congelar el snapshot). Mismos codigos que ya tiene el borrador. Solo en borrador de factura.
+     */
+    public void refreshWithholdings(List<Withholding> fresh) {
+        requireDraftInvoice();
+        List<Withholding> checked = checkWithholdings(fresh);
+        this.withholdings = checked;
+        this.totals = DocumentTotals.fromLines(lines, checked);
     }
 
     /**
@@ -232,7 +259,7 @@ public class BillingDocument {
             refreshed.add(snapshot == null ? line : line.withCatalog(snapshot));
         }
         this.lines = List.copyOf(refreshed);
-        this.totals = DocumentTotals.fromLines(this.lines);
+        this.totals = DocumentTotals.fromLines(this.lines, this.withholdings);
     }
 
     /**
@@ -244,7 +271,7 @@ public class BillingDocument {
         return new BillingDocument(new BillingDocumentState(newId, enterpriseId, type, DocumentStatus.BORRADOR,
                 null, today, counterparty, null, null, null, null, lines, at, by, at, by,
                 null, null, null, null, null, null,
-                payment == null ? null : payment.withoutSnapshot()));
+                payment == null ? null : payment.withoutSnapshot(), withholdings));
     }
 
     // ---------- reglas de transicion ----------
@@ -382,6 +409,14 @@ public class BillingDocument {
         return payment;
     }
 
+    /**
+     * Retenciones de la factura (a lo sumo una por codigo), en orden. En borrador llevan la tasa
+     * vigente; en una factura emitida o anulada son el snapshot congelado. Vacia en devoluciones.
+     */
+    public List<Withholding> withholdings() {
+        return withholdings;
+    }
+
     public OriginalDocumentRef original() {
         return original;
     }
@@ -448,7 +483,7 @@ public class BillingDocument {
     public BillingDocumentState state() {
         return new BillingDocumentState(id, enterpriseId, type, status, number, issueDate, counterparty,
                 supplierInvoiceNumber, issuer, original, returnReason, lines, createdAt, createdBy, updatedAt,
-                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, version, payment);
+                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, version, payment, withholdings);
     }
 
     // ---------- internos ----------
@@ -506,6 +541,7 @@ public class BillingDocument {
             throw incomplete("El documento requiere al menos un item");
         }
         if (type.isInvoice()) {
+            assertTotalNotNegative(totals);
             if (!totals.total().isPositive()) {
                 throw incomplete("El total del documento debe ser mayor que cero");
             }
@@ -523,6 +559,29 @@ public class BillingDocument {
         if (type.supportsPayment()) {
             assertPaymentComplete();
         }
+    }
+
+    private static void assertTotalNotNegative(DocumentTotals candidate) {
+        if (candidate.total().isNegative()) {
+            throw new BillingException(BillingErrorCode.BILLING_TOTAL_NEGATIVE,
+                    "Las retenciones superan el subtotal mas los impuestos: el total no puede ser negativo");
+        }
+    }
+
+    /** Codigo permitido para el tipo y a lo sumo una retencion por codigo; nulo = ninguna. */
+    private List<Withholding> checkWithholdings(List<Withholding> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return List.of();
+        }
+        Set<WithholdingCode> seen = new HashSet<>();
+        for (Withholding withholding : candidates) {
+            Objects.requireNonNull(withholding, "withholding").code().requireAllowedFor(type);
+            if (!seen.add(withholding.code())) {
+                throw new BillingException(BillingErrorCode.BILLING_WITHHOLDING_INVALID,
+                        "La retencion " + withholding.code() + " esta repetida");
+            }
+        }
+        return List.copyOf(candidates);
     }
 
     private void assertPaymentComplete() {

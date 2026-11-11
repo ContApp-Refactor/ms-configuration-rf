@@ -44,6 +44,16 @@ public final class BillingRequestFingerprint {
             canonical.append("payment;");
             field(canonical, payment.paymentMethodId());
         }
+        // Solo si se envian retenciones: la huella de las peticiones sin ellas no cambia
+        List<InvoiceDraftCommand.WithholdingCommand> withholdings = command.withholdings();
+        if (withholdings != null && !withholdings.isEmpty()) {
+            canonical.append("withholdings;");
+            field(canonical, withholdings.size());
+            for (InvoiceDraftCommand.WithholdingCommand withholding : withholdings) {
+                field(canonical, withholding.code());
+                field(canonical, withholding.taxId());
+            }
+        }
         return sha256(canonical.toString());
     }
 

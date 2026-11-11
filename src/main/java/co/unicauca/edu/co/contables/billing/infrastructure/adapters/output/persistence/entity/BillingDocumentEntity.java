@@ -148,8 +148,20 @@ public class BillingDocumentEntity {
     @Column(name = "tax_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal taxTotal;
 
+    /** Total NETO: subtotal + impuestos - retenciones. */
     @Column(name = "total", nullable = false, precision = 19, scale = 2)
     private BigDecimal total;
+
+    /** Suma de las retenciones; nulo (documentos anteriores) = 0. Nullable: ddl-auto=update no la rellena. */
+    @Column(name = "withholding_total", precision = 19, scale = 2)
+    private BigDecimal withholdingTotal;
+
+    /**
+     * Retenciones de la factura como JSON ({@code [{code, taxId, taxName, ratePct, amountCents}]}); en
+     * una factura emitida es el snapshot congelado. Nulo = sin retenciones.
+     */
+    @Column(name = "withholdings", length = 4000)
+    private String withholdings;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

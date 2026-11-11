@@ -21,6 +21,8 @@ import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnLineAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
+import co.unicauca.edu.co.contables.billing.domain.model.Withholding;
+import co.unicauca.edu.co.contables.billing.domain.model.WithholdingCode;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingDocumentSummaryResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceLineResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceResponse;
@@ -30,6 +32,7 @@ import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.d
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnLineResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingTotalsResponse;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingWithholdingResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.InvoiceDraftRequest;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.InvoiceLineRequest;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.InvoiceWithReturnsResponse;
@@ -62,7 +65,20 @@ public class BillingRestMapper {
                 request.supplierInvoiceNumber(),
                 lines,
                 request.version(),
-                toPaymentCommand(request.payment()));
+                toPaymentCommand(request.payment()),
+                toWithholdingCommands(request.withholdings()));
+    }
+
+    /** Retenciones pedidas; un codigo desconocido es BILLING_WITHHOLDING_INVALID (422). */
+    private static List<InvoiceDraftCommand.WithholdingCommand> toWithholdingCommands(
+            List<InvoiceDraftRequest.WithholdingRequest> withholdings) {
+        if (withholdings == null) {
+            return List.of();
+        }
+        return withholdings.stream()
+                .map(w -> new InvoiceDraftCommand.WithholdingCommand(
+                        WithholdingCode.parse(w == null ? null : w.code()), w == null ? null : w.taxId()))
+                .toList();
     }
 
     /** Metodo de pago opcional (solo venta). */
@@ -124,7 +140,20 @@ public class BillingRestMapper {
                 doc.annulReason(),
                 doc.version(),
                 toIssuer(doc.issuer()),
-                toPayment(doc.payment()));
+                toPayment(doc.payment()),
+                toWithholdings(doc));
+    }
+
+    private static List<BillingWithholdingResponse> toWithholdings(BillingDocument doc) {
+        return doc.withholdings().stream()
+                .map(w -> toWithholding(w, doc.totals().subtotal()))
+                .toList();
+    }
+
+    private static BillingWithholdingResponse toWithholding(Withholding w,
+            co.unicauca.edu.co.contables.billing.domain.model.Money subtotal) {
+        return new BillingWithholdingResponse(w.code().name(), String.valueOf(w.taxId()), w.taxName(),
+                w.rate().value(), BillingCents.cents(w.amountOn(subtotal)));
     }
 
     /** Metodo de pago de la venta; nulo en compras y en ventas sin el dato. */
@@ -192,7 +221,8 @@ public class BillingRestMapper {
         return new BillingTotalsResponse(
                 BillingCents.cents(totals.subtotal()),
                 BillingCents.cents(totals.tax()),
-                BillingCents.cents(totals.total()));
+                BillingCents.cents(totals.total()),
+                BillingCents.cents(totals.withholdings()));
     }
 
     private static String display(DocumentNumber number) {

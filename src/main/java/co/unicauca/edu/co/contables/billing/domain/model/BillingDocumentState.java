@@ -32,10 +32,24 @@ public record BillingDocumentState(
         String annulledBy,
         String annulReason,
         Long version,
-        PaymentTerms payment) {
+        PaymentTerms payment,
+        List<Withholding> withholdings) {
 
     public BillingDocumentState {
         lines = lines == null ? List.of() : List.copyOf(lines);
+        withholdings = withholdings == null ? List.of() : List.copyOf(withholdings);
+    }
+
+    /** Constructor sin retenciones (documentos historicos y devoluciones). */
+    public BillingDocumentState(UUID id, String enterpriseId, DocumentType type, DocumentStatus status,
+            DocumentNumber number, LocalDate issueDate, CounterpartySnapshot counterparty,
+            String supplierInvoiceNumber, IssuerSnapshot issuer, OriginalDocumentRef original, String returnReason,
+            List<DocumentLine> lines, Instant createdAt, String createdBy, Instant updatedAt, String updatedBy,
+            Instant emittedAt, String emittedBy, Instant annulledAt, String annulledBy, String annulReason,
+            Long version, PaymentTerms payment) {
+        this(id, enterpriseId, type, status, number, issueDate, counterparty, supplierInvoiceNumber, issuer,
+                original, returnReason, lines, createdAt, createdBy, updatedAt, updatedBy, emittedAt, emittedBy,
+                annulledAt, annulledBy, annulReason, version, payment, null);
     }
 
     /** Constructor historico (sin condiciones de pago): compras, devoluciones y documentos anteriores. */
@@ -47,13 +61,13 @@ public record BillingDocumentState(
             Long version) {
         this(id, enterpriseId, type, status, number, issueDate, counterparty, supplierInvoiceNumber, issuer,
                 original, returnReason, lines, createdAt, createdBy, updatedAt, updatedBy, emittedAt, emittedBy,
-                annulledAt, annulledBy, annulReason, version, null);
+                annulledAt, annulledBy, annulReason, version, null, null);
     }
 
     /** Copia con otra version (la asigna la persistencia). */
     public BillingDocumentState withVersion(Long newVersion) {
         return new BillingDocumentState(id, enterpriseId, type, status, number, issueDate, counterparty,
                 supplierInvoiceNumber, issuer, original, returnReason, lines, createdAt, createdBy, updatedAt,
-                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, newVersion, payment);
+                updatedBy, emittedAt, emittedBy, annulledAt, annulledBy, annulReason, newVersion, payment, withholdings);
     }
 }
