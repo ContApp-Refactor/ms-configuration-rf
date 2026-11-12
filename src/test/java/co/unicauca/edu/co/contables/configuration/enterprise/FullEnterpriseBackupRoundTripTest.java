@@ -116,8 +116,16 @@ import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.persistence.ent
 import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.persistence.entity.AuxiliaryBookHistoryEntity;
 import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.persistence.entity.AuxiliaryBookLogEntity;
 import co.unicauca.edu.co.contables.auxiliary.infrastructure.out.persistence.entity.scheduledReport.ScheduledReportEntity;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.backup.BillingBackupParticipant;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentEntity;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentLineEntity;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentSequenceEntity;
 import co.unicauca.edu.co.contables.commons.backup.BackupKeys;
 import co.unicauca.edu.co.contables.commons.backup.BackupParticipant;
+import co.unicauca.edu.co.contables.commons.backup.BackupWriter;
+import co.unicauca.edu.co.contables.commons.backup.InMemoryIdMap;
+import co.unicauca.edu.co.contables.commons.backup.RestoreMode;
+import co.unicauca.edu.co.contables.commons.backup.zip.ZipBackupWriter;
 import co.unicauca.edu.co.contables.commons.backup.RestoreActor;
 import co.unicauca.edu.co.contables.commons.backup.RestoreContext;
 import co.unicauca.edu.co.contables.commons.backup.zip.ManifestV2;
@@ -191,14 +199,18 @@ import co.unicauca.edu.co.contables.notifications.infrastructure.output.jpa.enti
 import co.unicauca.edu.co.contables.notifications.infrastructure.output.jpa.repository.IThirdReplicaRepository;
 import jakarta.persistence.EntityManager;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 /**
  * T13: ida y vuelta GLOBAL de la copia de seguridad completa, por el flujo REAL del coordinador
  * ({@code exportTo} + {@code restore}) con TODOS los participantes registrados en el contexto.
  *
  * <p>Se siembra una empresa en el tenant A con datos en todos los módulos (empresa, configuración, terceros y
  * réplicas, PUC, impuestos, productos, réplicas de inventario, movimientos de kardex, banking, facturas, cartera,
- * libro contable, tesorería, financial y auxiliary) y se restaura (1) como empresa NUEVA en otro tenant y (2) como
- * DUPLICADO en el mismo tenant. Comprueba conteos == manifest, integridad sin huérfanos, FKs a filas del destino,
+ * libro contable, facturación (billing: ventas con retenciones, compras, devoluciones, borrador, anulada y
+ * secuencias), tesorería, financial y auxiliary) y se restaura (1) como empresa NUEVA en otro tenant, (2) como
+ * DUPLICADO en el mismo tenant y (3) EN EL LUGAR (purga + restore). Comprueba conteos == manifest, integridad sin huérfanos, FKs a filas del destino,
  * saldos del PUC recalculados, origen intacto, que no se publique nada a Rabbit y el rollback total ante un fallo.
  *
  * <p><b>Truco documentado (UNIQUE global de {@code kardex_products.reference})</b>: mientras esa restricción sea
@@ -235,6 +247,7 @@ class FullEnterpriseBackupRoundTripTest {
 
     @Autowired private IEnterpriseBackupCoordinator coordinator;
     @Autowired private List<BackupParticipant> participants;
+    @Autowired private BillingBackupParticipant billingParticipant;
     @Autowired private ZipBackupFormat format;
     @Autowired private TransactionTemplate tx;
     @Autowired private PlatformTransactionManager transactionManager;
@@ -475,7 +488,7 @@ class FullEnterpriseBackupRoundTripTest {
             AccountCatalogueEntity devoluciones = account(ent, "4175", NatureEnum.DEBIT, null);
             TaxEntity iva = taxRepository.save(TaxEntity.builder().code("IVA19").description("IVA 19").interest(19.0)
                     .salesTax(ivaVentas).purchaseTax(ivaCompras).idEnterprise(ent).status(true).usageCount(3).build());
-            taxRepository.save(TaxEntity.builder().code("EXENTO").description("Exento").interest(0.5)
+            TaxEntity exento = taxRepository.save(TaxEntity.builder().code("EXENTO").description("Exento").interest(0.5)
                     .idEnterprise(ent).status(true).usageCount(0).build());
 
             // ---- productos, réplicas de inventario y movimientos del kardex ----
@@ -808,6 +821,10 @@ class FullEnterpriseBackupRoundTripTest {
             em.persist(FinancialStatementLogEntity.builder().financialStatement(fs).eventType("CREATED")
                     .message("evento").icon("check").color("green").createdAt(now).build());
 
+            // ---- billing (facturas de venta/compra, devoluciones, borrador, anulada, secuencias) ----
+            seedBilling(ent, suffix, third1, third2, product1, product2, kg.getId(), method.getId(), iva.getId(),
+                    exento.getId());
+
             // ---- auxiliary (referencias blandas a tercero y centro de costo) ----
             AuxiliaryBookEntity book = new AuxiliaryBookEntity();
             book.setPublicId(UUID.randomUUID().toString());
@@ -856,6 +873,392 @@ class FullEnterpriseBackupRoundTripTest {
                     Set.of(ccRoot.getId(), ccChild.getId()), Set.of(e1.getId(), e2.getId(), e3.getId()), factCode,
                     entryCode1, receiptCode, reference);
         });
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Facturación: siembra                                               */
+    /* ------------------------------------------------------------------ */
+
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final Instant BILLING_AT = Instant.parse("2026-03-01T10:00:00Z");
+    /** Columnas de snapshot del emisor/tercero agregadas por el commit 6005402 (deben viajar en la copia). */
+    private static final List<String> SNAPSHOT_COLUMNS = List.of("counterparty_city", "issuer_address", "issuer_city",
+            "issuer_department", "issuer_phone", "issuer_email", "issuer_economic_activity", "issuer_logo");
+    /** Columnas de billing_documents que se remapean/regeneran a propósito: no se comparan literalmente. */
+    private static final Set<String> BILLING_REMAPPED = Set.of("id", "tenant_id", "enterprise_id", "counterparty_id",
+            "payment_method_id", "original_document_id", "withholdings", "verification_code", "version");
+
+    private BillingDocumentEntity billingDoc(String ent, String type, String status, Long number, String prefix,
+            long counterparty, boolean snapshots) {
+        BillingDocumentEntity d = new BillingDocumentEntity();
+        d.setId(UUID.randomUUID());
+        d.setEnterpriseId(ent);
+        d.setDocumentType(type);
+        d.setStatus(status);
+        if (number != null) {
+            d.setNumberPrefix(prefix);
+            d.setNumberValue(number);
+            d.setNumberDisplay(prefix + "-" + number);
+        }
+        d.setIssueDate(LocalDate.of(2026, 3, 1).plusDays(number == null ? 0 : number));
+        d.setCounterpartyId(counterparty);
+        d.setCurrency("COP");
+        d.setSubtotal(new BigDecimal("200000.00"));
+        d.setTaxTotal(new BigDecimal("38000.00"));
+        d.setTotal(new BigDecimal("238000.00"));
+        d.setCreatedAt(BILLING_AT);
+        d.setCreatedBy("user-a");
+        d.setUpdatedAt(BILLING_AT.plusSeconds(60));
+        d.setUpdatedBy("user-a");
+        if (snapshots) {
+            boolean sale = type.startsWith("SALE");
+            d.setCounterpartyRole(sale ? "CUSTOMER" : "SUPPLIER");
+            d.setCounterpartyName(sale ? "Ana Perez" : "Bar Perez");
+            d.setCounterpartyIdType("CC");
+            d.setCounterpartyIdNumber(sale ? "1001" : "2002");
+            d.setCounterpartyVerification("7");
+            d.setCounterpartyAddress("Calle 1");
+            d.setCounterpartyEmail("tercero@x.co");
+            d.setCounterpartyPhone("300");
+            d.setCounterpartyCity("Popayán");
+            d.setIssuerName("Empresa A SAS");
+            d.setIssuerNit("900123456");
+            d.setIssuerDv("7");
+            d.setIssuerAddress("Calle 1 #2-3");
+            d.setIssuerCity("Popayán");
+            d.setIssuerDepartment("Cauca");
+            d.setIssuerPhone("3001234567");
+            d.setIssuerEmail("a@empresa.co");
+            d.setIssuerEconomicActivity("6201");
+            d.setIssuerLogo("/logos/empresa-a.png");
+            d.setEmittedAt(BILLING_AT.plusSeconds(30));
+            d.setEmittedBy("user-a");
+        }
+        return d;
+    }
+
+    private void billingLine(BillingDocumentEntity d, int no, long productId, long unitId, String unitName,
+            String code, String name) {
+        BillingDocumentLineEntity l = new BillingDocumentLineEntity();
+        l.setDocument(d);
+        l.setLineNo(no);
+        l.setProductId(productId);
+        l.setProductCode(code);
+        l.setProductName(name);
+        l.setUnitOfMeasureId(unitId);
+        l.setUnitOfMeasureName(unitName);
+        l.setQuantity(new BigDecimal("2.000"));
+        l.setCatalogUnitPrice(new BigDecimal("50000.00"));
+        l.setCatalogTaxRate(new BigDecimal("19.00"));
+        l.setUnitPrice(new BigDecimal("50000.00"));
+        l.setTaxRate(new BigDecimal("19.00"));
+        l.setSubtotal(new BigDecimal("100000.00"));
+        l.setTaxAmount(new BigDecimal("19000.00"));
+        l.setTotal(new BigDecimal("119000.00"));
+        l.setTaxBreakdown("[{\"name\":\"Iva\",\"rate\":19.00}]");
+        d.getLines().add(l);
+    }
+
+    private BillingDocumentEntity returnOf(BillingDocumentEntity original, Long number, String prefix, String type) {
+        BillingDocumentEntity r = billingDoc(original.getEnterpriseId(), type, "EMITIDA", number, prefix,
+                original.getCounterpartyId(), true);
+        r.setOriginalDocumentId(original.getId());
+        r.setOriginalDocumentType(original.getDocumentType());
+        r.setOriginalNumberDisplay(original.getNumberDisplay());
+        r.setOriginalIssueDate(original.getIssueDate());
+        r.setReturnReason("Producto defectuoso");
+        return r;
+    }
+
+    private void seedBilling(String ent, String suffix, long third1, long third2, long product1, long product2,
+            long unitId, long paymentMethodId, long ivaTaxId, long otherTaxId) {
+        String unit = "Kilogramo " + suffix;
+        // ReteIVA apunta al impuesto IVA de la empresa; ReteICA y ReteFuente, al otro impuesto.
+        String withholdings = "[{\"code\":\"RETE_IVA\",\"taxId\":" + ivaTaxId
+                + ",\"taxName\":\"ReteIVA\",\"ratePct\":15.00,\"amountCents\":570000},"
+                + "{\"code\":\"RETE_ICA\",\"taxId\":" + otherTaxId
+                + ",\"taxName\":\"ReteICA\",\"ratePct\":0.69,\"amountCents\":138000},"
+                + "{\"code\":\"RETE_FUENTE\",\"taxId\":" + otherTaxId
+                + ",\"taxName\":\"ReteFuente\",\"ratePct\":2.50,\"amountCents\":500000}]";
+
+        BillingDocumentEntity fv1 = billingDoc(ent, "SALE_INVOICE", "EMITIDA", 1L, "FV", third1, true);
+        fv1.setPaymentMethodId(paymentMethodId);
+        fv1.setPaymentMethodName("Efectivo");
+        fv1.setWithholdings(withholdings);
+        fv1.setWithholdingTotal(new BigDecimal("12080.00"));
+        fv1.setTotal(new BigDecimal("225920.00"));
+        fv1.setVerificationCode("VC-" + suffix + "-FV1");
+        billingLine(fv1, 1, product1, unitId, unit, "C1", "Producto 1");
+        billingLine(fv1, 2, product2, unitId, unit, "C2", "Producto 2");
+        BillingDocumentEntity fv2 = billingDoc(ent, "SALE_INVOICE", "EMITIDA", 2L, "FV", third1, true);
+        fv2.setVerificationCode("VC-" + suffix + "-FV2");
+        billingLine(fv2, 1, product1, unitId, unit, "C1", "Producto 1");
+        BillingDocumentEntity fc1 = billingDoc(ent, "PURCHASE_INVOICE", "EMITIDA", 1L, "FC", third2, true);
+        fc1.setPaymentMethodId(paymentMethodId);
+        fc1.setPaymentMethodName("Efectivo");
+        fc1.setSupplierInvoiceNumber("PROV-77");
+        fc1.setVerificationCode("VC-" + suffix + "-FC1");
+        billingLine(fc1, 1, product2, unitId, unit, "C2", "Producto 2");
+        BillingDocumentEntity draft = billingDoc(ent, "SALE_INVOICE", "BORRADOR", null, null, third1, false);
+        billingLine(draft, 1, product1, unitId, unit, "C1", "Producto 1");
+        BillingDocumentEntity fc2 = billingDoc(ent, "PURCHASE_INVOICE", "ANULADA", 2L, "FC", third2, true);
+        fc2.setVerificationCode("VC-" + suffix + "-FC2");
+        fc2.setAnnulledAt(BILLING_AT.plusSeconds(120));
+        fc2.setAnnulledBy("user-a");
+        fc2.setAnnulReason("Error de digitación");
+        billingLine(fc2, 1, product1, unitId, unit, "C1", "Producto 1");
+        BillingDocumentEntity nc1 = returnOf(fv1, 1L, "NC", "SALE_RETURN");
+        billingLine(nc1, 1, product1, unitId, unit, "C1", "Producto 1");
+        nc1.getLines().get(0).setSourceLineNo(1);
+        BillingDocumentEntity dc1 = returnOf(fc1, 1L, "DC", "PURCHASE_RETURN");
+        billingLine(dc1, 1, product2, unitId, unit, "C2", "Producto 2");
+        dc1.getLines().get(0).setSourceLineNo(1);
+        for (BillingDocumentEntity d : List.of(fv1, fv2, fc1, draft, fc2, nc1, dc1)) {
+            em.persist(d);
+        }
+        // Secuencias: venta al día (7 > 2); compra ATRASADA (1 < 2 restaurados: manda el mayor); devolución de
+        // venta al día; la de compra también.
+        sequence(ent, "SALE_INVOICE", "FV", 7L);
+        sequence(ent, "PURCHASE_INVOICE", "FC", 1L);
+        sequence(ent, "SALE_RETURN", "NC", 1L);
+        sequence(ent, "PURCHASE_RETURN", "DC", 1L);
+    }
+
+    private void sequence(String ent, String type, String prefix, long last) {
+        BillingDocumentSequenceEntity s = new BillingDocumentSequenceEntity();
+        s.setEnterpriseId(ent);
+        s.setDocumentType(type);
+        s.setPrefix(prefix);
+        s.setLastNumber(last);
+        s.setUpdatedAt(BILLING_AT);
+        em.persist(s);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Facturación: lectura y aserciones                                  */
+    /* ------------------------------------------------------------------ */
+
+    /** Estado de billing de una empresa leído por SQL, con las referencias de catálogo ya RESUELTAS por empresa. */
+    private record BillingSnapshot(List<Map<String, Object>> docs, List<Map<String, Object>> lines,
+            List<Map<String, Object>> sequences, Map<String, String> refs) {
+        Map<String, Map<String, Object>> byKey() {
+            Map<String, Map<String, Object>> m = new LinkedHashMap<>();
+            docs.forEach(d -> m.put(keyOf(d), d));
+            return m;
+        }
+    }
+
+    private static String keyOf(Map<String, Object> d) {
+        return d.get("document_type") + "|" + d.get("status") + "|" + d.get("number_display");
+    }
+
+    private BillingSnapshot billingOf(String tenant, String ent) {
+        List<Map<String, Object>> docs = jdbc.queryForList("SELECT * FROM billing_documents WHERE tenant_id = ? "
+                + "AND enterprise_id = ? ORDER BY document_type, status, number_value", tenant, ent);
+        List<Map<String, Object>> lines = jdbc.queryForList("SELECT l.*, h.document_type AS h_type, h.status AS h_status, "
+                + "h.number_display AS h_display FROM billing_document_lines l JOIN billing_documents h ON h.id = l.document_id "
+                + "WHERE h.tenant_id = ? AND h.enterprise_id = ? ORDER BY h.document_type, h.status, h.number_value, l.line_no",
+                tenant, ent);
+        List<Map<String, Object>> sequences = jdbc.queryForList("SELECT * FROM billing_document_sequences "
+                + "WHERE tenant_id = ? AND enterprise_id = ? ORDER BY document_type", tenant, ent);
+        Map<String, String> refs = new LinkedHashMap<>();
+        for (Map<String, Object> d : docs) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("third=").append(lookup(d.get("counterparty_id"),
+                    "SELECT th_id_number FROM THIRDS WHERE th_id = ? AND ent_id = ?", ent));
+            sb.append(";pm=").append(lookup(d.get("payment_method_id"),
+                    "SELECT name FROM payment_methods WHERE id = ? AND id_enterprise = ?", ent));
+            sb.append(";taxes=");
+            for (JsonNode w : readJson((String) d.get("withholdings"))) {
+                sb.append(w.get("code").asText()).append('>').append(lookup(w.get("taxId").asLong(),
+                        "SELECT code FROM tax WHERE id = ? AND id_enterprise = ?", ent)).append(',');
+            }
+            for (Map<String, Object> l : lines) {
+                if (d.get("id").equals(l.get("document_id"))) {
+                    sb.append(";line").append(l.get("line_no")).append('=')
+                            .append(lookup(l.get("product_id"),
+                                    "SELECT code FROM product WHERE id = ? AND enterprise_id = ?", ent))
+                            .append('/').append(lookup(l.get("unit_of_measure_id"),
+                                    "SELECT name FROM unit_of_measure WHERE id = ? AND enterprise_id = ?", ent));
+                }
+            }
+            refs.put(keyOf(d), sb.toString());
+        }
+        return new BillingSnapshot(docs, lines, sequences, refs);
+    }
+
+    private static JsonNode readJson(String json) {
+        try {
+            return json == null ? JSON.createArrayNode() : JSON.readTree(json);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Valor de la fila referenciada DENTRO de la empresa; "-" si la FK es nula, "MISSING" si no es de la empresa. */
+    private String lookup(Object id, String sql, String ent) {
+        if (id == null) {
+            return "-";
+        }
+        List<Object> rows = jdbc.queryForList(sql, Object.class, id, ent);
+        return rows.isEmpty() ? "MISSING" : String.valueOf(rows.get(0));
+    }
+
+    private static Set<Object> idsOf(List<Map<String, Object>> rows, String column) {
+        Set<Object> ids = new java.util.HashSet<>();
+        rows.forEach(r -> {
+            if (r.get(column) != null) {
+                ids.add(r.get(column));
+            }
+        });
+        return ids;
+    }
+
+    private static Set<Long> taxIdsOf(BillingSnapshot s) {
+        Set<Long> ids = new java.util.HashSet<>();
+        s.docs().forEach(d -> readJson((String) d.get("withholdings")).forEach(w -> ids.add(w.get("taxId").asLong())));
+        return ids;
+    }
+
+    /**
+     * La facturación restaurada en {@code target} es idéntica a {@code src} (capturado ANTES del restore): mismas
+     * filas y columnas (incluidas las 8 de snapshot), referencias de catálogo remapeadas a la empresa destino,
+     * devoluciones apuntando a la factura NUEVA, numeración conservada, secuencia al día y códigos de verificación.
+     */
+    private void assertBillingRestored(BillingSnapshot src, String tenant, UUID target, boolean sameIds,
+            boolean codesKept) {
+        String ent = target.toString();
+        BillingSnapshot dst = billingOf(tenant, ent);
+
+        // la siembra es completa: las 8 columnas nuevas vienen pobladas en el origen de los documentos emitidos
+        assertThat(src.docs()).hasSize(7);
+        src.docs().stream().filter(d -> d.get("emitted_at") != null).forEach(d -> {
+            for (String c : SNAPSHOT_COLUMNS) {
+                assertThat(d.get(c)).as("origen " + keyOf(d) + " :: " + c).isNotNull();
+            }
+        });
+        assertThat(dst.docs()).hasSameSizeAs(src.docs());
+        assertThat(dst.lines()).hasSameSizeAs(src.lines());
+        assertThat(dst.sequences()).hasSize(4);
+        Map<String, Map<String, Object>> s = src.byKey();
+        Map<String, Map<String, Object>> d = dst.byKey();
+        assertThat(d.keySet()).as("mismos documentos y números originales").isEqualTo(s.keySet());
+
+        // todas las columnas literales (las 8 de snapshot incluidas) idénticas al origen
+        for (String key : s.keySet()) {
+            for (String column : s.get(key).keySet()) {
+                if (!BILLING_REMAPPED.contains(column.toLowerCase())) {
+                    assertThat(d.get(key).get(column)).as(key + " :: " + column).isEqualTo(s.get(key).get(column));
+                }
+            }
+        }
+        // líneas idénticas (salvo identidad, tenant y documento)
+        for (int i = 0; i < src.lines().size(); i++) {
+            Map<String, Object> sl = src.lines().get(i);
+            Map<String, Object> dl = dst.lines().get(i);
+            for (String column : sl.keySet()) {
+                if (!Set.of("id", "tenant_id", "document_id", "product_id", "unit_of_measure_id")
+                        .contains(column.toLowerCase())) {
+                    assertThat(dl.get(column)).as("línea " + sl.get("h_display") + "/" + sl.get("line_no") + " :: " + column)
+                            .isEqualTo(sl.get(column));
+                }
+            }
+        }
+        // tercero, medio de pago, impuestos de las retenciones, productos y unidades: mismas filas lógicas pero de
+        // la empresa destino (la resolución se hizo acotada por empresa: "MISSING" = apunta fuera de ella)
+        assertThat(dst.refs()).isEqualTo(src.refs());
+        assertThat(dst.refs().values()).noneMatch(r -> r.contains("MISSING"));
+        assertThat(dst.refs().values()).anyMatch(r -> r.contains("RETE_IVA>IVA19") && r.contains("RETE_ICA>EXENTO")
+                && r.contains("RETE_FUENTE>EXENTO"));
+        if (!sameIds) {
+            assertThat(idsOf(dst.docs(), "id")).doesNotContainAnyElementsOf(idsOf(src.docs(), "id"));
+            assertThat(idsOf(dst.docs(), "counterparty_id")).doesNotContainAnyElementsOf(idsOf(src.docs(), "counterparty_id"));
+            assertThat(idsOf(dst.docs(), "payment_method_id"))
+                    .doesNotContainAnyElementsOf(idsOf(src.docs(), "payment_method_id"));
+            assertThat(idsOf(dst.lines(), "product_id")).doesNotContainAnyElementsOf(idsOf(src.lines(), "product_id"));
+            assertThat(idsOf(dst.lines(), "unit_of_measure_id"))
+                    .doesNotContainAnyElementsOf(idsOf(src.lines(), "unit_of_measure_id"));
+            assertThat(taxIdsOf(dst)).hasSize(2).doesNotContainAnyElementsOf(taxIdsOf(src));
+        }
+
+        // devoluciones: apuntan a la factura NUEVA (del destino) y coinciden con sus datos congelados
+        long returnsChecked = 0;
+        Map<Object, Map<String, Object>> dstById = new LinkedHashMap<>();
+        dst.docs().forEach(x -> dstById.put(x.get("id"), x));
+        for (Map<String, Object> r : dst.docs()) {
+            if (r.get("original_document_id") == null) {
+                continue;
+            }
+            Map<String, Object> original = dstById.get(r.get("original_document_id"));
+            assertThat(original).as("la devolución " + keyOf(r) + " apunta a una factura del destino").isNotNull();
+            assertThat(original.get("document_type")).isEqualTo(r.get("original_document_type"));
+            assertThat(original.get("number_display")).isEqualTo(r.get("original_number_display"));
+            assertThat(original.get("issue_date")).isEqualTo(r.get("original_issue_date"));
+            returnsChecked++;
+        }
+        assertThat(returnsChecked).isEqualTo(2L);
+
+        // secuencia destino >= mayor número restaurado por tipo (el próximo emitido es mayor que cualquiera)
+        Map<String, Long> lastByType = new LinkedHashMap<>();
+        dst.sequences().forEach(q -> {
+            lastByType.put((String) q.get("document_type"), ((Number) q.get("last_number")).longValue());
+            assertThat((String) q.get("prefix")).isNotBlank();
+        });
+        assertThat(lastByType).containsOnlyKeys("SALE_INVOICE", "PURCHASE_INVOICE", "SALE_RETURN", "PURCHASE_RETURN");
+        Map<String, Long> maxByType = new LinkedHashMap<>();
+        dst.docs().stream().filter(x -> x.get("number_value") != null).forEach(x -> maxByType
+                .merge((String) x.get("document_type"), ((Number) x.get("number_value")).longValue(), Math::max));
+        maxByType.forEach((type, max) -> assertThat(lastByType.get(type)).as("secuencia " + type)
+                .isGreaterThanOrEqualTo(max));
+        assertThat(lastByType.get("SALE_INVOICE")).isEqualTo(7L);
+        assertThat(lastByType.get("PURCHASE_INVOICE")).as("secuencia atrasada en el origen: manda el mayor restaurado")
+                .isEqualTo(2L);
+        assertThat(lastByType.get("SALE_RETURN")).isEqualTo(1L);
+        assertThat(lastByType.get("PURCHASE_RETURN")).isEqualTo(1L);
+
+        // verification_code: nulo sigue nulo; conservado si nadie más lo tiene; regenerado (distinto, no nulo) si no
+        Set<String> seen = new java.util.HashSet<>();
+        for (String key : s.keySet()) {
+            Object before = s.get(key).get("verification_code");
+            Object after = d.get(key).get("verification_code");
+            if (before == null) {
+                assertThat(after).as("código de " + key).isNull();
+                continue;
+            }
+            assertThat(after).as("código de " + key).isNotNull();
+            if (codesKept) {
+                assertThat(after).isEqualTo(before);
+            } else {
+                assertThat(after).isNotEqualTo(before);
+            }
+            assertThat(seen.add((String) after)).as("códigos únicos").isTrue();
+        }
+        assertThat(seen).hasSize(4);
+
+        // conteos por entrada == manifest (ZIP) y == los que reporta el participante en el destino
+        Map<String, Long> counts = inTenant(tenant, () -> billingParticipant.count(target));
+        assertThat(counts).containsEntry(BillingBackupParticipant.ENTRY_INVOICES, 5L)
+                .containsEntry(BillingBackupParticipant.ENTRY_RETURNS, 2L)
+                .containsEntry(BillingBackupParticipant.ENTRY_SEQUENCES, 4L);
+        inTenant(tenant, () -> {
+            assertThat(billingParticipant.verifyIntegrity(target)).isEmpty();
+            return null;
+        });
+    }
+
+    private void assertBillingManifest(Path zip) {
+        try (var reader = format.open(zip)) {
+            ManifestV2.ModuleEntry module = reader.manifest().module(BackupKeys.MODULE_BILLING).orElseThrow();
+            assertThat(module.schema()).isEqualTo(BillingBackupParticipant.SCHEMA_VERSION);
+            assertThat(module.entries()).extracting(ManifestV2.EntryInfo::path).containsExactlyInAnyOrder(
+                    BillingBackupParticipant.ENTRY_INVOICES, BillingBackupParticipant.ENTRY_RETURNS,
+                    BillingBackupParticipant.ENTRY_SEQUENCES);
+            Map<String, Long> declared = new LinkedHashMap<>();
+            module.entries().forEach(e -> declared.put(e.path(), e.count()));
+            assertThat(declared).containsEntry(BillingBackupParticipant.ENTRY_INVOICES, 5L)
+                    .containsEntry(BillingBackupParticipant.ENTRY_RETURNS, 2L)
+                    .containsEntry(BillingBackupParticipant.ENTRY_SEQUENCES, 4L);
+        }
     }
 
     private static AuxiliaryBookCriteriaEntity criteria(long thirdId, long costCenterId) {
@@ -979,7 +1382,9 @@ class FullEnterpriseBackupRoundTripTest {
                 KardexBackupFormat.PRODUCTS, KardexMovementsBackupParticipant.ENTRY_KARDEX,
                 BankingBackupParticipant.ENTRY_BANK_ACCOUNTS, DebtPaymentsBackupParticipant.ENTRY_RECEIPTS,
                 LedgerBackupParticipant.ENTRY_ENTRIES, TreasuryBackupParticipant.ENTRY_VOUCHERS,
-                FactureBackupParticipant.ENTRY_SKELETON_FACTURES, FinancialBackupParticipant.ENTRY_STATEMENTS,
+                FactureBackupParticipant.ENTRY_SKELETON_FACTURES, BillingBackupParticipant.ENTRY_INVOICES,
+                BillingBackupParticipant.ENTRY_RETURNS, BillingBackupParticipant.ENTRY_SEQUENCES,
+                FinancialBackupParticipant.ENTRY_STATEMENTS,
                 AuxiliaryBackupParticipant.ENTRY_BOOKS)) {
             assertThat(inDb.values().stream().filter(m -> m.containsKey(nonEmpty)).findFirst().orElseThrow().get(nonEmpty))
                     .as(nonEmpty).isPositive();
@@ -1077,6 +1482,10 @@ class FullEnterpriseBackupRoundTripTest {
                         + "(SELECT COALESCE(SUM(m.debit),0) FROM accounting_movements m WHERE m.accounting_entry_id = e.id) <> "
                         + "(SELECT COALESCE(SUM(m.credit),0) FROM accounting_movements m WHERE m.accounting_entry_id = e.id)",
                 Long.class, tenant, ent)).isZero();
+
+        // facturación: copia fiel del origen (el origen sigue intacto en el tenant A y se lee ahora)
+        assertBillingManifest(zip);
+        assertBillingRestored(billingOf(TENANT_A, seed.enterprise().toString()), tenant, target, false, false);
     }
 
     private void assertSourceIntact(Seed seed, Map<String, Map<String, Long>> before) {
@@ -1154,6 +1563,141 @@ class FullEnterpriseBackupRoundTripTest {
         verifyNoInteractions(rabbitTemplate);
     }
 
+    @Test
+    void empresaCompletaSeRestauraEnElLugarConPurgaYConservaLosCodigosDeVerificacion() {
+        TenantContext.setTenantId(TENANT_A);
+        Seed seed = seedTenantA();
+        String ent = seed.enterprise().toString();
+        BillingSnapshot before = billingOf(TENANT_A, ent);
+        Path zip = export(seed);
+        assertBillingManifest(zip);
+
+        RestoreResult result = coordinator.restore(zip, RestoreOptions.inPlace(seed.enterprise(), null, null, false),
+                new RestoreActor(TENANT_A, "u-a"), null);
+
+        assertThat(result.enterpriseId()).isEqualTo(seed.enterprise());
+        assertThat(result.restoredModules()).contains(BackupKeys.MODULE_BILLING);
+        // la purga borró las filas viejas (y con ellas sus códigos): al volver a insertarse se CONSERVAN
+        BillingSnapshot after = billingOf(TENANT_A, ent);
+        assertThat(idsOf(after.docs(), "id")).doesNotContainAnyElementsOf(idsOf(before.docs(), "id"));
+        assertBillingRestored(before, TENANT_A, seed.enterprise(), true, true);
+        // nada duplicado: la purga no dejó filas viejas de billing ni de idempotencia
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM billing_documents WHERE tenant_id = ? AND enterprise_id = ?",
+                Long.class, TENANT_A, ent)).isEqualTo(7L);
+        verifyNoInteractions(rabbitTemplate);
+    }
+
+    @Test
+    void siFallaUnParticipanteEnUnRestoreEnElLugarLaFacturacionOriginalQuedaIntacta() {
+        TenantContext.setTenantId(TENANT_A);
+        Seed seed = seedTenantA();
+        String ent = seed.enterprise().toString();
+        BillingSnapshot before = billingOf(TENANT_A, ent);
+        Path zip = export(seed);
+
+        // tesorería (order 120) restaura y falla: para entonces billing (order 85) ya se purgó y se volvió a insertar
+        IEnterpriseBackupCoordinator failing = coordinatorFailingAt(AccountingBackupKeys.MODULE_TREASURY);
+        Map<String, Long> rowsBefore = rowCountsOfAllTables();
+        assertThatThrownBy(() -> failing.restore(zip, RestoreOptions.inPlace(seed.enterprise(), null, null, false),
+                new RestoreActor(TENANT_A, "u-a"), null))
+                        .isInstanceOf(RestoreFailedException.class)
+                        .hasMessageContaining(AccountingBackupKeys.MODULE_TREASURY);
+
+        BillingSnapshot after = billingOf(TENANT_A, ent);
+        assertThat(after.docs()).as("mismas filas, con los mismos ids: la purga se deshizo").isEqualTo(before.docs());
+        assertThat(after.lines()).isEqualTo(before.lines());
+        assertThat(after.sequences()).isEqualTo(before.sequences());
+        assertThat(rowCountsOfAllTables()).isEqualTo(rowsBefore);
+        verifyNoInteractions(rabbitTemplate);
+    }
+
+    /**
+     * Compatibilidad hacia atrás: un ZIP de billing generado ANTES de las 8 columnas de snapshot (schema 1, sin
+     * {@code counterpartyCity} ni {@code issuer*}) restaura igual y deja esos campos en null.
+     */
+    @Test
+    void unZipDeBillingSinLosCamposDeSnapshotRestauraConNulos() {
+        TenantContext.setTenantId(TENANT_A);
+        Path zip = tmp.resolve("billing-v1.zip");
+        ZipBackupWriter.Header header = new ZipBackupWriter.Header(UUID.randomUUID(), "Empresa vieja", "test",
+                ManifestV2.CreatedBy.of(TENANT_A, "u-a"), List.of(), java.time.LocalDateTime.now());
+        UUID oldInvoice = UUID.randomUUID();
+        Map<String, Object> line = new LinkedHashMap<>();
+        line.put("lineNo", 1);
+        line.put("productId", 11);
+        line.put("productCode", "P");
+        line.put("productName", "Producto");
+        line.put("quantity", "1.000");
+        line.put("catalogUnitPrice", "100.00");
+        line.put("catalogTaxRate", "19.00");
+        line.put("unitPrice", "100.00");
+        line.put("taxRate", "19.00");
+        line.put("subtotal", "100.00");
+        line.put("taxAmount", "19.00");
+        line.put("total", "119.00");
+        Map<String, Object> doc = new LinkedHashMap<>();
+        doc.put("id", oldInvoice.toString());
+        doc.put("documentType", "SALE_INVOICE");
+        doc.put("status", "EMITIDA");
+        doc.put("numberPrefix", "FV");
+        doc.put("numberValue", 5);
+        doc.put("numberDisplay", "FV-5");
+        doc.put("issueDate", "2026-01-15");
+        doc.put("counterpartyId", 21);
+        doc.put("counterpartyName", "Cliente viejo");
+        doc.put("issuerName", "Emisor viejo");
+        doc.put("issuerNit", "900");
+        doc.put("currency", "COP");
+        doc.put("subtotal", "100.00");
+        doc.put("taxTotal", "19.00");
+        doc.put("total", "119.00");
+        doc.put("verificationCode", "VC-VIEJO-" + RUN.incrementAndGet());
+        doc.put("createdAt", "2026-01-15T10:00:00Z");
+        doc.put("createdBy", "u");
+        doc.put("updatedAt", "2026-01-15T10:00:00Z");
+        doc.put("updatedBy", "u");
+        doc.put("lines", List.of(line));
+        try (ZipBackupWriter writer = format.newWriter(zip, header)) {
+            BackupWriter module = writer.module(BackupKeys.MODULE_BILLING, 1);
+            module.writeNdjson(BillingBackupParticipant.ENTRY_INVOICES, List.of(doc).iterator());
+            module.writeNdjson(BillingBackupParticipant.ENTRY_RETURNS, List.<Object>of().iterator());
+            module.writeNdjson(BillingBackupParticipant.ENTRY_SEQUENCES, List.<Object>of().iterator());
+            writer.finish();
+        }
+        UUID target = UUID.randomUUID();
+        InMemoryIdMap ids = new InMemoryIdMap();
+        ids.put(BackupKeys.THIRD, 21L, 2100L);
+        ids.put(BackupKeys.PRODUCT, 11L, 1100L);
+        RestoreContext ctx = new RestoreContext(TENANT_A, "u-a", UUID.randomUUID(), target, 2,
+                java.time.LocalDateTime.now(), RestoreMode.NEW_ENTERPRISE, null, null, false);
+
+        tx.execute(status -> {
+            try (var reader = format.open(zip)) {
+                billingParticipant.restore(reader.module(BackupKeys.MODULE_BILLING), ids, ctx);
+            }
+            Map<String, Object> row = jdbc.queryForMap("SELECT * FROM billing_documents WHERE enterprise_id = ?",
+                    target.toString());
+            assertThat(row.get("number_display")).isEqualTo("FV-5");
+            assertThat(row.get("counterparty_id")).isEqualTo(2100L);
+            for (String column : SNAPSHOT_COLUMNS) {
+                assertThat(row.get(column)).as(column).isNull();
+            }
+            assertThat(row.get("issuer_name")).isEqualTo("Emisor viejo");
+            assertThat(jdbc.queryForObject("SELECT last_number FROM billing_document_sequences WHERE enterprise_id = ?",
+                    Long.class, target.toString())).isEqualTo(5L);
+            status.setRollbackOnly();
+            return null;
+        });
+    }
+
+    private IEnterpriseBackupCoordinator coordinatorFailingAt(String moduleKey) {
+        List<BackupParticipant> withFailure = participants.stream()
+                .map(p -> moduleKey.equals(p.moduleKey()) ? (BackupParticipant) new FailingAfterRestore(p) : p)
+                .toList();
+        return new EnterpriseBackupCoordinatorImpl(withFailure, format, enterpriseRepository, em, transactionManager,
+                "test", tmp.toString());
+    }
+
     /** Hace el restore real del participante y luego falla, para probar el rollback de lo ya insertado. */
     private record FailingAfterRestore(BackupParticipant delegate) implements BackupParticipant {
         @Override public String moduleKey() { return delegate.moduleKey(); }
@@ -1171,6 +1715,7 @@ class FullEnterpriseBackupRoundTripTest {
             delegate.restore(reader, idMap, ctx);
             throw new IllegalArgumentException("fallo inyectado después de restaurar " + delegate.moduleKey());
         }
+        @Override public void purge(UUID enterpriseId) { delegate.purge(enterpriseId); }
         @Override public Map<String, Long> count(UUID enterpriseId) { return delegate.count(enterpriseId); }
         @Override public List<String> verifyIntegrity(UUID enterpriseId) { return delegate.verifyIntegrity(enterpriseId); }
     }

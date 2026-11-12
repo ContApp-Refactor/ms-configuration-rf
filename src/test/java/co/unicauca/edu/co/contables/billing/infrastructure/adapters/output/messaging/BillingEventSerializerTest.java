@@ -112,7 +112,8 @@ class BillingEventSerializerTest {
 
         assertThat(fieldNames(payload)).containsExactly("documentId", "documentVersion", "documentType", "kind",
                 "number", "issueDate", "emittedAt", "emittedBy", "currency", "issuer", "counterparty",
-                "supplierInvoiceNumber", "lines", "totals", "payment", "original", "return", "annulment", "withholdings");
+                "supplierInvoiceNumber", "lines", "totals", "payment", "original", "return", "annulment", "withholdings",
+                "verificationCode");
     }
 
     // ---------- carga ----------

@@ -1,7 +1,7 @@
 package co.unicauca.edu.co.contables.inventory.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.nio.file.Path;
@@ -23,7 +23,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import co.unicauca.edu.co.contables.commons.backup.BackupIntegrityException;
 import co.unicauca.edu.co.contables.commons.backup.BackupKeys;
 import co.unicauca.edu.co.contables.commons.backup.BackupParticipant;
 import co.unicauca.edu.co.contables.commons.backup.IdMap;
@@ -246,24 +245,23 @@ class InventoryBackupRoundTripTest {
     }
 
     @Test
-    void referenciaDeKardexRepetida_seDetectaEnPreflightConMensajeClaro() {
+    void referenciaDeKardexRepetida_yaNoEsConflictoPorqueLaUnicidadEsPorEmpresa() {
         String suffix = suffix();
         UUID source = newEnterprise(TENANT_A, InventoryConfigurationTypeEnum.WEIGHTED_AVERAGE);
         seed(TENANT_A, source, suffix);
         Path zip = export(TENANT_A, source);
 
-        assertThat(kardex.referenceIsGloballyUnique()).as("hoy kardex_products.reference es UNIQUE global").isTrue();
+        // Convertido (antes: "hoy kardex_products.reference es UNIQUE global" y el preflight lo rechazaba). El
+        // commit 6fc1512 cambió la unicidad a (enterprise_id, reference): ya no hay conflicto al duplicar.
+        assertThat(kardex.referenceIsGloballyUnique()).as("kardex_products.reference ya NO es UNIQUE global").isFalse();
 
-        // Duplicar dentro del MISMO tenant: las referencias de la copia ya existen en kardex_products.
+        // Duplicar dentro del MISMO tenant: las referencias de la copia ya existen, pero en OTRA empresa.
         TenantContext.setTenantId(TENANT_A);
         RestoreContext initial = initialContext(TENANT_A, source);
         try (ZipBackupReader reader = format.open(zip)) {
             reader.verifyAll();
-            assertThatThrownBy(() -> kardex.preflight(reader.module(BackupKeys.MODULE_INVENTORY_KARDEX), initial))
-                    .isInstanceOf(BackupIntegrityException.class)
-                    .hasMessageContaining(BackupKeys.MODULE_INVENTORY_KARDEX)
-                    .hasMessageContaining("REF-" + suffix + "-1")
-                    .hasMessageContaining("UNIQUE(enterprise_id, reference)");
+            assertThatCode(() -> kardex.preflight(reader.module(BackupKeys.MODULE_INVENTORY_KARDEX), initial))
+                    .doesNotThrowAnyException();
         }
     }
 
