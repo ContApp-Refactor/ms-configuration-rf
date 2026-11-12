@@ -96,7 +96,7 @@ public class ProductCommandServiceUnitTest {
     void testSyncProducts_FirstSync_Success() {
         // Arrange
         // Override default mock - simulate no previous sync
-        when(syncStateRepository.findLastSyncFor(enterpriseId, enterpriseId))
+        when(syncStateRepository.findLastSyncFor("products-peps", enterpriseId))
             .thenReturn(Optional.empty());
     
         doNothing().when(syncStateRepository).save(any(SyncState.class));
@@ -143,7 +143,7 @@ public class ProductCommandServiceUnitTest {
         // Arrange - This test is no longer relevant since the code doesn't use findBySyncTypeAndEnterpriseId
         // The code now uses findLastSyncFor which returns Optional<Instant>
         // If empty, it creates a new sync state with old date
-        when(syncStateRepository.findLastSyncFor(enterpriseId, enterpriseId))
+        when(syncStateRepository.findLastSyncFor("products-peps", enterpriseId))
             .thenReturn(Optional.empty());
         
         doNothing().when(syncStateRepository).save(any(SyncState.class));

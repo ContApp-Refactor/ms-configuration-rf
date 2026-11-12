@@ -38,7 +38,9 @@ public class ProductCommandService implements IProductSyncCommandPort, IProductC
     private final IFormatterResultOutputPort formatterResultOutputPort;
     private final IMessageServicePort messageService;
 
-    private static final String SYNC_TYPE_PRODUCTS = "products";
+    // Fecha de sync propia del kardex ponderado: la tabla sync_state se comparte con stock y PEPS, y si todos
+    // usan la misma clave el primero que sincroniza adelanta la fecha y los demás nunca recuperan sus productos.
+    private static final String SYNC_TYPE_PRODUCTS = "products-kardex";
 
     /**
      * @brief Synchronizes products for an enterprise from external API

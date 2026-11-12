@@ -38,7 +38,9 @@ public class ProductCommandService implements IProductSyncCommandPort,IProductCo
     private final IFormatterResultOutputPort formatterResultOutputPort;
     private final IMessageServicePort messageService;
     
-    private static final String SYNC_TYPE_PRODUCTS = "products";
+    // Fecha de sync propia de PEPS: la tabla sync_state se comparte con stock y kardex, y si todos usan la
+    // misma clave el primero que sincroniza adelanta la fecha y los demás nunca recuperan sus productos.
+    private static final String SYNC_TYPE_PRODUCTS = "products-peps";
 
     /**
      * @brief Synchronizes products for an enterprise from external API
@@ -48,7 +50,7 @@ public class ProductCommandService implements IProductSyncCommandPort,IProductCo
     @Override
     public String syncProductsByEnterpriseId(String enterpriseId) {
         // 1. Obtain the last synchronization date
-        Optional<Instant> lastSync=syncStateRepository.findLastSyncFor(enterpriseId, enterpriseId);
+        Optional<Instant> lastSync=syncStateRepository.findLastSyncFor(SYNC_TYPE_PRODUCTS, enterpriseId);
 
         if(lastSync.isEmpty()){
             // If no previous sync exists, create a new sync state with the current time
