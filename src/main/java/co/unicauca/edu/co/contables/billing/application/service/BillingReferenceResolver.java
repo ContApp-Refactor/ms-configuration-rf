@@ -81,6 +81,16 @@ public class BillingReferenceResolver {
                         "La empresa emisora no existe"));
     }
 
+    /** Emisor en vivo para la vista del borrador, o {@code null} si no existe (no lanza). */
+    public IssuerSnapshot tryIssuer(String enterpriseId) {
+        return enterprises.findIssuer(enterpriseId).orElse(null);
+    }
+
+    /** Tercero en vivo para la vista del borrador, o {@code null} si ya no existe (no lanza). */
+    public CounterpartySnapshot tryCounterparty(String enterpriseId, long thirdId, DocumentKind kind) {
+        return thirdParties.findCounterparty(enterpriseId, thirdId, kind.counterpartyRole()).orElse(null);
+    }
+
     private static Collection<Long> distinct(Collection<Long> productIds) {
         return productIds == null ? List.of() : new LinkedHashSet<>(productIds);
     }

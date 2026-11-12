@@ -34,6 +34,10 @@ public final class BackupKeys {
     public static final String MODULE_FINANCIAL = "financial";
     /** Libros auxiliares generados y reportes programados. */
     public static final String MODULE_AUXILIARY = "auxiliary";
+    /** Facturación (billing): facturas/devoluciones de venta y compra, líneas, retenciones y numeración. */
+    public static final String MODULE_BILLING = "billing";
+    /** Bancos, cuentas bancarias y medios de pago (moduleKey del participante de contabilidad; billing lo requiere por {@code payment_method_id}). */
+    public static final String MODULE_ACCOUNTING_BANKING = "accounting.banking";
 
     /* ---------- order() ---------- */
     public static final int ORDER_ENTERPRISE = 0;
@@ -48,6 +52,8 @@ public final class BackupKeys {
     public static final int ORDER_INVENTORY_PEPS = 62;
     public static final int ORDER_INVENTORY_KARDEX_MOVEMENTS = 70;
     public static final int ORDER_INVENTORY_PEPS_MOVEMENTS = 80;
+    /** Billing no depende de contabilidad (sin FKs a asientos): va antes que accounting.facture (90). */
+    public static final int ORDER_BILLING = 85;
     public static final int ORDER_FINANCIAL = 130;
     public static final int ORDER_AUXILIARY = 131;
 
@@ -66,6 +72,10 @@ public final class BackupKeys {
     public static final String PRODUCT_TYPE = "PRODUCT_TYPE";
     public static final String CATEGORY = "CATEGORY";
     public static final String PRODUCT = "PRODUCT";
+    /** Medio de pago (lo registra accounting.banking; mismo valor que {@code AccountingBackupKeys.PAYMENT_METHOD}). */
+    public static final String PAYMENT_METHOD = "PAYMENT_METHOD";
+    /** {@code billing_documents.id} (UUID) viejo→nuevo; lo registra billing y lo consumen las devoluciones. */
+    public static final String BILLING_DOCUMENT = "BILLING_DOCUMENT";
     /** Fase 2. */
     public static final String PEPS_KARDEX = "PEPS_KARDEX";
 

@@ -175,6 +175,9 @@ public class BillingDocumentQueryService implements GetDocumentUseCase, ListDocu
             // Tasa vigente de cada retencion del borrador; solo en memoria, y sin bloquear la lectura
             document.refreshWithholdings(withholdingResolver.refresh(enterpriseId, document.withholdings(), false));
         }
+        // Datos de contacto del emisor y la contraparte en vivo (solo memoria); emitida/anulada no pasa por aqui
+        document.refreshParties(resolver.tryIssuer(enterpriseId), document.counterparty() == null ? null
+                : resolver.tryCounterparty(enterpriseId, document.counterparty().thirdId(), document.type().kind()));
         if (document.lines().isEmpty()) {
             return;
         }

@@ -105,6 +105,10 @@ public class BillingDocumentEntity {
     @Column(name = "counterparty_phone", length = 20)
     private String counterpartyPhone;
 
+    /** Ciudad de la contraparte congelada al emitir; nula en documentos anteriores. */
+    @Column(name = "counterparty_city", length = 150)
+    private String counterpartyCity;
+
     @Column(name = "supplier_invoice_number", length = 50)
     private String supplierInvoiceNumber;
 
@@ -116,6 +120,30 @@ public class BillingDocumentEntity {
 
     @Column(name = "issuer_dv", length = 2)
     private String issuerDv;
+
+    /** Datos de contacto y presentacion del emisor congelados al emitir; todos nullable (documentos anteriores). */
+    @Column(name = "issuer_address", length = 300)
+    private String issuerAddress;
+
+    @Column(name = "issuer_city", length = 150)
+    private String issuerCity;
+
+    @Column(name = "issuer_department", length = 150)
+    private String issuerDepartment;
+
+    @Column(name = "issuer_phone", length = 30)
+    private String issuerPhone;
+
+    @Column(name = "issuer_email", length = 150)
+    private String issuerEmail;
+
+    /** Codigo de la actividad economica principal (CIIU); el catalogo de nombres no existe en el backend. */
+    @Column(name = "issuer_economic_activity", length = 20)
+    private String issuerEconomicActivity;
+
+    /** Referencia liviana (URL/ruta) del logo; nunca contenido embebido. */
+    @Column(name = "issuer_logo", length = 500)
+    private String issuerLogo;
 
     @Column(name = "payment_method_id")
     private Long paymentMethodId;

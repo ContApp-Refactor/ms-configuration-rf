@@ -213,6 +213,22 @@ public class BillingDocument {
     }
 
     /**
+     * Refresca en memoria los datos de presentacion del emisor y de la contraparte (vista en vivo del
+     * borrador). Un argumento nulo conserva el valor actual; la contraparte debe ser la misma y con el
+     * rol del documento. No toca auditoria ni version: lo persiste quien decida guardar.
+     */
+    public void refreshParties(IssuerSnapshot liveIssuer, CounterpartySnapshot liveCounterparty) {
+        requireDraftInvoice();
+        if (liveIssuer != null) {
+            this.issuer = liveIssuer;
+        }
+        if (liveCounterparty != null && counterparty != null && liveCounterparty.thirdId() == counterparty.thirdId()
+                && liveCounterparty.role() == type.kind().counterpartyRole()) {
+            this.counterparty = liveCounterparty;
+        }
+    }
+
+    /**
      * Reemplazo completo e idempotente de fecha, motivo y lineas de un borrador de devolucion
      * (RET-6). Las lineas deben ser de devolucion ({@code sourceLineNo} presente y sin repetir) y se
      * renumeran 1..n conservando su referencia a la original. El motivo se recorta (en blanco queda
