@@ -31,6 +31,15 @@ public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Lo
     Optional<CostCenterEntity> findByIdAndIdEnterprise(Long id, String idEnterprise);
 
     boolean existsByParentId(Long parentId);
+
+    /**
+     * Copia de seguridad: ids de centros de la empresa cuyo padre no es de la
+     * misma empresa (left join: el filtro de tenant también cuenta).
+     */
+    @Query("SELECT c.id FROM CostCenterEntity c LEFT JOIN c.parent p "
+            + "WHERE c.idEnterprise = :idEnterprise AND c.parent IS NOT NULL "
+            + "AND (p IS NULL OR p.idEnterprise <> :idEnterprise)")
+    List<Long> findIdsWithForeignParent(@Param("idEnterprise") String idEnterprise);
    
     List<CostCenterEntity> findByParentId(Long parentId);
 

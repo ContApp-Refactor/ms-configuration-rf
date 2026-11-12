@@ -82,6 +82,8 @@ public class BillingPurchaseReturnController {
         return support.emit(TYPE, enterpriseId, id, request);
     }
 
+    // PENDIENTE DE DECISION (nota 15): anular una devolucion NO se ofrece en el front. Este endpoint se conserva
+    // sin uso desde la UI hasta confirmar si se elimina o se deja; no lo borres ni lo expongas sin esa confirmacion.
     @PostMapping("/{id}/annul")
     @PreAuthorize(BillingPermissions.PURCHASE_RETURN_ANNUL)
     public ResponseEntity<BillingReturnResponse> annul(

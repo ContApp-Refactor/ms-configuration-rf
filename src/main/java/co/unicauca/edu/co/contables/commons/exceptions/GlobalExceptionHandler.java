@@ -5,6 +5,10 @@ import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -13,6 +17,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import co.unicauca.edu.co.contables.accounting.catalogue.catalogue.domain.utils.ImportConstants;
 import co.unicauca.edu.co.contables.accounting.catalogue.commons.exceptions.catalogue.AccountCatalogueErrorCode;
@@ -236,7 +241,11 @@ public class GlobalExceptionHandler {
     /**
      * @brief Maneja excepciones de argumento ilegal
      *
-     * Maneja errores cuando se pasa un argumento inválido, como índices de paginación negativos.
+     * Maneja errores cuando se pasa un argumento inválido, como índices de
+     * paginación negativos. Los mensajes de Spring Data llegan en inglés, así
+     * que se traducen al español igual que en el origen
+     * {@code account-catalogue-rf}.
+     *
      * @param ex la excepción de argumento ilegal
      * @param request la solicitud web que causó la excepción
      * @return ResponseEntity con la respuesta de error estructurada
@@ -247,11 +256,13 @@ public class GlobalExceptionHandler {
 
         HttpStatus status = HttpStatus.BAD_REQUEST;
 
+        String message = ex.getMessage();
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(status.value())
                 .error(status.getReasonPhrase())
-                .message(ex.getMessage())
+                .message(message)
                 .code(ErrorCode.GENERIC_ERROR.getCode())
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
@@ -499,6 +510,80 @@ public class GlobalExceptionHandler {
                 .build();
 
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    /**
+     * @brief Maneja acceso denegado
+     *
+     * Sin este manejador, {@link AccessDeniedException} cae en el catch-all
+     * {@code @ExceptionHandler(Exception.class)} y el cliente recibe un
+     * <strong>500</strong> falso: la denegación es del pedido, no del servidor.
+     * Devuelve <strong>401</strong> cuando no hay sesión (token ausente,
+     * inválido o expirado) y <strong>403</strong> cuando el usuario está
+     * autenticado pero no tiene el rol requerido.
+     *
+     * @param ex la excepción de acceso denegado
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con 401 o 403 según corresponda
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(
+            AccessDeniedException ex, WebRequest request) {
+
+        HttpStatus status = HttpStatus.FORBIDDEN;
+        String message = "No autorizado para acceder a este recurso";
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean authenticated = auth != null
+                && auth.isAuthenticated()
+                && !(auth instanceof AnonymousAuthenticationToken);
+
+        if (!authenticated) {
+            status = HttpStatus.UNAUTHORIZED;
+            message = "No autenticado. El token es inválido, expirado o está ausente";
+        }
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message)
+                .code(ErrorCode.GENERIC_ERROR.getCode())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, status);
+    }
+
+    /**
+     * @brief Maneja rutas sin mapear
+     *
+     * {@link NoResourceFoundException} la lanza el resource handler de Spring
+     * cuando ninguna ruta coincide (por ejemplo una URL con la barra final
+     * sobrante, como {@code /api/products/findById/4/}). Al no pertenecer a un
+     * controller del módulo, los advice acotados por {@code basePackages} no la
+     * alcanzan: sin este manejador cae en el catch-all y el cliente recibe un
+     * <strong>500</strong> falso. Devuelve <strong>404</strong>, que es el
+     * estado que corresponde a un recurso inexistente.
+     *
+     * @param ex la excepción de recurso no encontrado
+     * @param request la solicitud web que causó la excepción
+     * @return ResponseEntity con 404 y código RESOURCE_NOT_FOUND
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(
+            NoResourceFoundException ex, WebRequest request) {
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .message("El recurso solicitado no fue encontrado. Verifique que los parámetros de la URL no estén vacíos.")
+                .code("RESOURCE_NOT_FOUND")
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
     /**

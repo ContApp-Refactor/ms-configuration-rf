@@ -13,10 +13,18 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Money;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
+import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.Quantity;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxRate;
+import co.unicauca.edu.co.contables.billing.domain.model.Withholding;
+import co.unicauca.edu.co.contables.billing.domain.model.WithholdingCode;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentEntity;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.persistence.entity.BillingDocumentLineEntity;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -35,6 +43,9 @@ import org.springframework.stereotype.Component;
  *       nuevas se agregan y las que ya no estan se retiran (orphanRemoval). Un reemplazo total
  *       violaria {@code uk_billing_line_no} porque Hibernate ejecuta los inserts antes que los deletes.</li>
  *   <li>Ni el tenant ni la version se copian al entity: los administra Hibernate.</li>
+ *   <li>El desglose de impuestos de la linea ({@code catalogTaxes}) se guarda como JSON en
+ *       {@code tax_breakdown}; vacio se guarda como {@code null} y {@code null} (lineas viejas) se lee
+ *       como lista vacia.</li>
  *   <li>Al reconstruir, el tercero y el emisor quedan {@code active=true}: la tabla guarda el
  *       snapshot congelado y la emision siempre vuelve a leer el tercero fresco, asi que el flag solo
  *       importa en el momento de leer el catalogo, no despues de persistir.</li>
@@ -42,6 +53,23 @@ import org.springframework.stereotype.Component;
  */
 @Component("billingDocumentPersistenceMapper")
 public class BillingDocumentPersistenceMapper {
+
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final TypeReference<List<TaxJson>> TAX_LIST = new TypeReference<>() { };
+
+    /** Forma persistida de un {@link TaxComponent}. */
+    private record TaxJson(String name, BigDecimal rate) {
+    }
+
+    private static final TypeReference<List<WithholdingJson>> WITHHOLDING_LIST = new TypeReference<>() { };
+
+    /**
+     * Forma persistida de una {@link Withholding}. {@code amountCents} es el snapshot del monto al
+     * guardar (consulta/auditoria); al leer el monto se deriva del subtotal y la tarifa.
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+    private record WithholdingJson(String code, long taxId, String taxName, BigDecimal ratePct, Long amountCents) {
+    }
 
     // ---------- dominio -> entidad ----------
 
@@ -75,6 +103,7 @@ public class BillingDocumentPersistenceMapper {
         entity.setCounterpartyAddress(counterparty == null ? null : counterparty.address());
         entity.setCounterpartyEmail(counterparty == null ? null : counterparty.email());
         entity.setCounterpartyPhone(counterparty == null ? null : counterparty.phone());
+        entity.setCounterpartyCity(counterparty == null ? null : counterparty.city());
 
         entity.setSupplierInvoiceNumber(document.supplierInvoiceNumber());
 
@@ -82,6 +111,17 @@ public class BillingDocumentPersistenceMapper {
         entity.setIssuerName(issuer == null ? null : issuer.name());
         entity.setIssuerNit(issuer == null ? null : issuer.nit());
         entity.setIssuerDv(issuer == null ? null : issuer.dv());
+        entity.setIssuerAddress(issuer == null ? null : issuer.address());
+        entity.setIssuerCity(issuer == null ? null : issuer.city());
+        entity.setIssuerDepartment(issuer == null ? null : issuer.department());
+        entity.setIssuerPhone(issuer == null ? null : issuer.phone());
+        entity.setIssuerEmail(issuer == null ? null : issuer.email());
+        entity.setIssuerEconomicActivity(issuer == null ? null : issuer.economicActivity());
+        entity.setIssuerLogo(issuer == null ? null : issuer.logo());
+
+        PaymentTerms payment = document.payment();
+        entity.setPaymentMethodId(payment == null ? null : payment.paymentMethodId());
+        entity.setPaymentMethodName(payment == null ? null : payment.paymentMethodName());
 
         OriginalDocumentRef original = document.original();
         entity.setOriginalDocumentId(original == null ? null : original.id());
@@ -97,12 +137,15 @@ public class BillingDocumentPersistenceMapper {
         entity.setSubtotal(totals.subtotal().value());
         entity.setTaxTotal(totals.tax().value());
         entity.setTotal(totals.total().value());
+        entity.setWithholdingTotal(totals.withholdings().value());
+        entity.setWithholdings(writeWithholdings(document.withholdings(), totals.subtotal()));
 
         entity.setCreatedAt(document.createdAt());
         entity.setCreatedBy(document.createdBy());
         entity.setUpdatedAt(document.updatedAt());
         entity.setUpdatedBy(document.updatedBy());
         entity.setEmittedAt(document.emittedAt());
+        entity.setVerificationCode(document.verificationCode());
         entity.setEmittedBy(document.emittedBy());
         entity.setAnnulledAt(document.annulledAt());
         entity.setAnnulledBy(document.annulledBy());
@@ -148,6 +191,57 @@ public class BillingDocumentPersistenceMapper {
         row.setSubtotal(line.subtotal().value());
         row.setTaxAmount(line.taxAmount().value());
         row.setTotal(line.total().value());
+        row.setTaxBreakdown(writeTaxes(line.catalogTaxes()));
+    }
+
+    private static String writeWithholdings(List<Withholding> withholdings, Money subtotal) {
+        if (withholdings == null || withholdings.isEmpty()) {
+            return null;
+        }
+        try {
+            return JSON.writeValueAsString(withholdings.stream()
+                    .map(w -> new WithholdingJson(w.code().name(), w.taxId(), w.taxName(), w.rate().value(),
+                            w.amountOn(subtotal).toCents()))
+                    .toList());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("No se pudo serializar las retenciones", e);
+        }
+    }
+
+    private static List<Withholding> readWithholdings(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return JSON.readValue(json, WITHHOLDING_LIST).stream()
+                    .map(w -> new Withholding(WithholdingCode.valueOf(w.code()), w.taxId(), w.taxName(),
+                            TaxRate.of(w.ratePct())))
+                    .toList();
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Retenciones persistidas invalidas: " + json, e);
+        }
+    }
+
+    private static String writeTaxes(List<TaxComponent> taxes) {
+        if (taxes == null || taxes.isEmpty()) {
+            return null;
+        }
+        try {
+            return JSON.writeValueAsString(taxes.stream().map(t -> new TaxJson(t.name(), t.rate())).toList());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("No se pudo serializar el desglose de impuestos", e);
+        }
+    }
+
+    private static List<TaxComponent> readTaxes(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return JSON.readValue(json, TAX_LIST).stream().map(t -> TaxComponent.of(t.name(), t.rate())).toList();
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Desglose de impuestos persistido invalido: " + json, e);
+        }
     }
 
     // ---------- entidad -> dominio ----------
@@ -182,7 +276,10 @@ public class BillingDocumentPersistenceMapper {
                 entity.getAnnulledAt(),
                 entity.getAnnulledBy(),
                 entity.getAnnulReason(),
-                entity.getVersion()));
+                entity.getVersion(),
+                payment(entity),
+                readWithholdings(entity.getWithholdings()),
+                entity.getVerificationCode()));
     }
 
     /** Resumen armado solo con las columnas de cabecera (no toca las lineas). */
@@ -200,7 +297,8 @@ public class BillingDocumentPersistenceMapper {
                 entity.getOriginalDocumentId(),
                 original == null ? null : original.number(),
                 new DocumentTotals(Money.of(entity.getSubtotal()), Money.of(entity.getTaxTotal()),
-                        Money.of(entity.getTotal())),
+                        Money.of(entity.getTotal()),
+                        entity.getWithholdingTotal() == null ? Money.zero() : Money.of(entity.getWithholdingTotal())),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getEmittedAt(),
@@ -221,7 +319,8 @@ public class BillingDocumentPersistenceMapper {
                 Money.of(row.getCatalogUnitPrice()),
                 TaxRate.of(row.getCatalogTaxRate()),
                 row.getUnitPriceOverride() == null ? null : Money.of(row.getUnitPriceOverride()),
-                row.getTaxRateOverride() == null ? null : TaxRate.of(row.getTaxRateOverride()));
+                row.getTaxRateOverride() == null ? null : TaxRate.of(row.getTaxRateOverride()),
+                readTaxes(row.getTaxBreakdown()));
     }
 
     private static DocumentNumber number(String prefix, Long value) {
@@ -242,7 +341,16 @@ public class BillingDocumentPersistenceMapper {
                 entity.getCounterpartyAddress(),
                 entity.getCounterpartyEmail(),
                 entity.getCounterpartyPhone(),
-                true);
+                true,
+                entity.getCounterpartyCity());
+    }
+
+    /** Sin metodo de pago (columna nula: compras, devoluciones, ventas historicas) no hay pago. */
+    private static PaymentTerms payment(BillingDocumentEntity entity) {
+        if (entity.getPaymentMethodId() == null) {
+            return null;
+        }
+        return new PaymentTerms(entity.getPaymentMethodId(), entity.getPaymentMethodName());
     }
 
     private static IssuerSnapshot issuer(BillingDocumentEntity entity) {
@@ -250,7 +358,9 @@ public class BillingDocumentPersistenceMapper {
             return null;
         }
         return new IssuerSnapshot(entity.getEnterpriseId(), entity.getIssuerName(), entity.getIssuerNit(),
-                entity.getIssuerDv(), true);
+                entity.getIssuerDv(), true, entity.getIssuerAddress(), entity.getIssuerCity(),
+                entity.getIssuerDepartment(), entity.getIssuerPhone(), entity.getIssuerEmail(),
+                entity.getIssuerEconomicActivity(), entity.getIssuerLogo());
     }
 
     private static OriginalDocumentRef original(BillingDocumentEntity entity) {

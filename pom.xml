@@ -97,7 +97,8 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-		<!-- Billing: reglas de arquitectura (ArchUnit) -->
+		<!-- Reglas de arquitectura (ArchUnit): Billing y Backup -->
+
 		<dependency>
 			<groupId>com.tngtech.archunit</groupId>
 			<artifactId>archunit-junit5</artifactId>

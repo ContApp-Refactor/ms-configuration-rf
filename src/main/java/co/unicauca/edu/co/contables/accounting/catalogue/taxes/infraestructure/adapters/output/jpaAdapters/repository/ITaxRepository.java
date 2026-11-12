@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.accounting.catalogue.taxes.infraestructure.adapters.output.jpaAdapters.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -103,4 +104,28 @@ public interface ITaxRepository extends JpaRepository<TaxEntity, Long> {
      */
     @Query("SELECT COUNT(t) > 0 FROM TaxEntity t WHERE t.idEnterprise = ?2 AND (t.salesTax.code = ?1 OR t.purchaseTax.code = ?1)")
     boolean existsBySalesTaxCodeOrPurchaseTaxCode(String accountCode, String enterpriseId);
+
+    /**
+     * @brief Lote de impuestos de la empresa con id mayor a {@code afterId} (keyset), para la copia de seguridad
+     * @param idEnterprise ID de la empresa
+     * @param afterId último id leído (0 para empezar)
+     * @param pageable tamaño del lote (página 0)
+     */
+    @Query("SELECT t FROM TaxEntity t LEFT JOIN FETCH t.salesTax LEFT JOIN FETCH t.purchaseTax WHERE t.idEnterprise = ?1 AND t.id > ?2 ORDER BY t.id ASC")
+    List<TaxEntity> findBackupBatch(String idEnterprise, Long afterId, Pageable pageable);
+
+    /**
+     * @brief Impuestos cuya cuenta de IVA ventas o compras no pertenece a la misma empresa (huérfanos tras un restore)
+     * @param idEnterprise ID de la empresa
+     * @return cantidad de impuestos con FK a cuentas de otra empresa
+     */
+    @Query("SELECT COUNT(t) FROM TaxEntity t WHERE t.idEnterprise = ?1 AND ("
+            + "(t.salesTax IS NOT NULL AND t.salesTax.idEnterprise <> ?1) OR "
+            + "(t.purchaseTax IS NOT NULL AND t.purchaseTax.idEnterprise <> ?1))")
+    long countWithAccountOutsideEnterprise(String idEnterprise);
+
+    /** @brief Restore en el lugar: borra (bulk) todos los impuestos de la empresa */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM TaxEntity t WHERE t.idEnterprise = ?1")
+    int deleteAllByEnterprise(String idEnterprise);
 }

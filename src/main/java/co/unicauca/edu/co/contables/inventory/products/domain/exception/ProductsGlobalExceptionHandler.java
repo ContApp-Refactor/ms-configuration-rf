@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,6 +22,8 @@ import co.unicauca.edu.co.contables.inventory.products.infraestructure.input.res
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,6 +34,7 @@ import java.util.stream.Collectors;
  * Centraliza el manejo de excepciones en los controladores de productos, proporcionando
  * respuestas HTTP consistentes y mapeo automático de códigos de error a estados HTTP.
  */
+@Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @ControllerAdvice(basePackages = "co.unicauca.edu.co.contables.inventory.products")
 public class ProductsGlobalExceptionHandler {
@@ -348,29 +352,60 @@ public class ProductsGlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
-    /**
-     * @brief Maneja excepciones genéricas no manejadas específicamente
-     *
-     * Captura cualquier excepción no manejada por los otros métodos,
-     * retornando un error interno del servidor genérico por seguridad.
-     *
-     * @param ex Excepción genérica no manejada específicamente
-     * @param request Información de la solicitud HTTP
-     * @return Respuesta HTTP con error interno del servidor
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
-            Exception ex, WebRequest request) {
+      /**
+       * @brief Maneja segmentos de path vacíos o ausentes
+       *
+       * Ocurre cuando una URL termina en barra o trae un segmento vacío
+       * (por ejemplo `/findById/4/` o `/import/status/`), lo que deja la
+       * variable de path sin valor. Se responde 404 en lugar de 500 porque
+       * la solicitud no apunta a un recurso existente.
+       *
+       * @param ex Excepción de variable de path faltante
+       * @param request Información de la solicitud HTTP
+       * @return Respuesta HTTP con error de recurso no encontrado
+       */
+      @ExceptionHandler(MissingPathVariableException.class)
+      public ResponseEntity<ErrorResponse> handleMissingPathVariable(
+              MissingPathVariableException ex, WebRequest request) {
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .error("Internal Server Error")
-                .message("Ha ocurrido un error interno del servidor")
-                .code(ErrorCode.GENERIC_ERROR.getCode())
-                .path(request.getDescription(false).replace("uri=", ""))
-                .build();
+          ErrorResponse errorResponse = ErrorResponse.builder()
+                  .timestamp(LocalDateTime.now())
+                  .status(HttpStatus.NOT_FOUND.value())
+                  .error("Not Found")
+                  .message("El recurso solicitado no fue encontrado. Verifique que los parámetros de la URL no estén vacíos.")
+                  .code("RESOURCE_NOT_FOUND")
+                  .path(request.getDescription(false).replace("uri=", ""))
+                  .build();
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+          return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+      }
+
+      /**
+       * @brief Maneja excepciones genéricas no manejadas específicamente
+       *
+       * Captura cualquier excepción no manejada por los otros métodos,
+       * retornando un error interno del servidor genérico por seguridad.
+       *
+       * @param ex Excepción genérica no manejada específicamente
+       * @param request Información de la solicitud HTTP
+       * @return Respuesta HTTP con error interno del servidor
+       */
+      @ExceptionHandler(Exception.class)
+      public ResponseEntity<ErrorResponse> handleGenericException(
+              Exception ex, WebRequest request) {
+
+          log.error("Excepción no manejada en {}: {}",
+                  request.getDescription(false).replace("uri=", ""), ex.getMessage(), ex);
+
+          ErrorResponse errorResponse = ErrorResponse.builder()
+                  .timestamp(LocalDateTime.now())
+                  .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                  .error("Internal Server Error")
+                  .message("Ha ocurrido un error interno del servidor")
+                  .code(ErrorCode.GENERIC_ERROR.getCode())
+                  .path(request.getDescription(false).replace("uri=", ""))
+                  .build();
+
+          return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
 }

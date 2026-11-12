@@ -167,6 +167,48 @@ class CategoryPersistenceAdapterUnitTest {
     }
 
     @Test
+    @DisplayName("Debe actualizar productTypeId y returnPurchaseId al editar (PP7 HU2)")
+    void testCreate_WithId_UpdatesProductTypeAndReturnPurchase() {
+        // Arrange: el dominio trae los valores NUEVOS elegidos en el formulario
+        Category updated = Category.builder()
+                .id(CATEGORY_ID)
+                .name(CATEGORY_NAME)
+                .description(DESCRIPTION)
+                .enterpriseId(ENTERPRISE_ID)
+                .inventoryId(1L)
+                .costId(2L)
+                .saleId(3L)
+                .returnId(4L)
+                .productTypeId(2L)
+                .returnPurchaseId(99L)
+                .taxes(List.of(1L, 2L))
+                .state(true)
+                .build();
+
+        CategoryEntity existingEntity = new CategoryEntity();
+        existingEntity.setId(CATEGORY_ID);
+        existingEntity.setName("Nombre Antiguo");
+        existingEntity.setProductTypeId(1L);
+        existingEntity.setReturnPurchaseId(4L);
+
+        when(categoryPersistenceMapper.toCategoryEntity(updated)).thenReturn(categoryEntity);
+        when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(existingEntity));
+        when(categoryRepository.save(existingEntity)).thenReturn(existingEntity);
+        when(categoryPersistenceMapper.toCategory(existingEntity)).thenReturn(updated);
+
+        // Act
+        Category result = categoryPersistenceAdapter.create(updated);
+
+        // Assert: la entity existente (la que Hibernate vigila) debe quedar con los valores nuevos
+        assertNotNull(result);
+        assertEquals(2L, existingEntity.getProductTypeId(),
+                "productTypeId nuevo debe copiarse a la entity existente");
+        assertEquals(99L, existingEntity.getReturnPurchaseId(),
+                "returnPurchaseId nuevo debe copiarse a la entity existente");
+        verify(categoryRepository).save(existingEntity);
+    }
+
+    @Test
     @DisplayName("Debe crear categoría cuando ID existe pero no se encuentra en BD")
     void testCreate_WithIdNotFound_CreatesNewCategory() {
         // Arrange

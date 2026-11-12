@@ -10,11 +10,21 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+/**
+ * Publica los eventos de tesoreria en outbox.
+ *
+ * <p>El publicado es <em>fire-and-forget</em>: el evento se encola en la base y se envia a
+ * RabbitMQ despues del commit, pero su fallo nunca rompe la request del cliente. El voucher ya
+ * esta persistido y en estado {@code POSTING}; el resultado de contabilidad llega de forma
+ * asincrona por {@code accounting.result.exchange} y lo aplica {@code TreasuryEventListener}.
+ */
 @Component
+@Slf4j
 @RequiredArgsConstructor
 public class OutboxEventAdapter implements ITreasuryEventPublisher {
     private final IOutboxEventRepository repository;
@@ -43,6 +53,15 @@ public class OutboxEventAdapter implements ITreasuryEventPublisher {
         }
     }
 
+    /**
+     * Intenta publicar el evento y <strong>nunca</strong> propaga la excepcion.
+     *
+     * <p>Corre en {@code afterCommit}, donde el {@code EntityManager} de la transaccion original
+     * ya cerro, por lo que el estado se actualiza en una transaccion propia. Si RabbitMQ no tiene
+     * ruta para el exchange (por ejemplo {@code treasury.accounting.exchange} sin consumidores)
+     * el evento queda {@code FAILED} y se reintenta, pero la operacion del cliente ya exitosa
+     * no se ve afectada.
+     */
     private void publishSaved(String eventId) {
         OutboxEventEntity entity = repository.findByEventId(eventId)
                 .orElseThrow(() -> new IllegalStateException("Outbox no encontrado: " + eventId));
@@ -53,11 +72,12 @@ public class OutboxEventAdapter implements ITreasuryEventPublisher {
             entity.setLastError(null);
             repository.save(entity);
         } catch (Exception ex) {
+            log.warn("No fue posible publicar el evento de tesoreria {} ({}); queda en outbox para reintento",
+                    eventId, entity.getEventType(), ex);
             entity.setStatus(OutboxEventEntity.Status.FAILED);
             entity.setLastError(ex.getMessage());
             entity.setAttempts(entity.getAttempts() + 1);
             repository.save(entity);
-            throw new IllegalStateException("No fue posible publicar el evento de tesorería", ex);
         }
     }
 

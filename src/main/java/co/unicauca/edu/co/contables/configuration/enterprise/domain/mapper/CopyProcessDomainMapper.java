@@ -1,5 +1,8 @@
 package co.unicauca.edu.co.contables.configuration.enterprise.domain.mapper;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.CopyProcess;
@@ -31,7 +34,18 @@ public class CopyProcessDomainMapper {
                 .finalizadoEn(domain.getFinalizadoEn())
                 .backupRef(domain.getBackupRef())
                 .faseActual(domain.getFaseActual())
+                .moduloActual(domain.getModuloActual())
+                .modulosCompletados(splitCsv(domain.getModulosCompletados()))
+                .modulosTotales(domain.getModulosTotales())
+                .progreso(domain.getProgreso())
                 .errorResumen(domain.getErrorResumen())
                 .build();
+    }
+
+    private static List<String> splitCsv(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(csv.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
     }
 }

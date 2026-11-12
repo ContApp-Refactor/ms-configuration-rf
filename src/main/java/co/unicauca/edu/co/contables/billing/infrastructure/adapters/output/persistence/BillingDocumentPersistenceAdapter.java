@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +37,9 @@ import org.springframework.stereotype.Component;
  */
 @Component("billingDocumentPersistenceAdapter")
 public class BillingDocumentPersistenceAdapter implements BillingDocumentRepositoryPort {
+
+    /** UUID nulo: ningun documento real lo tiene; sustituye al "sin exclusion" en consultas con {@code <>}. */
+    private static final UUID NO_DOCUMENT = new UUID(0L, 0L);
 
     private final BillingDocumentJpaRepository repository;
     private final BillingDocumentLineJpaRepository lineRepository;
@@ -134,6 +138,18 @@ public class BillingDocumentPersistenceAdapter implements BillingDocumentReposit
             sold.put((UUID) row[0], toBigDecimal(row[1]));
         }
         return sold;
+    }
+
+    @Override
+    public Optional<BillingDocumentSummary> findPurchaseInvoiceBySupplierNumber(String enterpriseId,
+            long counterpartyId, String supplierInvoiceNumber, UUID excludeId) {
+        if (supplierInvoiceNumber == null || supplierInvoiceNumber.isBlank()) {
+            return Optional.empty();
+        }
+        String normalized = supplierInvoiceNumber.trim().toLowerCase(Locale.ROOT);
+        UUID exclude = excludeId != null ? excludeId : NO_DOCUMENT;
+        return repository.findPurchaseInvoicesBySupplierNumber(enterpriseId, counterpartyId, normalized, exclude)
+                .stream().findFirst().map(mapper::toSummary);
     }
 
     @Override

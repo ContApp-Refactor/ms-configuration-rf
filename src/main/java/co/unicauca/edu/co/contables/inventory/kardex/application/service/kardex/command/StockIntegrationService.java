@@ -38,19 +38,15 @@ public class StockIntegrationService {
      * @brief Calls stock service API to update inventory
      * @param stock Stock data to send
      * @param isBuy True for purchase/return operations, false for sales
+     * @throws RuntimeException propagated from the stock client so the enclosing transaction
+     *         (kardex movement and any caller, e.g. billing) rolls back
      */
     public void callApiStockService(Stock stock, boolean isBuy) {
-        try {
-            if (isBuy) {
-                stockClient.buyStock(stock);
-            } else {
-                stockClient.sellStock(stock);
-            }
-            log.info("{} stock updated successfully for product: {}", (isBuy ? "Purchase/Return" : "Sale"), stock.getProductId());
-        } catch (Exception e) {
-            // Log the error but don't throw exception - allows kardex to be saved even if stock service is unavailable
-            log.warn("Failed to update stock for {} - Kardex will be saved but stock service was not synchronized: {}", 
-                (isBuy ? "purchase" : "sale"), e.getMessage());
+        if (isBuy) {
+            stockClient.buyStock(stock);
+        } else {
+            stockClient.sellStock(stock);
         }
+        log.info("{} stock updated successfully for product: {}", (isBuy ? "Purchase/Return" : "Sale"), stock.getProductId());
     }
 }

@@ -10,6 +10,7 @@ import co.unicauca.edu.co.contables.billing.application.ports.input.view.Billing
 import co.unicauca.edu.co.contables.billing.application.ports.input.view.InvoiceWithReturnsSummary;
 import co.unicauca.edu.co.contables.billing.application.ports.input.view.ReturnSummary;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingDocumentRepositoryPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.TaxCatalogPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.model.InvoiceReturnAggregate;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingErrorCode;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingException;
@@ -45,10 +46,17 @@ public class BillingDocumentQueryService implements GetDocumentUseCase, ListDocu
     private final BillingDocumentRepositoryPort repository;
     private final BillingDocumentLoader loader;
     private final BillingReferenceResolver resolver;
+    private final WithholdingResolver withholdingResolver;
     private final ReturnAvailabilityCalculator calculator = new ReturnAvailabilityCalculator();
 
     public BillingDocumentQueryService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
             BillingReferenceResolver resolver) {
+        this(repository, loader, resolver, null);
+    }
+
+    public BillingDocumentQueryService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
+            BillingReferenceResolver resolver, TaxCatalogPort taxCatalog) {
+        this.withholdingResolver = new WithholdingResolver(taxCatalog);
         this.repository = Objects.requireNonNull(repository, "repository");
         this.loader = Objects.requireNonNull(loader, "loader");
         this.resolver = Objects.requireNonNull(resolver, "resolver");
@@ -163,6 +171,13 @@ public class BillingDocumentQueryService implements GetDocumentUseCase, ListDocu
     }
 
     private void refreshInMemory(String enterpriseId, BillingDocument document) {
+        if (!document.withholdings().isEmpty()) {
+            // Tasa vigente de cada retencion del borrador; solo en memoria, y sin bloquear la lectura
+            document.refreshWithholdings(withholdingResolver.refresh(enterpriseId, document.withholdings(), false));
+        }
+        // Datos de contacto del emisor y la contraparte en vivo (solo memoria); emitida/anulada no pasa por aqui
+        document.refreshParties(resolver.tryIssuer(enterpriseId), document.counterparty() == null ? null
+                : resolver.tryCounterparty(enterpriseId, document.counterparty().thirdId(), document.type().kind()));
         if (document.lines().isEmpty()) {
             return;
         }

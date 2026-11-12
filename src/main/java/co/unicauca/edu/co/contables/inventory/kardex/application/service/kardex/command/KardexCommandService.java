@@ -94,7 +94,8 @@ public class KardexCommandService implements IKardexCommandPort{
         
         Kardex lastRegisteredKardex = kardexQueryRepositoryPort.getLatestKardexByProductId(kardex.getProductId());
         validationService.validatePreviousKardexExists(lastRegisteredKardex, "sale");
-        
+        rejectIfInsufficientBalance(kardex.getQuantity(), lastRegisteredKardex.getBalanceQuantity());
+
         kardexDateValidationService.validateAndSetDate(kardex, product.getEnterpriseId());
         kardex.addSale(lastRegisteredKardex.getBalanceQuantity(), lastRegisteredKardex.getBalanceUnitPrice(), lastRegisteredKardex.getTotalBalance());
 
@@ -122,6 +123,7 @@ public class KardexCommandService implements IKardexCommandPort{
         Kardex lastRegisteredKardex = kardexQueryRepositoryPort.getLatestKardexByProductId(kardex.getProductId());
 
         validationService.validatePreviousKardexExists(lastRegisteredKardex, "purchase return");
+        rejectIfInsufficientBalance(kardex.getQuantity(), lastRegisteredKardex.getBalanceQuantity());
         kardexDateValidationService.validateAndSetDate(kardex, product.getEnterpriseId());
         kardex.returnOnPurchase(lastRegisteredKardex.getBalanceQuantity(), lastRegisteredKardex.getTotalBalance());
 
@@ -159,6 +161,17 @@ public class KardexCommandService implements IKardexCommandPort{
         
         log.info(" Method registerReturnOnSale productId=" + savedKardex.getProductId());
         return savedKardex;
+    }
+
+    /**
+     * @brief Rejects an outgoing movement that exceeds the current balance (same business rule
+     * error PEPS raises), so the balance never goes negative.
+     */
+    private void rejectIfInsufficientBalance(int requested, int available) {
+        if (requested > available) {
+            formatterResultOutputPort.returnBusinessRuleErrorResponse(400,
+                messageService.getMessage(MessageKeys.ERROR_INSUFFICIENT_STOCK, requested, available));
+        }
     }
 
     /**

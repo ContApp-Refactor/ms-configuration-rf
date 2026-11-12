@@ -111,7 +111,7 @@ class BillingInvoiceKindParityTest {
         BillingReferenceResolver resolver = new BillingReferenceResolver(thirdParties, products, enterprises);
         draftService = new BillingInvoiceDraftService(repository, loader, resolver, context, clock, ids);
         emissionService = new BillingEmissionService(repository, loader, resolver, sequence, outbox, context,
-                clock, ids, stock, accounting);
+                clock, ids, stock, accounting, new co.unicauca.edu.co.contables.billing.support.FakePaymentCatalogPort());
         annulmentService = new BillingAnnulmentService(repository, loader, outbox, context, clock, ids, stock,
                 accounting);
     }

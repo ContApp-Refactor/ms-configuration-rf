@@ -38,6 +38,22 @@ public final class BillingRequestFingerprint {
             field(canonical, line.unitPriceOverride());
             field(canonical, line.taxRateOverride());
         }
+        // Solo si se envia metodo de pago: asi la huella de las peticiones sin pago no cambia
+        InvoiceDraftCommand.PaymentCommand payment = command.payment();
+        if (payment != null) {
+            canonical.append("payment;");
+            field(canonical, payment.paymentMethodId());
+        }
+        // Solo si se envian retenciones: la huella de las peticiones sin ellas no cambia
+        List<InvoiceDraftCommand.WithholdingCommand> withholdings = command.withholdings();
+        if (withholdings != null && !withholdings.isEmpty()) {
+            canonical.append("withholdings;");
+            field(canonical, withholdings.size());
+            for (InvoiceDraftCommand.WithholdingCommand withholding : withholdings) {
+                field(canonical, withholding.code());
+                field(canonical, withholding.taxId());
+            }
+        }
         return sha256(canonical.toString());
     }
 

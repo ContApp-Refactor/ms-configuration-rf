@@ -30,5 +30,10 @@ public class CopyProcess {
     private LocalDateTime finalizadoEn;
     private String backupRef;
     private Integer faseActual;
+    private String moduloActual;
+    /** CSV, en orden. */
+    private String modulosCompletados;
+    private Integer modulosTotales;
+    private Integer progreso;
     private String errorResumen;
 }

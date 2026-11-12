@@ -1,5 +1,6 @@
 package co.unicauca.edu.co.contables.billing.application.service;
 
+import co.unicauca.edu.co.contables.billing.support.FakePaymentCatalogPort;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.CUSTOMER_ID;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.ENTERPRISE_ID;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.LATER;
@@ -10,6 +11,7 @@ import static co.unicauca.edu.co.contables.billing.support.BillingTestData.TODAY
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.USER;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.annulledReturnOf;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.annulledSale;
+import static co.unicauca.edu.co.contables.billing.support.BillingTestData.methodTerms;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.customer;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.draftPurchase;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.draftSale;
@@ -27,12 +29,14 @@ import static co.unicauca.edu.co.contables.billing.support.BillingTestData.lineO
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.money;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.product;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.qty;
+import static co.unicauca.edu.co.contables.billing.support.BillingTestData.rate;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.readyPurchaseDraft;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.readySaleDraft;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.supplier;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.uuid;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.withVersion;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -70,8 +74,12 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentLine;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentStatus;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
+import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnStatus;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -116,6 +124,7 @@ class BillingEmissionServiceTest {
     private StockMovementPort stock;
     @Mock
     private AccountingEntryPort accounting;
+    private final FakePaymentCatalogPort paymentCatalog = new FakePaymentCatalogPort();
 
     private BillingEmissionService service;
 
@@ -127,7 +136,7 @@ class BillingEmissionServiceTest {
         lenient().when(repository.save(any(BillingDocument.class))).thenAnswer(inv -> inv.getArgument(0));
         service = new BillingEmissionService(repository, new BillingDocumentLoader(repository),
                 new BillingReferenceResolver(thirdParties, products, enterprises), sequence, outbox, context,
-                clock, ids, stock, accounting);
+                clock, ids, stock, accounting, paymentCatalog);
     }
 
     // ---------- helpers ----------
@@ -266,11 +275,46 @@ class BillingEmissionServiceTest {
         assertThat(emitted.totals().total().value()).isEqualByComparingTo("476.00");
     }
 
+    private static ProductSnapshot taxedProduct(long id, String sum, TaxComponent... taxes) {
+        return new ProductSnapshot(id, "P" + id, "Producto " + id, 1L, "Unidad", money("100.00"),
+                rate(sum), true, List.of(taxes));
+    }
+
+    @Test
+    void TAXES_emit_freezes_the_breakdown_read_at_emission_and_the_amount_uses_the_sum() {
+        BillingDocument draft = draftSale();
+        draft.replaceInvoiceDraft(customer(), TODAY, null, List.of(DocumentLine.forInvoice(1,
+                taxedProduct(1L, "19", TaxComponent.of("Iva", new BigDecimal("19"))), qty("2"), null, null)),
+                methodTerms(1L), NOW, USER);
+        stored(draft);
+        customerExists(customer());
+        // al emitir la categoria ya tiene 3 impuestos: se relee y se congela ese desglose
+        when(products.findProduct(ENTERPRISE_ID, 1L, DocumentKind.SALE)).thenReturn(Optional.of(taxedProduct(1L,
+                "26", TaxComponent.of("Ica", new BigDecimal("6")), TaxComponent.of("SalD", new BigDecimal("8")),
+                TaxComponent.of("Iva", new BigDecimal("12")))));
+        issuerExists();
+        sequenceReturns(8L);
+
+        BillingDocument emitted = emitSale();
+
+        DocumentLine line = emitted.lines().get(0);
+        assertThat(line.taxes()).extracting(TaxComponent::name).containsExactly("Ica", "SalD", "Iva");
+        assertThat(line.taxRate().value()).isEqualByComparingTo("26.00");
+        assertThat(line.taxAmount().value()).isEqualByComparingTo("52.00"); // 200.00 x 26%
+        assertThat(emitted.totals().total().value()).isEqualByComparingTo("252.00");
+        // emitida: el catalogo ya no se refresca (si cambian las tarifas la factura no cambia)
+        assertThatThrownBy(() -> emitted.refreshCatalog(Map.of(1L,
+                taxedProduct(1L, "5", TaxComponent.of("Iva", new BigDecimal("5"))))))
+                .isInstanceOf(BillingException.class);
+        assertThat(emitted.lines().get(0).taxes()).hasSize(3);
+    }
+
     @Test
     void RN_10_emit_keeps_the_manual_price_override_when_the_catalog_changes() {
         BillingDocument draft = draftSale();
         draft.replaceInvoiceDraft(customer(), TODAY, null,
-                List.of(DocumentLine.forInvoice(1, product(1L), qty("2"), money("150.00"), null)), NOW, USER);
+                List.of(DocumentLine.forInvoice(1, product(1L), qty("2"), money("150.00"), null)),
+                methodTerms(1L), NOW, USER);
         stored(draft);
         customerExists(customer());
         when(products.findProduct(ENTERPRISE_ID, 1L, DocumentKind.SALE))
@@ -306,7 +350,7 @@ class BillingEmissionServiceTest {
         BillingDocument draft = draftSale();
         draft.replaceInvoiceDraft(customer(), TODAY, null,
                 List.of(lineOf(1, product(1L), "1"), lineOf(2, product(1L), "2"), lineOf(3, product(2L), "1")),
-                NOW, USER);
+                methodTerms(1L), NOW, USER);
         stored(draft);
         customerExists(customer());
         saleProductExists(1L);

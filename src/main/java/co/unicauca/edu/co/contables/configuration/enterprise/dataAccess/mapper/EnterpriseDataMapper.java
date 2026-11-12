@@ -39,6 +39,7 @@ public class EnterpriseDataMapper {
                 .mainActivity(domain.getMainActivity())
                 .secondaryActivity(domain.getSecondaryActivity())
                 .taxLiabilities(toTaxLiabilityEntityList(domain.getTaxLiabilities()))
+                .subjects(toSubjectEntityList(domain.getSubjects()))
                 .taxPayerType(toTaxPayerTypeEntity(domain.getTaxPayerType()))
                 .enterpriseType(toEnterpriseTypeEntity(domain.getEnterpriseType()))
                 .personType(toPersonTypeEntity(domain.getPersonType()))
@@ -65,11 +66,36 @@ public class EnterpriseDataMapper {
                 .mainActivity(entity.getMainActivity())
                 .secondaryActivity(entity.getSecondaryActivity())
                 .taxLiabilities(toTaxLiabilityDomainList(entity.getTaxLiabilities()))
+                .subjects(toSubjectDomainList(entity.getSubjects()))
                 .taxPayerType(toTaxPayerTypeDomain(entity.getTaxPayerType()))
                 .enterpriseType(toEnterpriseTypeDomain(entity.getEnterpriseType()))
                 .personType(toPersonTypeDomain(entity.getPersonType()))
                 .location(toLocationDomain(entity.getLocation()))
                 .build();
+    }
+
+    private java.util.List<co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.SubjectEntity> toSubjectEntityList(
+            java.util.List<Subject> subjects) {
+        if (subjects == null) {
+            return null;
+        }
+        return subjects.stream().map(s -> {
+            var e = new co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.SubjectEntity();
+            e.setId(s.getId());
+            e.setCode(s.getCode());
+            e.setName(s.getName());
+            return e;
+        }).collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+    }
+
+    private java.util.List<Subject> toSubjectDomainList(
+            java.util.List<co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.SubjectEntity> entities) {
+        if (entities == null) {
+            return null;
+        }
+        return entities.stream()
+                .map(e -> Subject.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build())
+                .toList();
     }
 
     private java.util.List<co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.TaxLiabilityEntity> toTaxLiabilityEntityList(

@@ -64,8 +64,16 @@ public class InvoicePersistenceAdapter implements IInvoiceProviderPort {
     }
 
     @Override
+    @Transactional
     public void updateInvoice(InvoiceReplica invoice) {
-        InvoiceReplicaEntity invoiceToUpdate = invoiceRepository.getReferenceById(invoice.getId());
+        // findById en lugar de getReferenceById: confirmWriteOff y
+        // voidWriteOffConfirmation no son @Transactional, así que el proxy
+        // lazy devuelto por getReferenceById queda fuera de sesión y las
+        // setters lanzan LazyInitializationException. findById inicializa la
+        // entidad dentro de esta transacción y evita el fallo.
+        InvoiceReplicaEntity invoiceToUpdate = invoiceRepository.findById(invoice.getId())
+            .orElseThrow(() -> new IllegalStateException(
+                "No se encontró la factura con ID: " + invoice.getId()));
         invoiceToUpdate.setPendingValue(invoice.getPendingValue());
         invoiceToUpdate.setTotalPay(invoice.getTotalPay());
         invoiceToUpdate.setTotalValue(invoice.getTotalValue());

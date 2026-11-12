@@ -43,6 +43,8 @@ public interface ICategoryRestMapper {
                 .costId(category.getCostId())
                 .saleId(category.getSaleId())
                 .returnId(category.getReturnId())
+                .productTypeId(category.getProductTypeId())
+                .returnPurchaseId(category.getReturnPurchaseId())
                 .taxes(category.getTaxes())
                 .state(category.isState())
                 .build();

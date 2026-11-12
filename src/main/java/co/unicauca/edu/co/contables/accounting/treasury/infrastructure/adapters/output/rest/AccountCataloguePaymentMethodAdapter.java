@@ -40,12 +40,12 @@ import org.springframework.stereotype.Component;
 public class AccountCataloguePaymentMethodAdapter implements IPaymentMethodProviderPort {
 
     /**
-     * {@code requiresBankAccount} no existe en catalogue: ni en el modelo de dominio ni en
-     * {@code PaymentMethodRes}. El registro HTTP anterior leia ese campo y recibia {@code null},
-     * que {@code Boolean.TRUE.equals(...)} convertia a {@code false}, asi que el valor observable
-     * siempre fue este.
+     * Prefijo PUC de la subcuenta de Bancos. El metodo de pago cuya cuenta contable pertenece a
+     * {@code 1110} (Bancos) exige indicar la cuenta bancaria origen; cualquier otra cuenta
+     * (p. ej. {@code 1105}, Caja) no la admite. El catalogo no expone esta semantica como
+     * columna: se deriva del codigo de la cuenta contable asociada al metodo de pago.
      */
-    private static final boolean REQUIRES_BANK_ACCOUNT = false;
+    private static final String BANCO_ACCOUNT_CODE_PREFIX = "1110";
 
     private final IPaymentMethodService paymentMethodService;
     private final IBankAccountService bankAccountService;
@@ -70,7 +70,7 @@ public class AccountCataloguePaymentMethodAdapter implements IPaymentMethodProvi
         if (accountingAccountId == null || !isActiveAccountingAccount(accountingAccountId, enterpriseId)) {
             return Optional.empty();
         }
-        return Optional.of(new PaymentMethodData(method.getId(), REQUIRES_BANK_ACCOUNT, accountingAccountId));
+        return Optional.of(new PaymentMethodData(method.getId(), requiresBankAccount(method), accountingAccountId));
     }
 
     @Override
@@ -89,10 +89,11 @@ public class AccountCataloguePaymentMethodAdapter implements IPaymentMethodProvi
         if (!isActiveAccountingAccount(accountingAccountId, enterpriseId)) {
             throw badRequest("La cuenta contable del metodo de pago esta inactiva o no pertenece a la empresa");
         }
-        if (REQUIRES_BANK_ACCOUNT && bankAccountId == null) {
+        boolean requiresBank = requiresBankAccount(method);
+        if (requiresBank && bankAccountId == null) {
             throw badRequest("El metodo de pago exige cuenta bancaria");
         }
-        if (!REQUIRES_BANK_ACCOUNT && bankAccountId != null) {
+        if (!requiresBank && bankAccountId != null) {
             throw badRequest("El metodo de pago no admite cuenta bancaria");
         }
         if (bankAccountId != null && !isActiveBankAccount(bankAccountId, enterpriseId)) {
@@ -136,6 +137,17 @@ public class AccountCataloguePaymentMethodAdapter implements IPaymentMethodProvi
         } catch (Exception ex) {
             return false;
         }
+    }
+
+    /**
+     * Deriva si el metodo de pago exige cuenta bancaria a partir del codigo PUC de su cuenta
+     * contable: {@code 1110} (Bancos) exige banco; {@code 1105} (Caja) y las demas no lo admiten.
+     * Una cuenta sin codigo no exige banco, igual que el valor observable anterior.
+     */
+    private static boolean requiresBankAccount(PaymentMethod method) {
+        AccountCatalogue accountingAccount = method.getAccountingAccountEntity();
+        String code = accountingAccount != null ? accountingAccount.getCode() : null;
+        return code != null && code.startsWith(BANCO_ACCOUNT_CODE_PREFIX);
     }
 
     /** Mismo calculo que aplica {@code PaymentMethodDomainMapper.toRes} para {@code accountingAccountId}. */

@@ -3,7 +3,9 @@ package co.unicauca.edu.co.contables.inventory.products.infraestructure.output.p
 import co.unicauca.edu.co.contables.inventory.products.infraestructure.output.persistence.entity.UnitOfMeasureEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -20,6 +22,9 @@ public interface IUnitOfMeasureRepository extends JpaRepository<UnitOfMeasureEnt
     Optional<UnitOfMeasureEntity> findByIdAndEnterpriseId(Long id, String enterpriseId);
 
     boolean existsByNameAndEnterpriseId(String name, String enterpriseId);
+
+    /** Página de unidades de medida de la empresa (copia de seguridad: lectura por lotes). */
+    Slice<UnitOfMeasureEntity> findByEnterpriseId(String enterpriseId, Pageable pageable);
 
     boolean existsByAbbreviationAndEnterpriseId(String abbreviation, String enterpriseId);
 
@@ -82,5 +87,10 @@ public interface IUnitOfMeasureRepository extends JpaRepository<UnitOfMeasureEnt
      */
     @Query("SELECT COUNT(u) FROM UnitOfMeasureEntity u WHERE u.enterpriseId = :enterpriseId AND u.state = true")
     long countActiveByEnterpriseId(@Param("enterpriseId") String enterpriseId);
+
+    /** Restore en el lugar: borra (bulk) las unidades de medida de la empresa. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM UnitOfMeasureEntity u WHERE u.enterpriseId = :enterpriseId")
+    int deleteAllByEnterpriseIdBulk(@Param("enterpriseId") String enterpriseId);
 
 }

@@ -17,4 +17,7 @@ public class ProductTypeResponse {
     private String description;
     private String enterpriseId;
     private boolean state;
+    private boolean sellable;
+    private boolean purchasable;
+    private boolean inventoryable;
 }

@@ -16,7 +16,10 @@ import co.unicauca.edu.co.contables.accounting.facture.application.ports.input.C
 import co.unicauca.edu.co.contables.accounting.facture.application.ports.input.GenerateFacturePDFUseCase;
 import co.unicauca.edu.co.contables.accounting.facture.application.ports.input.GetFactureUseCase;
 import co.unicauca.edu.co.contables.accounting.facture.application.ports.input.ListFactureUseCase;
+import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.service.SaleStockValidator;
 import co.unicauca.edu.co.contables.accounting.facture.domain.model.Facture;
+import co.unicauca.edu.co.contables.accounting.facture.domain.model.Product;
+import co.unicauca.edu.co.contables.accounting.facture.domain.model.eFactureType;
 import co.unicauca.edu.co.contables.accounting.facture.infraestructure.adapters.input.rest.data.request.FactureCreateRequest;
 import co.unicauca.edu.co.contables.accounting.facture.infraestructure.adapters.input.rest.data.request.FactureListRequest;
 import co.unicauca.edu.co.contables.accounting.facture.infraestructure.adapters.input.rest.data.response.FactureGetResponse;
@@ -49,6 +52,8 @@ public class FactureRestAdapter {
 
     private final FactureRestMapper factureRestMapper;
 
+    private final SaleStockValidator saleStockValidator;
+
     @PostMapping("/")
     @CircuitBreaker(name = "external", fallbackMethod = "fallback")
     @Operation(summary = "Crear una factura", description = "Crea una nueva factura y genera un archivo PDF asociado.")
@@ -61,6 +66,16 @@ public class FactureRestAdapter {
 
         // Convertir la solicitud en una entidad de Facture
         Facture facture = this.factureRestMapper.toFacture(factureCreateRequest);
+
+        // HU5: la venta solo procede si el kardex tiene stock suficiente. Este es el
+        // camino que usa el front de Factura de Venta (POST /api/factures/), distinto
+        // de POST /api/factures/skeleton/sale.
+        if (facture.getFactureType() == eFactureType.Venta) {
+            for (Product line : factureCreateRequest.getFactProducts()) {
+                saleStockValidator.validateLine(
+                        factureCreateRequest.getEntId(), line.getProductId(), line.getAmount());
+            }
+        }
 
         // Generar el PDF inicial
         byte[] pdfBytes = this.generateFacturePDFUseCase.generetePDFFacture(facture);

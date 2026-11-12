@@ -6,6 +6,7 @@ import co.unicauca.edu.co.contables.accounting.facture.application.service.skele
 import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.repository.SkeletonFactureRepository;
 import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.service.SkeletonEventService;
 import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.service.SkeletonFactureService;
+import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.service.SaleStockValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -27,6 +28,7 @@ public class SkeletonFactureController {
     private final SkeletonFactureService factureService;
     private final SkeletonEventService eventService;
     private final SkeletonFactureRepository factureRepository;
+    private final SaleStockValidator saleStockValidator;
     
     @PostMapping("/purchase")
     @Operation(summary = "Crear factura de compra")
@@ -54,11 +56,16 @@ public class SkeletonFactureController {
     public ResponseEntity<SkeletonFactureDetailDto> createSale(
             @Valid @RequestBody SkeletonFactureRequestDto request) {
         
-        log.info("Recibida solicitud de venta para factura: {} con configuración: {}", 
-                request.getFactCode(), request.getInventoryConfigType());
-        
-        // Guardar factura
-        SkeletonFactureDetailDto savedFacture = factureService.createFacture(request);
+          log.info("Recibida solicitud de venta para factura: {} con configuración: {}", 
+                  request.getFactCode(), request.getInventoryConfigType());
+
+          // HU5: la venta solo procede si el kardex tiene stock suficiente.
+          // Se valida antes de crear el documento: en diferido el kardex rechaza el
+          // movimiento, pero la factura ya quedaría creada sin poder cumplirse.
+          saleStockValidator.validate(request);
+
+          // Guardar factura
+          SkeletonFactureDetailDto savedFacture = factureService.createFacture(request);
         
         // Obtener entidad completa para publicar eventos
         SkeletonFacture facture = factureRepository.findByIdWithProducts(savedFacture.getId())

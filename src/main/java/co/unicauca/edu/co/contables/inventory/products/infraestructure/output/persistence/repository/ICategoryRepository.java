@@ -3,7 +3,9 @@ package co.unicauca.edu.co.contables.inventory.products.infraestructure.output.p
 import co.unicauca.edu.co.contables.inventory.products.infraestructure.output.persistence.entity.CategoryEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,6 +21,9 @@ import java.util.Optional;
 public interface ICategoryRepository extends JpaRepository<CategoryEntity, Long> {
     
     List<CategoryEntity> findByEnterpriseId(String enterpriseId);
+
+    /** Página de categorías de la empresa (copia de seguridad: lectura por lotes). */
+    Slice<CategoryEntity> findByEnterpriseId(String enterpriseId, Pageable pageable);
     boolean existsByNameAndEnterpriseId(String name, String enterpriseId);
     boolean existsByNameAndEnterpriseIdAndIdNot(String name, String enterpriseId, Long id);
     Optional<CategoryEntity> findByIdAndEnterpriseId(Long id, String enterpriseId);
@@ -68,5 +73,15 @@ public interface ICategoryRepository extends JpaRepository<CategoryEntity, Long>
 
     @Query("SELECT COUNT(c) FROM CategoryEntity c WHERE c.enterpriseId = :enterpriseId AND c.state = true")
     long countActiveByEnterpriseId(@Param("enterpriseId") String enterpriseId);
+
+    /** Restore en el lugar: borra la tabla de colección category_taxes de las categorías de la empresa (SQL nativo). */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = "DELETE FROM category_taxes WHERE category_id IN (SELECT id FROM category WHERE enterprise_id = :enterpriseId)", nativeQuery = true)
+    int deleteTaxLinksByEnterpriseId(@Param("enterpriseId") String enterpriseId);
+
+    /** Restore en el lugar: borra (bulk) las categorías de la empresa. Antes hay que borrar sus category_taxes. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM CategoryEntity c WHERE c.enterpriseId = :enterpriseId")
+    int deleteAllByEnterpriseIdBulk(@Param("enterpriseId") String enterpriseId);
 
 }

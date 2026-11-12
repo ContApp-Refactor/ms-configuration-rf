@@ -34,6 +34,15 @@ public class CategoryEntity {
     private Long costId;
     private Long saleId;
     private Long returnId;
+    /**
+     * Tipo de producto o servicio amarrado (PP7 HU2). Nullable: las
+     * categorías previas no tienen amarre.
+     */
+    private Long productTypeId;
+    /**
+     * Cuenta de devolución en compra (PP7 HU2). returnId = devolución en venta.
+     */
+    private Long returnPurchaseId;
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "category_taxes", joinColumns = @JoinColumn(name = "category_id"))
     @Column(name = "tax_id")

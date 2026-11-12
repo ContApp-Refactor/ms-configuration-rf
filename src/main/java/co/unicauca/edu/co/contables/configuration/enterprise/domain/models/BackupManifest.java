@@ -4,6 +4,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.enums.InventoryConfigurationTypeEnum;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.enums.StateEnum;
 import lombok.AllArgsConstructor;
@@ -23,13 +26,13 @@ import lombok.NoArgsConstructor;
  * monolito y el restore solo necesita sus ids para volver a enlazarlos.
  * Lo que sí se exporta por valor es lo que el restore recrea como datos
  * nuevos: la propia empresa, su tipo de persona, su ubicación (dirección +
- * ids de ciudad/departamento/país) y las materias (subjects) visibles en el
- * tenant de la empresa de origen.
+ * ids de ciudad/departamento/país) (el catalogo de materias no se incluye; solo los codigos de las materias de la empresa).
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class BackupManifest {
 
     /** Versión del formato del manifiesto, para evolucionarlo sin romper backups viejos. */
@@ -41,6 +44,11 @@ public class BackupManifest {
 
     private EnterpriseSnapshot enterprise;
 
+    /**
+     * Solo lectura por compatibilidad: los backups antiguos traían las materias del
+     * tenant. Ya no se exportan (WRITE_ONLY evita serializarlo) y el restore las ignora.
+     */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private List<SubjectSnapshot> subjects;
 
     @Data
@@ -61,6 +69,11 @@ public class BackupManifest {
         private StateEnum state;
         private InventoryConfigurationTypeEnum inventoryConfigurationType;
         private List<Long> taxLiabilityIds;
+        /**
+         * Codigos de las materias de la empresa (solo codigos, no el catalogo). Null en backups
+         * antiguos que no traian el campo. Al restaurar se enlazan las que existan en el tenant destino.
+         */
+        private List<String> subjectCodes;
         private Long taxPayerTypeId;
         private Long enterpriseTypeId;
         private PersonTypeSnapshot personType;

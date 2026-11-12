@@ -12,6 +12,7 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Money;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
+import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Quantity;
 import co.unicauca.edu.co.contables.billing.domain.model.TaxRate;
@@ -142,8 +143,14 @@ public final class BillingTestData {
         String supplierNumber = type.kind().counterpartyRole() == CounterpartyRole.SUPPLIER
                 ? SUPPLIER_INVOICE_NUMBER : null;
         doc.replaceInvoiceDraft(counterpartyFor(type), TODAY, supplierNumber,
-                List.of(lineOf(1, product(1L), "2")), NOW, USER);
+                List.of(lineOf(1, product(1L), "2")), methodTerms(1L),
+                NOW, USER);
         return doc;
+    }
+
+    /** Metodo de pago dado, sin cuenta bancaria (el nombre se congela al emitir). */
+    public static PaymentTerms methodTerms(Long methodId) {
+        return PaymentTerms.draft(methodId);
     }
 
     public static BillingDocument readySaleDraft() {
@@ -187,7 +194,8 @@ public final class BillingTestData {
     public static BillingDocument emittedInvoice(UUID id, DocumentType type, long numberValue, List<DocumentLine> lines) {
         BillingDocument doc = BillingDocument.newInvoiceDraft(id, ENTERPRISE_ID, type, TODAY, NOW, USER);
         String supplierNumber = type.kind() == DocumentKind.PURCHASE ? SUPPLIER_INVOICE_NUMBER : null;
-        doc.replaceInvoiceDraft(counterpartyFor(type), TODAY, supplierNumber, lines, NOW, USER);
+        doc.replaceInvoiceDraft(counterpartyFor(type), TODAY, supplierNumber, lines,
+                methodTerms(1L), NOW, USER);
         doc.emit(DocumentNumber.of(type, numberValue), issuer(), null, LATER, OTHER_USER);
         return doc;
     }

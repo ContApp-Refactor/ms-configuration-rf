@@ -94,7 +94,7 @@ public class ProductCommandServiceUnitTest {
         // Setup sync state
         syncState = new SyncState();
         syncState.setId(1L);
-        syncState.setSyncType("products");
+        syncState.setSyncType("products-kardex");
         syncState.setEnterpriseId(enterpriseId);
         syncState.setLastSyncDate(lastSyncDate);
         syncState.setCreatedAt(Instant.now());
@@ -105,11 +105,11 @@ public class ProductCommandServiceUnitTest {
     void testSyncProductsWithExistingSyncState() {
         // Arrange
         List<Product> products = Arrays.asList(product1, product2, product3);
-        when(syncStateRepository.findLastSyncFor("products", enterpriseId))
+        when(syncStateRepository.findLastSyncFor("products-kardex", enterpriseId))
             .thenReturn(Optional.of(lastSyncDate));
         when(productClient.findAllProductsByEnterpriseId(eq(enterpriseId), any(Instant.class)))
             .thenReturn(products);
-        when(syncStateRepository.findBySyncTypeAndEnterpriseId("products", enterpriseId))
+        when(syncStateRepository.findBySyncTypeAndEnterpriseId("products-kardex", enterpriseId))
             .thenReturn(Optional.of(syncState));
         doNothing().when(syncStateRepository).save(any(SyncState.class));
         when(productCommandRepositoryPort.saveAll(anyList())).thenReturn("Products saved successfully");
@@ -121,7 +121,7 @@ public class ProductCommandServiceUnitTest {
         assertNotNull(result);
         assertTrue(result.contains("Successful synchronization"));
         assertTrue(result.contains("3 products processed"));
-        verify(syncStateRepository).findLastSyncFor("products", enterpriseId);
+        verify(syncStateRepository).findLastSyncFor("products-kardex", enterpriseId);
         verify(productClient).findAllProductsByEnterpriseId(eq(enterpriseId), any(Instant.class));
         verify(productCommandRepositoryPort).saveAll(anyList());
         verify(syncStateRepository).save(any(SyncState.class));
@@ -132,12 +132,12 @@ public class ProductCommandServiceUnitTest {
     void testSyncProductsWithNoSyncState() {
         // Arrange
         List<Product> products = Arrays.asList(product1);
-        when(syncStateRepository.findLastSyncFor("products", enterpriseId))
+        when(syncStateRepository.findLastSyncFor("products-kardex", enterpriseId))
             .thenReturn(Optional.empty());
         doNothing().when(syncStateRepository).save(any(SyncState.class));
         when(productClient.findAllProductsByEnterpriseId(eq(enterpriseId), any(Instant.class)))
             .thenReturn(products);
-        when(syncStateRepository.findBySyncTypeAndEnterpriseId("products", enterpriseId))
+        when(syncStateRepository.findBySyncTypeAndEnterpriseId("products-kardex", enterpriseId))
             .thenReturn(Optional.of(syncState));
         when(productCommandRepositoryPort.saveAll(anyList())).thenReturn("Products saved successfully");
         
@@ -148,7 +148,7 @@ public class ProductCommandServiceUnitTest {
         assertNotNull(result);
         assertTrue(result.contains("Successful synchronization"));
         assertTrue(result.contains("1 products processed"));
-        verify(syncStateRepository).findLastSyncFor("products", enterpriseId);
+        verify(syncStateRepository).findLastSyncFor("products-kardex", enterpriseId);
         verify(syncStateRepository, times(2)).save(any(SyncState.class)); // Once for initial, once for update
         verify(productClient).findAllProductsByEnterpriseId(eq(enterpriseId), any(Instant.class));
     }
@@ -157,11 +157,11 @@ public class ProductCommandServiceUnitTest {
     @DisplayName("Should handle empty product list from API")
     void testSyncProductsWithEmptyList() {
         // Arrange
-        when(syncStateRepository.findLastSyncFor("products", enterpriseId))
+        when(syncStateRepository.findLastSyncFor("products-kardex", enterpriseId))
             .thenReturn(Optional.of(lastSyncDate));
         when(productClient.findAllProductsByEnterpriseId(eq(enterpriseId), any(Instant.class)))
             .thenReturn(Collections.emptyList());
-        when(syncStateRepository.findBySyncTypeAndEnterpriseId("products", enterpriseId))
+        when(syncStateRepository.findBySyncTypeAndEnterpriseId("products-kardex", enterpriseId))
             .thenReturn(Optional.of(syncState));
         doNothing().when(syncStateRepository).save(any(SyncState.class));
         
@@ -179,7 +179,7 @@ public class ProductCommandServiceUnitTest {
     @DisplayName("Should throw exception when API call fails")
     void testSyncProductsWithApiError() {
         // Arrange
-        when(syncStateRepository.findLastSyncFor("products", enterpriseId))
+        when(syncStateRepository.findLastSyncFor("products-kardex", enterpriseId))
             .thenReturn(Optional.of(lastSyncDate));
         when(productClient.findAllProductsByEnterpriseId(eq(enterpriseId), any(Instant.class)))
             .thenThrow(new RuntimeException("API connection failed"));
@@ -203,11 +203,11 @@ public class ProductCommandServiceUnitTest {
     void testUpdateSyncStateCreatesNew() {
         // Arrange
         List<Product> products = Arrays.asList(product1);
-        when(syncStateRepository.findLastSyncFor("products", enterpriseId))
+        when(syncStateRepository.findLastSyncFor("products-kardex", enterpriseId))
             .thenReturn(Optional.of(lastSyncDate));
         when(productClient.findAllProductsByEnterpriseId(eq(enterpriseId), any(Instant.class)))
             .thenReturn(products);
-        when(syncStateRepository.findBySyncTypeAndEnterpriseId("products", enterpriseId))
+        when(syncStateRepository.findBySyncTypeAndEnterpriseId("products-kardex", enterpriseId))
             .thenReturn(Optional.empty()); // No existing state
         doNothing().when(syncStateRepository).save(any(SyncState.class));
         when(productCommandRepositoryPort.saveAll(anyList())).thenReturn("Products saved successfully");
@@ -263,13 +263,13 @@ public class ProductCommandServiceUnitTest {
         String enterprise2 = "ENT002";
         List<Product> products = Arrays.asList(product1);
         
-        when(syncStateRepository.findLastSyncFor("products", enterprise1))
+        when(syncStateRepository.findLastSyncFor("products-kardex", enterprise1))
             .thenReturn(Optional.of(lastSyncDate));
-        when(syncStateRepository.findLastSyncFor("products", enterprise2))
+        when(syncStateRepository.findLastSyncFor("products-kardex", enterprise2))
             .thenReturn(Optional.of(lastSyncDate));
         when(productClient.findAllProductsByEnterpriseId(anyString(), any(Instant.class)))
             .thenReturn(products);
-        when(syncStateRepository.findBySyncTypeAndEnterpriseId(eq("products"), anyString()))
+        when(syncStateRepository.findBySyncTypeAndEnterpriseId(eq("products-kardex"), anyString()))
             .thenReturn(Optional.of(syncState));
         doNothing().when(syncStateRepository).save(any(SyncState.class));
         when(productCommandRepositoryPort.saveAll(anyList())).thenReturn("Products saved successfully");
@@ -290,11 +290,11 @@ public class ProductCommandServiceUnitTest {
     void testProductDataMappingPreservesAllFields() {
         // Arrange
         List<Product> products = Arrays.asList(product1, product2);
-        when(syncStateRepository.findLastSyncFor("products", enterpriseId))
+        when(syncStateRepository.findLastSyncFor("products-kardex", enterpriseId))
             .thenReturn(Optional.of(lastSyncDate));
         when(productClient.findAllProductsByEnterpriseId(eq(enterpriseId), any(Instant.class)))
             .thenReturn(products);
-        when(syncStateRepository.findBySyncTypeAndEnterpriseId("products", enterpriseId))
+        when(syncStateRepository.findBySyncTypeAndEnterpriseId("products-kardex", enterpriseId))
             .thenReturn(Optional.of(syncState));
         doNothing().when(syncStateRepository).save(any(SyncState.class));
         when(productCommandRepositoryPort.saveAll(anyList())).thenAnswer(invocation -> {

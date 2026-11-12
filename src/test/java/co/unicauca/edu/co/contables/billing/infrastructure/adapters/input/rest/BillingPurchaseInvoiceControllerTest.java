@@ -222,6 +222,31 @@ class BillingPurchaseInvoiceControllerTest {
     }
 
     @Test
+    void SUP_post_duplicate_supplier_invoice_number_is_409_with_its_own_code_and_clear_message() throws Exception {
+        String message = "Ya existe una factura de compra de este proveedor con el N.º F-77. Usa un número diferente.";
+        when(saveUseCase.create(eq(ENTERPRISE_ID), eq(TYPE), any(InvoiceDraftCommand.class)))
+                .thenThrow(new BillingException(BillingErrorCode.BILLING_DUPLICATE_SUPPLIER_INVOICE, message));
+
+        mockMvc.perform(post(BASE).param("enterpriseId", ENTERPRISE_ID)
+                        .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BILLING_DUPLICATE_SUPPLIER_INVOICE"))
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value(message));
+    }
+
+    @Test
+    void SUP_put_duplicate_supplier_invoice_number_is_409() throws Exception {
+        when(saveUseCase.update(eq(ENTERPRISE_ID), eq(TYPE), eq(uuid(1)), any(InvoiceDraftCommand.class)))
+                .thenThrow(new BillingException(BillingErrorCode.BILLING_DUPLICATE_SUPPLIER_INVOICE, "duplicado"));
+
+        mockMvc.perform(put(BASE + "/" + uuid(1)).param("enterpriseId", ENTERPRISE_ID)
+                        .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BILLING_DUPLICATE_SUPPLIER_INVOICE"));
+    }
+
+    @Test
     void DRF_3_put_with_stale_version_is_409() throws Exception {
         when(saveUseCase.update(eq(ENTERPRISE_ID), eq(TYPE), eq(uuid(1)), any(InvoiceDraftCommand.class)))
                 .thenThrow(new BillingException(BillingErrorCode.BILLING_CONCURRENT_MODIFICATION, "version"));

@@ -1,14 +1,17 @@
 package co.unicauca.edu.co.contables.inventory.peps.application.service.query;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import co.unicauca.edu.co.contables.inventory.peps.application.ports.input.IKardexQueryPort;
+import co.unicauca.edu.co.contables.inventory.peps.domain.enums.MovementType;
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.Balance;
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.InventoryQueue;
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.Kardex;
@@ -27,6 +30,10 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class KardexQueryService implements IKardexQueryPort {
+
+    /** Commercial entry types that define the "last purchase price" (business rule). */
+    private static final List<MovementType> LAST_PRICE_ENTRY_TYPES =
+            List.of(MovementType.PURCHASE, MovementType.ADJUSTMENTENTRY);
 
      private final IKardexQueryOutputPort kardexQueryOutputPort;
 
@@ -277,6 +284,16 @@ public class KardexQueryService implements IKardexQueryPort {
     public List<KardexMigration> findLastKardexForAllProducts(String enterpriseId) {
         validateEnterpriseId(enterpriseId);
         return kardexQueryOutputPort.findLastKardexForAllProducts(enterpriseId);
+    }
+
+    /**
+     * @brief Gets the unit price of the latest PURCHASE/ADJUSTMENTENTRY of a product
+     * @param productId Product identifier
+     * @return Unit price or empty if the product has no such entry
+     */
+    @Override
+    public Optional<BigDecimal> findLastEntryUnitPrice(Long productId) {
+        return kardexQueryOutputPort.findLastEntryUnitPrice(productId, LAST_PRICE_ENTRY_TYPES);
     }
 
     

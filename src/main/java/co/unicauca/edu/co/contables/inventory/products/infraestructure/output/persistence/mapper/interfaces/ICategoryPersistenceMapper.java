@@ -44,6 +44,8 @@ public interface ICategoryPersistenceMapper {
                 .costId(categoryEntity.getCostId())
                 .saleId(categoryEntity.getSaleId())
                 .returnId(categoryEntity.getReturnId())
+                .productTypeId(categoryEntity.getProductTypeId())
+                .returnPurchaseId(categoryEntity.getReturnPurchaseId())
                 .taxes(categoryEntity.getTaxes())
                 .state(categoryEntity.isState())
                 .build();

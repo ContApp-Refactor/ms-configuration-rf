@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import co.unicauca.edu.co.contables.accounting.catalogue.taxes.application.input.ITaxSearchInputPort;
 import co.unicauca.edu.co.contables.accounting.catalogue.taxes.domain.models.Tax;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.billing.infrastructure.config.BillingProperties;
 import co.unicauca.edu.co.contables.inventory.products.application.ports.input.ICategoryServicePort;
 import co.unicauca.edu.co.contables.inventory.products.domain.model.Category;
@@ -293,6 +294,84 @@ class BillingVatRateResolverTest {
 
         assertThat(rates.get(CATEGORY_ID)).isEqualByComparingTo("19");
         verify(taxSearch, times(1)).getActiveTaxes(ENTERPRISE);
+    }
+
+    // ---- desglose por impuesto (presentacion; el calculo sigue con la suma) ----
+
+    @Test
+    void BREAKDOWN_three_taxes_give_three_components_with_name_and_rate_and_the_same_sum() {
+        category(7L, 8L, 9L);
+        activeTaxes(tax(7L, "Ica", "impuesto Salud", 6.0), tax(8L, "SalD", "impuesto Salud", 8.0),
+                tax(9L, "Iva", "Impuesto del gobierno", 12.0));
+
+        BillingVatRateResolver.Resolution resolution = resolver.resolveBreakdown(ENTERPRISE, CATEGORY_ID);
+
+        assertThat(resolution.rate()).isEqualByComparingTo("26.00");
+        assertThat(resolution.taxes()).extracting(TaxComponent::name).containsExactly("Ica", "SalD", "Iva");
+        assertThat(resolution.taxes()).extracting(TaxComponent::rate)
+                .containsExactly(new BigDecimal("6.00"), new BigDecimal("8.00"), new BigDecimal("12.00"));
+        assertThat(resolver.resolve(ENTERPRISE, CATEGORY_ID)).isEqualByComparingTo(resolution.rate());
+    }
+
+    @Test
+    void BREAKDOWN_only_active_taxes_of_the_category_are_listed() {
+        category(7L, 99L);
+        activeTaxes(tax(7L, "Iva", "IVA", 19.0), tax(8L, "Ica", "otra categoria", 6.0));
+
+        BillingVatRateResolver.Resolution resolution = resolver.resolveBreakdown(ENTERPRISE, CATEGORY_ID);
+
+        assertThat(resolution.rate()).isEqualByComparingTo("19.00");
+        assertThat(resolution.taxes()).containsExactly(TaxComponent.of("Iva", new BigDecimal("19")));
+    }
+
+    @Test
+    void BREAKDOWN_tax_without_code_uses_its_description() {
+        category(7L);
+        activeTaxes(tax(7L, " ", "Impuesto al consumo", 8.0));
+
+        assertThat(resolver.resolveBreakdown(ENTERPRISE, CATEGORY_ID).taxes())
+                .extracting(TaxComponent::name).containsExactly("Impuesto al consumo");
+    }
+
+    @Test
+    void BREAKDOWN_fallbacks_have_no_components() {
+        assertThat(resolver.resolveBreakdown(ENTERPRISE, null).taxes()).isEmpty();
+
+        category();
+        assertThat(resolver.resolveBreakdown(ENTERPRISE, CATEGORY_ID).taxes()).isEmpty();
+
+        category(7L, 8L);
+        activeTaxes(tax(7L, "A", "a", 60.0), tax(8L, "B", "b", 50.0));
+        BillingVatRateResolver.Resolution overRange = resolver.resolveBreakdown(ENTERPRISE, CATEGORY_ID);
+        assertThat(overRange.rate()).isEqualByComparingTo("19");
+        assertThat(overRange.taxes()).isEmpty();
+    }
+
+    @Test
+    void BREAKDOWN_lookup_failure_has_no_components() {
+        category(7L);
+        when(taxSearch.getActiveTaxes(ENTERPRISE)).thenThrow(new IllegalStateException("boom"));
+
+        BillingVatRateResolver.Resolution resolution = resolver.resolveBreakdown(ENTERPRISE, CATEGORY_ID);
+
+        assertThat(resolution.rate()).isEqualByComparingTo("19");
+        assertThat(resolution.taxes()).isEmpty();
+    }
+
+    @Test
+    void BREAKDOWN_resolveAllBreakdowns_keeps_the_single_query_per_operation() {
+        when(categoryService.findById(ENTERPRISE, 10L))
+                .thenReturn(Category.builder().id(10L).taxes(List.of(7L, 8L)).build());
+        activeTaxes(tax(7L, "Iva", "IVA", 19.0), tax(8L, "Ica", "ICA", 6.0));
+
+        Map<Long, BillingVatRateResolver.Resolution> all =
+                resolver.resolveAllBreakdowns(ENTERPRISE, Arrays.asList(10L, null, 10L));
+
+        assertThat(all.get(10L).rate()).isEqualByComparingTo("25.00");
+        assertThat(all.get(10L).taxes()).extracting(TaxComponent::name).containsExactly("Iva", "Ica");
+        assertThat(all.get(null).taxes()).isEmpty();
+        verify(taxSearch, times(1)).getActiveTaxes(ENTERPRISE);
+        verify(categoryService, times(1)).findById(ENTERPRISE, 10L);
     }
 
     @Test

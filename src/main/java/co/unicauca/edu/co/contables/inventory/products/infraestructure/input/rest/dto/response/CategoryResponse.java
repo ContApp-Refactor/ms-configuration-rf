@@ -25,6 +25,8 @@ public class CategoryResponse {
     private Long costId;
     private Long saleId;
     private Long returnId;
+    private Long productTypeId;
+    private Long returnPurchaseId;
     private List<Long> taxes;
     private boolean state;
 }

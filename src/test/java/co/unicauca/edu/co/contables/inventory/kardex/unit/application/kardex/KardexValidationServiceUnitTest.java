@@ -98,7 +98,9 @@ public class KardexValidationServiceUnitTest {
         // Arrange
         when(kardexQueryRepositoryPort.existsByFactCodeAndProductIdAndType(factCode, productId, movementType))
             .thenReturn(true);
-        when(messageService.getMessage(anyString(), anyString())).thenReturn("Duplicate record error");
+        // Convertido: el servicio ahora pasa el detalle como argumento (sobrecarga varargs) y no como
+        // "defaultMessage", para que el "{0}" del mensaje se reemplace
+        when(messageService.getMessage(anyString(), any(Object[].class))).thenReturn("Duplicate record error");
         
         // Act & Assert
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> {
@@ -141,7 +143,7 @@ public class KardexValidationServiceUnitTest {
             .thenReturn(false);
         when(productRepository.getReferenceByProductId(productId)).thenReturn(productEntity);
         when(productMapper.toDomain(productEntity)).thenReturn(product);
-        when(messageService.getMessage(anyString(), anyString())).thenReturn("Product is not active");
+        when(messageService.getMessage(anyString(), any(Object[].class))).thenReturn("Product is not active");
         
         // Act & Assert
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> {
@@ -168,14 +170,14 @@ public class KardexValidationServiceUnitTest {
     void testValidatePreviousKardexExistsWithNull() {
         // Arrange
         String operation = "sale";
-        when(messageService.getMessage(anyString(), anyString())).thenReturn("Missing record error");
-        
+        when(messageService.getMessage(anyString(), any(Object[].class))).thenReturn("Missing record error");
+
         // Act & Assert
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> {
             kardexValidationService.validatePreviousKardexExists(null, operation);
         });
-        
+
         assertEquals(404, exception.getStatus());
-        verify(messageService).getMessage(anyString(), eq(operation));
-    }
+        // la operacion viaja como ARGUMENTO del mensaje (varargs), no como mensaje por defecto
+        verify(messageService).getMessage(anyString(), (Object) eq(operation));    }
 }

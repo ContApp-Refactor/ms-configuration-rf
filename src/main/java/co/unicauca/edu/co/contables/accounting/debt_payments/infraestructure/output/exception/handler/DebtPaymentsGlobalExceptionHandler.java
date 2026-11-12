@@ -10,6 +10,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -47,6 +48,25 @@ public class DebtPaymentsGlobalExceptionHandler {
 
                 ApiResponse<Object> apiResponse = ApiResponse.error(
                                 message,
+                                "VALIDATION_ERROR",
+                                status,
+                                getRequestPath(request));
+
+                return new ResponseEntity<>(apiResponse, status);
+        }
+
+        // Body ausente o JSON malformado: antes caía en el handler genérico y
+        // devolvía 500. Es una entrada inválida del cliente, no un error del
+        // servidor, así que corresponde 400 VALIDATION_ERROR.
+        @ExceptionHandler(HttpMessageNotReadableException.class)
+        public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadableException(
+                        HttpMessageNotReadableException ex,
+                        WebRequest request) {
+
+                HttpStatus status = HttpStatus.BAD_REQUEST;
+
+                ApiResponse<Object> apiResponse = ApiResponse.error(
+                                "El cuerpo de la petición está vacío o no es un JSON válido",
                                 "VALIDATION_ERROR",
                                 status,
                                 getRequestPath(request));

@@ -86,6 +86,19 @@ class BillingRequestFingerprintTest {
     }
 
     @Test
+    void the_payment_method_is_part_of_the_fingerprint_of_purchase_invoices() {
+        DocumentType purchase = DocumentType.PURCHASE_INVOICE;
+        java.util.function.Function<Long, InvoiceDraftCommand> withMethod = id -> new InvoiceDraftCommand(10L,
+                LocalDate.of(2026, 1, 15), "F-1",
+                List.of(new InvoiceLineCommand(1L, new BigDecimal("2"), null, null)), null,
+                new InvoiceDraftCommand.PaymentCommand(id));
+
+        assertThat(BillingRequestFingerprint.of(purchase, withMethod.apply(1L)))
+                .isEqualTo(BillingRequestFingerprint.of(purchase, withMethod.apply(1L)))
+                .isNotEqualTo(BillingRequestFingerprint.of(purchase, withMethod.apply(2L)));
+    }
+
+    @Test
     void IDM_4_return_fingerprints_follow_the_same_rules() {
         ReturnDraftCommand base = new ReturnDraftCommand(uuid(1), null, "defectuoso",
                 List.of(new ReturnLineCommand(1, new BigDecimal("2"))), null);

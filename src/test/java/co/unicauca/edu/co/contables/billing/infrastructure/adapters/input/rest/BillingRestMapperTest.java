@@ -5,6 +5,7 @@ import static co.unicauca.edu.co.contables.billing.support.BillingTestData.SUPPL
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.TODAY;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.USER;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.customer;
+import static co.unicauca.edu.co.contables.billing.support.BillingTestData.draftSaleReturnState;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.emittedSale;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.issuer;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.lineOf;
@@ -28,7 +29,14 @@ import co.unicauca.edu.co.contables.billing.domain.model.BillingDocument;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentLine;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.Money;
+import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
+import co.unicauca.edu.co.contables.billing.domain.model.ReturnAvailability;
+import co.unicauca.edu.co.contables.billing.domain.model.ReturnLineAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnStatus;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingLineTaxResponse;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingReturnResponse;
+import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.ReturnAvailabilityResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingDocumentSummaryResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceLineResponse;
 import co.unicauca.edu.co.contables.billing.infrastructure.adapters.input.rest.dto.BillingInvoiceResponse;
@@ -206,6 +214,67 @@ class BillingRestMapperTest {
         assertThat(line.subtotalCents()).isEqualTo(20000L);
         assertThat(line.ivaCents()).isEqualTo(3800L);
         assertThat(line.totalCents()).isEqualTo(23800L);
+        assertThat(line.taxes()).as("IVA por defecto: valor unico, sin desglose").isEmpty();
+    }
+
+    // ---------- desglose de impuestos por linea ----------
+
+    private static ProductSnapshot taxed(String sum, TaxComponent... taxes) {
+        return new ProductSnapshot(1L, "P1", "Producto 1", 1L, "Unidad", money("100.00"), rate(sum), true,
+                List.of(taxes));
+    }
+
+    private static TaxComponent tax(String name, String rate) {
+        return TaxComponent.of(name, new BigDecimal(rate));
+    }
+
+    @Test
+    void TAXES_line_response_lists_each_tax_with_name_and_rate_and_ivaPct_is_the_sum() {
+        BillingDocument doc = readySaleDraft();
+        doc.replaceInvoiceDraft(customer(), TODAY, null, List.of(DocumentLine.forInvoice(1,
+                taxed("26", tax("Ica", "6"), tax("SalD", "8"), tax("Iva", "12")), qty("1"), null, null)), NOW, USER);
+
+        BillingInvoiceLineResponse line = mapper.toResponse(BillingDocumentView.of(doc)).lines().get(0);
+
+        assertThat(line.taxes()).containsExactly(new BillingLineTaxResponse("Ica", new BigDecimal("6.00")),
+                new BillingLineTaxResponse("SalD", new BigDecimal("8.00")),
+                new BillingLineTaxResponse("Iva", new BigDecimal("12.00")));
+        assertThat(line.ivaPct()).isEqualByComparingTo("26");
+        assertThat(line.ivaCents()).isEqualTo(2600L);
+    }
+
+    @Test
+    void TAXES_overridden_line_response_has_no_breakdown() {
+        BillingDocument doc = readySaleDraft();
+        doc.replaceInvoiceDraft(customer(), TODAY, null, List.of(DocumentLine.forInvoice(1,
+                taxed("19", tax("Iva", "19")), qty("1"), null, rate("5"))), NOW, USER);
+
+        BillingInvoiceLineResponse line = mapper.toResponse(BillingDocumentView.of(doc)).lines().get(0);
+
+        assertThat(line.taxes()).isEmpty();
+        assertThat(line.ivaPct()).isEqualByComparingTo("5");
+    }
+
+    @Test
+    void TAXES_return_and_availability_responses_carry_the_inherited_breakdown() throws Exception {
+        DocumentLine source = DocumentLine.forInvoice(1, taxed("25", tax("Iva", "19"), tax("Ica", "6")), qty("2"),
+                null, null);
+        BillingDocument returnDoc = BillingDocument.restore(draftSaleReturnState("motivo"));
+        returnDoc.replaceReturnDraft(TODAY, "motivo", List.of(DocumentLine.forReturn(1, source, qty("1"))), NOW,
+                USER);
+
+        BillingReturnResponse response = mapper.toReturnResponse(BillingDocumentView.of(returnDoc));
+        assertThat(response.lines().get(0).taxes()).extracting(BillingLineTaxResponse::name)
+                .containsExactly("Iva", "Ica");
+
+        ReturnAvailabilityResponse availability = mapper.toAvailabilityResponse(new ReturnAvailability(
+                java.util.UUID.fromString("00000000-0000-0000-0000-000000000010"), List.of(
+                        new ReturnLineAvailability(1, 1L, "Producto 1", BigDecimal.TEN, BigDecimal.ZERO,
+                                BigDecimal.TEN, money("100.00"), rate("25"), source.taxes())),
+                ReturnStatus.SIN_DEVOLUCION, true));
+        assertThat(availability.lines().get(0).taxes()).hasSize(2);
+        String json = new ObjectMapper().writeValueAsString(availability.lines().get(0));
+        assertThat(json).contains("\"taxes\":[{\"name\":\"Iva\",\"rate\":19.00}");
     }
 
     @Test

@@ -88,7 +88,12 @@ public class AuditOperationListener extends AbstractMessageListener<OperationEve
 
     @Override
     protected String extractEventType(OperationEventDto event) {
-        return event != null && event.getOperationType() != null ? event.getOperationType() : null;
+        // "UNKNOWN" en vez de null: event_type es NOT NULL en
+        // audit_message_processing_errors, así que un null revienta el INSERT,
+        // el error nunca se persiste y /message-errors/latest devuelve el
+        // mensaje anterior. Coincide con la convención de fallback del base
+        // class (AbstractMessageListener).
+        return event != null && event.getOperationType() != null ? event.getOperationType() : "UNKNOWN";
     }
 
     @Override
