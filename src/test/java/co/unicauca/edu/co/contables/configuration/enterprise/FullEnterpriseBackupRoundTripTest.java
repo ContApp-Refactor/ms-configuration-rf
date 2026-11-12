@@ -1690,6 +1690,178 @@ class FullEnterpriseBackupRoundTripTest {
         });
     }
 
+    /* ------------------------------------------------------------------ */
+    /* Referencias sueltas: la copia trae ids de otros módulos que ya no existen */
+    /* ------------------------------------------------------------------ */
+
+    /** Ids viejos (borrados hace tiempo, nunca reutilizados): no están en ningún IdMap ni en ninguna tabla. */
+    private static final long GONE_THIRD = 900_001L;
+    private static final long GONE_METHOD = 900_002L;
+    private static final long GONE_PRODUCT = 900_003L;
+    private static final long GONE_UNIT = 900_004L;
+    private static final long GONE_TAX = 900_005L;
+    private static final long GONE_THIRD_2 = 900_011L;
+    private static final long GONE_METHOD_2 = 900_012L;
+    private static final long GONE_PRODUCT_2 = 900_013L;
+    private static final long GONE_UNIT_2 = 900_014L;
+    private static final long GONE_TAX_2 = 900_015L;
+
+    /**
+     * Agrega a la empresa origen dos facturas de venta con referencias a catálogos que NO existen (como las de una
+     * empresa recreada con ids nuevos): FV-50 tiene equivalentes por clave natural en la empresa (mismo número de
+     * documento del tercero, código de producto, nombre de unidad, de medio de pago y de impuesto); FV-51 no tiene
+     * ninguno. Billing no tiene FKs de BD, así que la siembra es válida.
+     */
+    private void seedDanglingBilling(Seed seed) {
+        String ent = seed.enterprise().toString();
+        String anaNumber = jdbc.queryForObject("SELECT th_id_number FROM thirds WHERE tenant_id = ? AND ent_id = ? "
+                + "AND th_names = 'Ana'", String.class, TENANT_A, ent);
+        String unitName = jdbc.queryForObject("SELECT name FROM unit_of_measure WHERE enterprise_id = ?", String.class,
+                ent);
+        long run = RUN.incrementAndGet();
+        tx.executeWithoutResult(status -> {
+            BillingDocumentEntity vivo = billingDoc(ent, "SALE_INVOICE", "EMITIDA", 50L, "FV", GONE_THIRD, true);
+            vivo.setCounterpartyIdNumber(anaNumber);
+            vivo.setPaymentMethodId(GONE_METHOD);
+            vivo.setPaymentMethodName("Efectivo");
+            vivo.setVerificationCode("VC-DANG-" + run + "-50");
+            vivo.setWithholdings("[{\"code\":\"RETE_IVA\",\"taxId\":" + GONE_TAX
+                    + ",\"taxName\":\"IVA19\",\"ratePct\":19.00,\"amountCents\":100}]");
+            billingLine(vivo, 1, GONE_PRODUCT, GONE_UNIT, unitName, "C1", "Producto 1");
+            BillingDocumentEntity suelto = billingDoc(ent, "SALE_INVOICE", "EMITIDA", 51L, "FV", GONE_THIRD_2, true);
+            suelto.setCounterpartyIdNumber("99999999");
+            suelto.setPaymentMethodId(GONE_METHOD_2);
+            suelto.setPaymentMethodName("Cheque fantasma");
+            suelto.setVerificationCode("VC-DANG-" + run + "-51");
+            suelto.setWithholdings("[{\"code\":\"RETE_FUENTE\",\"taxId\":" + GONE_TAX_2
+                    + ",\"taxName\":\"Fantasma\",\"ratePct\":3.50,\"amountCents\":700}]");
+            billingLine(suelto, 1, GONE_PRODUCT_2, GONE_UNIT_2, "Quintal", "ZZZ", "Producto fantasma");
+            em.persist(vivo);
+            em.persist(suelto);
+        });
+    }
+
+    private Map<String, Object> docOf(String tenant, String ent, String display) {
+        return jdbc.queryForMap("SELECT * FROM billing_documents WHERE tenant_id = ? AND enterprise_id = ? "
+                + "AND number_display = ?", tenant, ent, display);
+    }
+
+    private Long idOf(String sql, Object... args) {
+        return jdbc.queryForObject(sql, Long.class, args);
+    }
+
+    /**
+     * (a) tercero, (b) producto, medio de pago, unidad e impuesto re-vinculados por clave natural a los de la empresa
+     * destino; (c) sin coincidencia: null / id viejo conservado, snapshots intactos; (d) retención sin impuesto:
+     * taxId null; (e) las referencias que sí están en el IdMap siguen remapeándose (FV-1).
+     */
+    private void assertDanglingBillingResolved(UUID target, String tenant) {
+        String ent = target.toString();
+        Long ana = idOf("SELECT th_id FROM thirds WHERE tenant_id = ? AND ent_id = ? AND th_names = 'Ana'", tenant, ent);
+        Long method = idOf("SELECT id FROM payment_methods WHERE tenant_id = ? AND id_enterprise = ? "
+                + "AND name = 'Efectivo'", tenant, ent);
+        Long c1 = idOf("SELECT id FROM product WHERE tenant_id = ? AND enterprise_id = ? AND code = 'C1'", tenant, ent);
+        Long unit = idOf("SELECT id FROM unit_of_measure WHERE enterprise_id = ?", ent);
+        Long iva = idOf("SELECT id FROM tax WHERE tenant_id = ? AND id_enterprise = ? AND code = 'IVA19'", tenant, ent);
+
+        // (a) y (b): FV-50 queda vinculada a los equivalentes NUEVOS de la empresa destino
+        Map<String, Object> vivo = docOf(tenant, ent, "FV-50");
+        assertThat(vivo.get("counterparty_id")).isEqualTo(ana);
+        assertThat(vivo.get("payment_method_id")).isEqualTo(method);
+        Map<String, Object> vivoLine = jdbc.queryForMap("SELECT * FROM billing_document_lines WHERE document_id = ?",
+                vivo.get("id"));
+        assertThat(vivoLine.get("product_id")).isEqualTo(c1);
+        assertThat(vivoLine.get("unit_of_measure_id")).isEqualTo(unit);
+        JsonNode retencion = readJson((String) vivo.get("withholdings")).get(0);
+        assertThat(retencion.get("taxId").asLong()).isEqualTo(iva);
+        assertThat(retencion.get("taxName").asText()).isEqualTo("IVA19");
+        assertThat(vivo.get("counterparty_name")).isEqualTo("Ana Perez");
+
+        // (c) y (d): FV-51 no tiene equivalentes -> se tolera, sin abortar y con los snapshots intactos
+        Map<String, Object> suelto = docOf(tenant, ent, "FV-51");
+        assertThat(suelto.get("counterparty_id")).isNull();
+        assertThat(suelto.get("payment_method_id")).isNull();
+        assertThat(suelto.get("counterparty_name")).isEqualTo("Ana Perez");
+        assertThat(suelto.get("counterparty_id_number")).isEqualTo("99999999");
+        assertThat(suelto.get("payment_method_name")).isEqualTo("Cheque fantasma");
+        Map<String, Object> sueltoLine = jdbc.queryForMap("SELECT * FROM billing_document_lines WHERE document_id = ?",
+                suelto.get("id"));
+        assertThat(sueltoLine.get("product_id")).isEqualTo(GONE_PRODUCT_2);
+        assertThat(sueltoLine.get("unit_of_measure_id")).isNull();
+        assertThat(sueltoLine.get("product_code")).isEqualTo("ZZZ");
+        assertThat(sueltoLine.get("product_name")).isEqualTo("Producto fantasma");
+        assertThat(sueltoLine.get("unit_of_measure_name")).isEqualTo("Quintal");
+        JsonNode sinImpuesto = readJson((String) suelto.get("withholdings")).get(0);
+        assertThat(sinImpuesto.get("taxId").isNull()).isTrue();
+        assertThat(sinImpuesto.get("taxName").asText()).isEqualTo("Fantasma");
+        assertThat(sinImpuesto.get("ratePct").decimalValue()).isEqualByComparingTo("3.50");
+
+        // (e) lo que sí estaba en el IdMap se remapea como siempre
+        Map<String, Object> fv1 = docOf(tenant, ent, "FV-1");
+        assertThat(fv1.get("counterparty_id")).isEqualTo(ana);
+        assertThat(fv1.get("payment_method_id")).isEqualTo(method);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM billing_document_lines l WHERE l.document_id = ? "
+                + "AND l.product_id IN (SELECT id FROM product WHERE enterprise_id = ? AND tenant_id = ?) "
+                + "AND l.unit_of_measure_id = ?", Long.class, fv1.get("id"), ent, tenant, unit)).isEqualTo(2L);
+        for (JsonNode w : readJson((String) fv1.get("withholdings"))) {
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM tax WHERE id = ? AND id_enterprise = ?", Long.class,
+                    w.get("taxId").asLong(), ent)).isEqualTo(1L);
+        }
+
+        // lo que quedó suelto a propósito no se reporta como huérfano
+        assertThat(inTenant(tenant, () -> billingParticipant.verifyIntegrity(target))).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM billing_documents WHERE tenant_id = ? AND enterprise_id = ?",
+                Long.class, tenant, ent)).isEqualTo(9L);
+    }
+
+    @Test
+    void referenciasSueltasSeRevinculanPorClaveNaturalAlRestaurarComoEmpresaNueva() {
+        TenantContext.setTenantId(TENANT_A);
+        Seed seed = seedTenantA();
+        seedDanglingBilling(seed);
+        Path zip = export(seed);
+        releaseKardexReferences();
+
+        TenantContext.setTenantId(TENANT_B);
+        RestoreResult result = coordinator.restore(zip, RestoreOptions.newEnterprise("Empresa B", null, false),
+                new RestoreActor(TENANT_B, "u-b"), null);
+
+        assertThat(result.restoredModules()).contains(BackupKeys.MODULE_BILLING);
+        assertDanglingBillingResolved(result.enterpriseId(), TENANT_B);
+        verifyNoInteractions(rabbitTemplate);
+    }
+
+    @Test
+    void referenciasSueltasSeRevinculanPorClaveNaturalAlDuplicarLaEmpresa() {
+        TenantContext.setTenantId(TENANT_A);
+        Seed seed = seedTenantA();
+        seedDanglingBilling(seed);
+        Path zip = export(seed);
+        releaseKardexReferences();
+
+        RestoreResult result = coordinator.restore(zip, RestoreOptions.duplicate("Empresa A (copia)"),
+                new RestoreActor(TENANT_A, "u-a2"), null);
+
+        assertThat(result.enterpriseId()).isNotEqualTo(seed.enterprise());
+        assertDanglingBillingResolved(result.enterpriseId(), TENANT_A);
+        verifyNoInteractions(rabbitTemplate);
+    }
+
+    @Test
+    void referenciasSueltasSeRevinculanPorClaveNaturalAlRestaurarEnElLugar() {
+        TenantContext.setTenantId(TENANT_A);
+        Seed seed = seedTenantA();
+        seedDanglingBilling(seed);
+        Path zip = export(seed);
+
+        RestoreResult result = coordinator.restore(zip, RestoreOptions.inPlace(seed.enterprise(), null, null, false),
+                new RestoreActor(TENANT_A, "u-a"), null);
+
+        assertThat(result.enterpriseId()).isEqualTo(seed.enterprise());
+        assertDanglingBillingResolved(seed.enterprise(), TENANT_A);
+        verifyNoInteractions(rabbitTemplate);
+    }
+
     private IEnterpriseBackupCoordinator coordinatorFailingAt(String moduleKey) {
         List<BackupParticipant> withFailure = participants.stream()
                 .map(p -> moduleKey.equals(p.moduleKey()) ? (BackupParticipant) new FailingAfterRestore(p) : p)
