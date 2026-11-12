@@ -64,6 +64,20 @@ public class CopyProcessEntity {
 
     private Integer faseActual;
 
+    /** Módulo de la copia en curso (p. ej. {@code "taxes"}); null fuera de una etapa. */
+    @Column(length = 100)
+    private String moduloActual;
+
+    /** Módulos terminados en la etapa actual, separados por coma, en orden. */
+    @Column(length = 1000)
+    private String modulosCompletados;
+
+    /** Total de módulos de la etapa actual. */
+    private Integer modulosTotales;
+
+    /** Avance estimado 0-100. */
+    private Integer progreso;
+
     @Column(length = 2000)
     private String errorResumen;
 

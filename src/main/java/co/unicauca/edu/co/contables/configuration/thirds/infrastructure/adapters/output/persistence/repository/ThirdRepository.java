@@ -188,4 +188,11 @@ public interface ThirdRepository extends JpaRepository<ThirdEntity, Long> {
     @Modifying(clearAutomatically = true)
     @Query("UPDATE ThirdEntity t SET t.usageCount = COALESCE(t.usageCount, 0) + 1 WHERE t.thId = :thirdId")
     int incrementUsageCountByThirdId(@Param("thirdId") Long thirdId);
+
+    /**
+     * @brief Terceros de la empresa cuyo tipo de identificación NO es de la empresa (FK huérfana)
+     * @details Usado por la verificación de integridad de la copia de seguridad.
+     */
+    @Query("SELECT t.thId FROM ThirdEntity t WHERE t.entId = :entId AND t.typeId IS NOT NULL AND t.typeId.tientId <> :entId ORDER BY t.thId")
+    List<Long> findIdsWithForeignTypeId(@Param("entId") String entId, Pageable pageable);
 }

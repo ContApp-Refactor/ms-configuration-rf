@@ -162,4 +162,31 @@ public interface IAccountCatalogueRepository extends JpaRepository<AccountCatalo
     @Modifying
     @Query("UPDATE AccountCatalogueEntity a SET a.usageCount = COALESCE(a.usageCount, 0) + 1 WHERE a.id = :id")
     int incrementUsageCount(@Param("id") Long id);
+
+    /**
+     * @brief Lote de cuentas de la empresa con id mayor a {@code afterId} (keyset), para la copia de seguridad
+     * @param idEnterprise ID de la empresa
+     * @param afterId último id leído (0 para empezar)
+     * @param pageable tamaño del lote (página 0)
+     */
+    @Query("SELECT a FROM AccountCatalogueEntity a LEFT JOIN FETCH a.parent WHERE a.idEnterprise = :idEnterprise AND a.id > :afterId ORDER BY a.id ASC")
+    List<AccountCatalogueEntity> findBackupBatch(@Param("idEnterprise") String idEnterprise, @Param("afterId") Long afterId, Pageable pageable);
+
+    /** @brief Cuenta las cuentas de la empresa (verificación de la copia de seguridad) */
+    @Query("SELECT COUNT(a) FROM AccountCatalogueEntity a WHERE a.idEnterprise = ?1")
+    long countByEnterprise(String idEnterprise);
+
+    /** @brief Cuentas cuyo padre no pertenece a la misma empresa (huérfanos tras un restore) */
+    @Query("SELECT COUNT(a) FROM AccountCatalogueEntity a WHERE a.idEnterprise = ?1 AND a.parent IS NOT NULL AND NOT EXISTS (SELECT p.id FROM AccountCatalogueEntity p WHERE p.id = a.parent.id AND p.idEnterprise = ?1)")
+    long countWithParentOutsideEnterprise(String idEnterprise);
+
+    /** @brief Restore en el lugar: rompe la auto-FK de la jerarquía antes de borrar las cuentas de la empresa */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE AccountCatalogueEntity a SET a.parent = null WHERE a.idEnterprise = :idEnterprise AND a.parent IS NOT NULL")
+    int clearParentByEnterprise(@Param("idEnterprise") String idEnterprise);
+
+    /** @brief Restore en el lugar: borra (bulk, sin cargar entidades) todas las cuentas de la empresa */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM AccountCatalogueEntity a WHERE a.idEnterprise = :idEnterprise")
+    int deleteAllByEnterprise(@Param("idEnterprise") String idEnterprise);
 }

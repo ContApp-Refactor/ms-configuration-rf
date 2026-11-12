@@ -10,6 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,10 +23,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import co.unicauca.edu.co.contables.commons.security.IJwtUtils;
+import co.unicauca.edu.co.contables.commons.backup.RestoreActor;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.mapper.CopyProcessDomainMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.CopyProcess;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.ICopyProcessService;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.coordination.BackupModuleInfo;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.DTO.request.CopyProcessCreateReq;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.DTO.request.CopyProcessRestoreReq;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.DTO.response.CopyProcessRes;
@@ -38,16 +42,15 @@ import lombok.RequiredArgsConstructor;
  * empresas, con el contrato orientado a procesos que consume el frontend
  * (Hito 6).
  *
- * Reemplaza el contrato anterior, de un solo paso por operación
- * ({@code EnterpriseBackupController}, eliminado), por uno orientado a
- * procesos: cada operación queda registrada como un {@code CopyProcess}
- * consultable, aunque se siga ejecutando de forma síncrona (sin hilos en
- * segundo plano).
+ * Tenant y usuario se capturan AQUÍ, en el hilo de la petición, con
+ * {@link RestoreActor#fromCurrentContext()} (TenantContext + {@code sub} del
+ * JWT del SecurityContext) y viajan explícitos hasta el coordinador. No se usa
+ * {@code IJwtUtils}: el converter singleton guarda el último JWT y con
+ * concurrencia devuelve el de otro usuario.
  *
- * Nota de seguridad: igual que el controlador que reemplaza, estas rutas no
- * se agregan a la lista {@code permitAll} de {@code SecurityConfig}, así que
- * caen en {@code .anyRequest().authenticated()} y además exigen uno de los
- * roles de cliente de la empresa.
+ * Nota de seguridad: estas rutas no están en {@code permitAll} de
+ * {@code SecurityConfig}: caen en {@code .anyRequest().authenticated()} y
+ * además exigen uno de los roles de cliente de la empresa.
  */
 @RequestMapping("/api/enterprises/copy")
 @RestController
@@ -58,7 +61,6 @@ public class CopyProcessController {
 
     private final ICopyProcessService copyProcessService;
     private final CopyProcessDomainMapper mapper;
-    private final IJwtUtils jwtUtils;
 
     @Operation(summary = "Listar los procesos de copia, más reciente primero")
     @GetMapping("/processes")
@@ -70,8 +72,9 @@ public class CopyProcessController {
     @Operation(summary = "Crear y ejecutar un proceso BACKUP o DUPLICATE")
     @PostMapping("/processes")
     public ResponseEntity<CopyProcessRes> createProcess(@Valid @RequestBody CopyProcessCreateReq request) {
+        RestoreActor actor = RestoreActor.fromCurrentContext();
         CopyProcess process = copyProcessService.create(request.getTipo(), request.getEmpresaOrigen(),
-                request.resolveEmpresaDestinoNombre(), iniciadoPor());
+                request.resolveEmpresaDestinoNombre(), actor, iniciadoPor(actor));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toRes(process));
     }
 
@@ -99,11 +102,14 @@ public class CopyProcessController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Crear y ejecutar un proceso RESTORE desde un backup existente (backupRef)")
+    @Operation(summary = "Crear y ejecutar un proceso RESTORE desde un backup existente (backupRef del tenant)")
     @PostMapping("/restore")
     public ResponseEntity<CopyProcessRes> restore(@Valid @RequestBody CopyProcessRestoreReq request) {
+        RestoreActor actor = RestoreActor.fromCurrentContext();
         CopyProcess process = copyProcessService.restoreFromBackupRef(request.getBackupRef(),
-                request.getEmpresaDestino(), request.isInplace(), iniciadoPor());
+                new ICopyProcessService.RestoreRequest(request.getEmpresaDestino(), request.isInplace(),
+                        request.getNombreDestino(), request.getNitDestino(), request.isSkipUnknownModules(), actor,
+                        iniciadoPor(actor)));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toRes(process));
     }
 
@@ -113,14 +119,31 @@ public class CopyProcessController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("empresaDestino") String empresaDestino,
             @RequestParam(value = "inplace", defaultValue = "false") boolean inplace,
-            @RequestParam(value = "nombreDestino", required = false) String nombreDestino) {
-        CopyProcess process = copyProcessService.restoreFromUpload(file, empresaDestino, inplace, nombreDestino,
-                iniciadoPor());
+            @RequestParam(value = "nombreDestino", required = false) String nombreDestino,
+            @RequestParam(value = "nitDestino", required = false) String nitDestino,
+            @RequestParam(value = "skipUnknownModules", defaultValue = "false") boolean skipUnknownModules) {
+        RestoreActor actor = RestoreActor.fromCurrentContext();
+        CopyProcess process = copyProcessService.restoreFromUpload(file,
+                new ICopyProcessService.RestoreRequest(empresaDestino, inplace, nombreDestino, nitDestino,
+                        skipUnknownModules, actor, iniciadoPor(actor)));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toRes(process));
     }
 
-    private String iniciadoPor() {
-        String username = jwtUtils.getUsername();
-        return username != null ? username : jwtUtils.getId();
+    @Operation(summary = "Módulos que incluye la copia de seguridad completa, en orden de restauración")
+    @GetMapping("/modules")
+    public ResponseEntity<List<BackupModuleInfo>> getModules() {
+        return ResponseEntity.ok(copyProcessService.supportedModules());
+    }
+
+    /** {@code preferred_username} del JWT de ESTA petición; si no viene, el {@code sub}. */
+    private static String iniciadoPor(RestoreActor actor) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth instanceof JwtAuthenticationToken jwt) {
+            String username = jwt.getToken().getClaimAsString("preferred_username");
+            if (username != null && !username.isBlank()) {
+                return username;
+            }
+        }
+        return actor.userId();
     }
 }

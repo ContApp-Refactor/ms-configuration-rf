@@ -19,6 +19,12 @@ public interface EnterpriseRepository extends JpaRepository<EnterpriseEntity, UU
 
     boolean existsByNit(String nit);
 
+    /** NIT usado por OTRA empresa del tenant actual (restore sobre una empresa existente). */
+    boolean existsByNitAndIdNot(String nit, UUID id);
+
+    /** Logo compartido con OTRA empresa del tenant actual (no se borra el archivo si es así). */
+    boolean existsByLogoAndIdNot(String logo, UUID id);
+
     /** Indica si alguna empresa (del tenant actual) tiene asignada la materia. */
     @Query("SELECT COUNT(e) > 0 FROM EnterpriseEntity e JOIN e.subjects s WHERE s.id = :subjectId")
     boolean existsBySubjectId(@Param("subjectId") UUID subjectId);

@@ -20,6 +20,12 @@ public interface AccountingCalendarRepository extends JpaRepository<AccountingCa
 
     boolean existsByIdEnterpriseAndDate(String idEnterprise, LocalDate date);
 
+    /** Copia de seguridad: lectura paginada de todo el calendario de la empresa. */
+    org.springframework.data.domain.Page<AccountingCalendarEntity> findAllByIdEnterprise(
+            String idEnterprise, org.springframework.data.domain.Pageable pageable);
+
+    long countByIdEnterprise(String idEnterprise);
+
     Optional<AccountingCalendarEntity> findByIdAndIdEnterprise(Long id, String idEnterprise);
 
     List<AccountingCalendarEntity> findAllByIdEnterpriseAndDateBetween(

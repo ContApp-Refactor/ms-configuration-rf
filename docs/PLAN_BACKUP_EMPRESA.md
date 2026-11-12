@@ -59,4 +59,4 @@ Tablas que toca el restore en el micro (via `JdbcTemplate` directo): `person_typ
 
 ## Fuera de alcance (explícito)
 - No se replica `SagaEngineService`, `IParticipantClientPort`, HTTP entre microservicios, ni AMQP.
-- No se incluyen participantes `products`/`thirds` como procesos saga externos — si en el futuro el backup debe incluir datos de `inventory`/`thirds`, se extiende el `BackupManifest`, no se reintroduce orquestación.
+- No se incluyen participantes `products`/`thirds` como procesos saga externos — si en el futuro el backup debe incluir datos de `inventory`/`thirds`, se extiende el `BackupManifest`, no se reintroduce coordinación.
