@@ -117,6 +117,13 @@ public class BillingDocumentEntity {
     @Column(name = "issuer_dv", length = 2)
     private String issuerDv;
 
+    @Column(name = "payment_method_id")
+    private Long paymentMethodId;
+
+    /** Snapshot del nombre del metodo, congelado al emitir. */
+    @Column(name = "payment_method_name", length = 200)
+    private String paymentMethodName;
+
     @Column(name = "original_document_id")
     private UUID originalDocumentId;
 
@@ -141,8 +148,24 @@ public class BillingDocumentEntity {
     @Column(name = "tax_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal taxTotal;
 
+    /** Total NETO: subtotal + impuestos - retenciones. */
     @Column(name = "total", nullable = false, precision = 19, scale = 2)
     private BigDecimal total;
+
+    /** Suma de las retenciones; nulo (documentos anteriores) = 0. Nullable: ddl-auto=update no la rellena. */
+    @Column(name = "withholding_total", precision = 19, scale = 2)
+    private BigDecimal withholdingTotal;
+
+    /**
+     * Retenciones de la factura como JSON ({@code [{code, taxId, taxName, ratePct, amountCents}]}); en
+     * una factura emitida es el snapshot congelado. Nulo = sin retenciones.
+     */
+    @Column(name = "withholdings", length = 4000)
+    private String withholdings;
+
+    /** Codigo de verificacion (QR) congelado al emitir una factura; nulo en borrador y documentos anteriores. */
+    @Column(name = "verification_code", length = 100)
+    private String verificationCode;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

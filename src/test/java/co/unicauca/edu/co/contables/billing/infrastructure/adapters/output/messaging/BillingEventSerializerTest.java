@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.messaging;
 
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.ENTERPRISE_ID;
+import static co.unicauca.edu.co.contables.billing.support.BillingTestData.methodTerms;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.LATER;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.NOW;
 import static co.unicauca.edu.co.contables.billing.support.BillingTestData.OTHER_USER;
@@ -111,7 +112,7 @@ class BillingEventSerializerTest {
 
         assertThat(fieldNames(payload)).containsExactly("documentId", "documentVersion", "documentType", "kind",
                 "number", "issueDate", "emittedAt", "emittedBy", "currency", "issuer", "counterparty",
-                "supplierInvoiceNumber", "lines", "totals", "payment", "original", "return", "annulment");
+                "supplierInvoiceNumber", "lines", "totals", "payment", "original", "return", "annulment", "withholdings");
     }
 
     // ---------- carga ----------
@@ -170,7 +171,7 @@ class BillingEventSerializerTest {
         assertThat(line.get("unitOfMeasureName").asText()).isEqualTo("Unidad");
 
         JsonNode totals = payload.get("totals");
-        assertThat(fieldNames(totals)).containsExactly("subtotal", "tax", "total");
+        assertThat(fieldNames(totals)).containsExactly("subtotal", "tax", "total", "withholdings");
         assertThat(totals.get("subtotal").decimalValue()).isEqualByComparingTo("200.00");
         assertThat(totals.get("tax").decimalValue()).isEqualByComparingTo("38.00");
         assertThat(totals.get("total").decimalValue()).isEqualByComparingTo("238.00");
@@ -198,7 +199,8 @@ class BillingEventSerializerTest {
     void EVT_3_overridden_price_and_rate_and_fractional_quantity_keep_their_scale_and_rounding() {
         BillingDocument doc = draftSale();
         doc.replaceInvoiceDraft(customer(), TODAY, null,
-                List.of(DocumentLine.forInvoice(1, product(1L), qty("1.5"), money("10.10"), rate("5"))), NOW, USER);
+                List.of(DocumentLine.forInvoice(1, product(1L), qty("1.5"), money("10.10"), rate("5"))),
+                methodTerms(1L), NOW, USER);
         doc.emit(DocumentNumber.of(DocumentType.SALE_INVOICE, 9L), issuer(), null, LATER, OTHER_USER);
 
         String json = serializer.serialize(emittedEvent(withVersion(doc, 1L)), TENANT_A);
@@ -220,7 +222,6 @@ class BillingEventSerializerTest {
         JsonNode payload = parse(serializer.serialize(emittedEvent(doc), TENANT_A)).get("payload");
 
         assertThat(payload.has("payment")).isTrue();
-        assertThat(payload.get("payment").isNull()).isTrue();
         assertThat(payload.get("original").isNull()).isTrue();
         assertThat(payload.get("return").isNull()).isTrue();
         assertThat(payload.get("annulment").isNull()).isTrue();

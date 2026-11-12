@@ -6,9 +6,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import jakarta.transaction.Transactional;
+import co.unicauca.edu.co.contables.inventory.peps.domain.enums.MovementType;
 import co.unicauca.edu.co.contables.inventory.peps.domain.model.KardexMigration;
 import co.unicauca.edu.co.contables.inventory.peps.infrastructure.adapters.output.jpa.entity.KardexEntity;
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +37,16 @@ public interface  IKardexRepository extends JpaRepository<KardexEntity, Long>{
      * @return The latest Kardex entry
      */
     KardexEntity findTopByProductIdOrderByDateDesc(Long productId);
+
+    /**
+     * @brief Finds the latest Kardex entry of a product restricted to the given movement types
+     * (ties on date: highest id)
+     * @param productId The product ID
+     * @param types Movement types to consider
+     * @return The latest matching entry, if any
+     */
+    Optional<KardexEntity> findTopByProduct_ProductIdAndTypeInOrderByDateDescIdKardexDesc(Long productId,
+            Collection<MovementType> types);
 
       /**
        * @brief Calculates total available amount for a product

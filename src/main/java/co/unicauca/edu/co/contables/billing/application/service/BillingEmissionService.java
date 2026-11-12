@@ -8,7 +8,10 @@ import co.unicauca.edu.co.contables.billing.application.ports.output.BillingExec
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingIdGeneratorPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.BillingOutboxPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.DocumentNumberSequencePort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.PaymentCatalogPort;
 import co.unicauca.edu.co.contables.billing.application.ports.output.StockMovementPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.TaxCatalogPort;
+import co.unicauca.edu.co.contables.billing.application.ports.output.VerificationCodeGenerator;
 import co.unicauca.edu.co.contables.billing.domain.event.BillingDocumentEmitted;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingErrorCode;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingException;
@@ -19,6 +22,7 @@ import co.unicauca.edu.co.contables.billing.domain.model.DocumentNumber;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentStatus;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.IssuerSnapshot;
+import co.unicauca.edu.co.contables.billing.domain.model.PaymentTerms;
 import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.service.ReturnAvailabilityCalculator;
 import java.time.Instant;
@@ -58,13 +62,38 @@ public class BillingEmissionService implements EmitDocumentUseCase {
     private final BillingIdGeneratorPort ids;
     private final StockMovementPort stock;
     private final AccountingEntryPort accounting;
+    private final PaymentCatalogPort paymentCatalog;
+    private final WithholdingResolver withholdingResolver;
+    private final VerificationCodeGenerator verificationCodes;
+    private final SupplierInvoiceNumberGuard supplierNumbers;
     private final ReturnAvailabilityCalculator calculator = new ReturnAvailabilityCalculator();
     private final ReturnEventContextFactory returnContexts = new ReturnEventContextFactory(calculator);
 
     public BillingEmissionService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
             BillingReferenceResolver resolver, DocumentNumberSequencePort sequence, BillingOutboxPort outbox,
             BillingExecutionContextPort context, BillingClockPort clock, BillingIdGeneratorPort ids,
-            StockMovementPort stock, AccountingEntryPort accounting) {
+            StockMovementPort stock, AccountingEntryPort accounting, PaymentCatalogPort paymentCatalog) {
+        this(repository, loader, resolver, sequence, outbox, context, clock, ids, stock, accounting, paymentCatalog,
+                null);
+    }
+
+    public BillingEmissionService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
+            BillingReferenceResolver resolver, DocumentNumberSequencePort sequence, BillingOutboxPort outbox,
+            BillingExecutionContextPort context, BillingClockPort clock, BillingIdGeneratorPort ids,
+            StockMovementPort stock, AccountingEntryPort accounting, PaymentCatalogPort paymentCatalog,
+            TaxCatalogPort taxCatalog) {
+        // Sin generador (usos antiguos): las facturas se emiten sin codigo de verificacion
+        this(repository, loader, resolver, sequence, outbox, context, clock, ids, stock, accounting, paymentCatalog,
+                taxCatalog, () -> null);
+    }
+
+    public BillingEmissionService(BillingDocumentRepositoryPort repository, BillingDocumentLoader loader,
+            BillingReferenceResolver resolver, DocumentNumberSequencePort sequence, BillingOutboxPort outbox,
+            BillingExecutionContextPort context, BillingClockPort clock, BillingIdGeneratorPort ids,
+            StockMovementPort stock, AccountingEntryPort accounting, PaymentCatalogPort paymentCatalog,
+            TaxCatalogPort taxCatalog, VerificationCodeGenerator verificationCodes) {
+        this.verificationCodes = Objects.requireNonNull(verificationCodes, "verificationCodes");
+        this.withholdingResolver = new WithholdingResolver(taxCatalog);
         this.repository = Objects.requireNonNull(repository, "repository");
         this.loader = Objects.requireNonNull(loader, "loader");
         this.resolver = Objects.requireNonNull(resolver, "resolver");
@@ -75,6 +104,8 @@ public class BillingEmissionService implements EmitDocumentUseCase {
         this.ids = Objects.requireNonNull(ids, "ids");
         this.stock = Objects.requireNonNull(stock, "stock");
         this.accounting = Objects.requireNonNull(accounting, "accounting");
+        this.paymentCatalog = Objects.requireNonNull(paymentCatalog, "paymentCatalog");
+        this.supplierNumbers = new SupplierInvoiceNumberGuard(repository);
     }
 
     @Override
@@ -132,14 +163,22 @@ public class BillingEmissionService implements EmitDocumentUseCase {
 
     private BillingDocument emitInvoice(String enterpriseId, DocumentType type, BillingDocument document) {
         CounterpartySnapshot freshCounterparty = readCounterparty(enterpriseId, document);
+        // Revalida por si otro documento tomo el numero del proveedor entre el guardado y la emision
+        supplierNumbers.assertUnique(enterpriseId, type, freshCounterparty == null ? null
+                : freshCounterparty.thirdId(), document.supplierInvoiceNumber(), document.id());
         Map<Long, ProductSnapshot> catalog = readActiveProducts(enterpriseId, document);
         document.refreshCatalog(catalog);
         IssuerSnapshot issuer = readActiveIssuer(enterpriseId);
+        freezePaymentMethod(enterpriseId, document);
+        // Snapshot de retenciones: tarifa y nombre vigentes; un impuesto inactivo o borrado rechaza la emision
+        document.refreshWithholdings(withholdingResolver.refresh(enterpriseId, document.withholdings(), true));
         document.assertEmittable();
 
         long numberValue = sequence.nextValue(enterpriseId, type);
         Instant now = clock.now();
         document.emit(DocumentNumber.of(type, numberValue), issuer, freshCounterparty, now, context.username());
+        // Codigo de verificacion (QR): una sola vez, junto al numero definitivo y en la misma transaccion
+        document.assignVerificationCode(verificationCodes.next());
 
         BillingDocument saved = repository.save(document);
         integrate(saved);
@@ -182,6 +221,27 @@ public class BillingEmissionService implements EmitDocumentUseCase {
             }
         }
         return catalog;
+    }
+
+    /**
+     * Solo facturas (venta y compra): el metodo de pago debe existir, estar activo y ser de la empresa; se
+     * congela su nombre. La obligatoriedad del metodo la exige el dominio en {@code assertEmittable}.
+     */
+    private void freezePaymentMethod(String enterpriseId, BillingDocument document) {
+        PaymentTerms payment = document.payment();
+        if (!document.type().supportsPayment() || payment == null
+                || payment.paymentMethodId() == null) {
+            return;
+        }
+        PaymentCatalogPort.PaymentMethodRef method = paymentCatalog
+                .findPaymentMethod(enterpriseId, payment.paymentMethodId())
+                .orElseThrow(() -> new BillingException(BillingErrorCode.BILLING_PAYMENT_METHOD_INVALID,
+                        "El metodo de pago " + payment.paymentMethodId() + " no existe"));
+        if (!method.active()) {
+            throw new BillingException(BillingErrorCode.BILLING_PAYMENT_METHOD_INVALID,
+                    "El metodo de pago " + method.name() + " esta inactivo");
+        }
+        document.freezePayment(method.name());
     }
 
     private IssuerSnapshot readActiveIssuer(String enterpriseId) {

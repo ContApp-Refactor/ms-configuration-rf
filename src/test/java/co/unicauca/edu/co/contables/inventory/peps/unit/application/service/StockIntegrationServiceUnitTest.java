@@ -3,6 +3,8 @@ package co.unicauca.edu.co.contables.inventory.peps.unit.application.service;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -262,72 +264,75 @@ public class StockIntegrationServiceUnitTest {
 
     // ==================== Error Handling - Buy ====================
     @Test
-    @DisplayName("Should handle exception during buy operation")
+    @DisplayName("Should propagate exception during buy operation")
     void testCallApiStockService_BuyThrowsException_LogsError() {
         // Arrange
         RuntimeException exception = new RuntimeException("Connection timeout");
         doThrow(exception).when(stockClient).buyStock(any(Stock.class));
 
-        // Act & Assert - Should not throw exception, just log it
-        assertDoesNotThrow(() -> 
+        // Act & Assert - la excepción se propaga (rollback de la transacción)
+        RuntimeException thrown = assertThrows(RuntimeException.class, () ->
             stockIntegrationService.callApiStockService(mockStock, true)
         );
-        
+
+        assertSame(exception, thrown);
         verify(stockClient).buyStock(mockStock);
     }
 
     @Test
-    @DisplayName("Should not throw exception when buy operation fails")
+    @DisplayName("Should throw exception when buy operation fails")
     void testCallApiStockService_BuyFails_DoesNotThrowException() {
         // Arrange
         doThrow(new RuntimeException("API Error")).when(stockClient).buyStock(any(Stock.class));
 
         // Act & Assert
-        assertDoesNotThrow(() -> 
+        assertThrows(RuntimeException.class, () ->
             stockIntegrationService.callApiStockService(mockStock, true)
         );
     }
 
     // ==================== Error Handling - Sell ====================
     @Test
-    @DisplayName("Should handle exception during sell operation")
+    @DisplayName("Should propagate exception during sell operation")
     void testCallApiStockService_SellThrowsException_LogsError() {
         // Arrange
         RuntimeException exception = new RuntimeException("Insufficient stock");
         doThrow(exception).when(stockClient).sellStock(any(Stock.class));
 
-        // Act & Assert - Should not throw exception, just log it
-        assertDoesNotThrow(() -> 
+        // Act & Assert - la excepción se propaga (rollback de la transacción)
+        RuntimeException thrown = assertThrows(RuntimeException.class, () ->
             stockIntegrationService.callApiStockService(mockStock, false)
         );
-        
+
+        assertSame(exception, thrown);
         verify(stockClient).sellStock(mockStock);
     }
 
     @Test
-    @DisplayName("Should not throw exception when sell operation fails")
+    @DisplayName("Should throw exception when sell operation fails")
     void testCallApiStockService_SellFails_DoesNotThrowException() {
         // Arrange
         doThrow(new RuntimeException("API Error")).when(stockClient).sellStock(any(Stock.class));
 
         // Act & Assert
-        assertDoesNotThrow(() -> 
+        assertThrows(RuntimeException.class, () ->
             stockIntegrationService.callApiStockService(mockStock, false)
         );
     }
 
     @Test
-    @DisplayName("Should handle network timeout exception")
+    @DisplayName("Should propagate network timeout exception")
     void testCallApiStockService_NetworkTimeout_LogsError() {
         // Arrange
         RuntimeException timeoutException = new RuntimeException("Request timeout after 5000ms");
         doThrow(timeoutException).when(stockClient).buyStock(any(Stock.class));
 
-        // Act & Assert - Should not throw exception, just log it
-        assertDoesNotThrow(() -> 
+        // Act & Assert - la excepción se propaga (rollback de la transacción)
+        RuntimeException thrown = assertThrows(RuntimeException.class, () ->
             stockIntegrationService.callApiStockService(mockStock, true)
         );
-        
+
+        assertSame(timeoutException, thrown);
         verify(stockClient).buyStock(mockStock);
     }
 

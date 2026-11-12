@@ -9,6 +9,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingErrorCode;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingException;
+import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /** DOC-2, DOC-3, DOC-5, DOC-7 (RN-09..RN-14): linea con precio/IVA efectivo = override ?? catalogo. */
@@ -196,5 +198,94 @@ class DocumentLineTest {
         assertThat(restored).isEqualTo(original);
         assertThat(restored.total()).isEqualTo(original.total());
         assertThat(restored.taxRate()).isEqualTo(rate("10"));
+    }
+
+    // ---- desglose de impuestos por linea (solo presentacion, congelado con la linea) ----
+
+    private static TaxComponent tax(String name, String rate) {
+        return TaxComponent.of(name, new BigDecimal(rate));
+    }
+
+    private static ProductSnapshot taxed(long id, String price, String sum, TaxComponent... taxes) {
+        return new ProductSnapshot(id, "P" + id, "Producto " + id, 1L, "Unidad", money(price), rate(sum), true,
+                List.of(taxes));
+    }
+
+    @Test
+    void TAXES_three_category_taxes_are_kept_and_the_amount_still_uses_the_sum() {
+        DocumentLine line = DocumentLine.forInvoice(1, taxed(5L, "3.33", "26",
+                tax("Ica", "6"), tax("SalD", "8"), tax("Iva", "12")), qty("3"), null, null);
+
+        assertThat(line.taxes()).containsExactly(tax("Ica", "6.00"), tax("SalD", "8.00"), tax("Iva", "12.00"));
+        assertThat(line.taxRate()).isEqualTo(rate("26"));
+        // 9.99 x 26% = 2.5974 -> 2.60: mismo redondeo de siempre sobre la suma
+        assertThat(line.taxAmount()).isEqualTo(money("2.60"));
+        assertThat(line.total()).isEqualTo(money("12.59"));
+    }
+
+    @Test
+    void TAXES_override_shows_a_single_value_without_breakdown() {
+        DocumentLine line = DocumentLine.forInvoice(1, taxed(5L, "100.00", "25", tax("Iva", "19"), tax("Ica", "6")),
+                qty("1"), null, rate("5"));
+
+        assertThat(line.taxes()).isEmpty();
+        assertThat(line.catalogTaxes()).hasSize(2); // la referencia de catalogo se conserva
+        assertThat(line.taxRate()).isEqualTo(rate("5"));
+    }
+
+    @Test
+    void TAXES_default_vat_line_has_no_breakdown() {
+        assertThat(DocumentLine.forInvoice(1, product(5L, "100.00", "19"), qty("1"), null, null).taxes()).isEmpty();
+    }
+
+    @Test
+    void TAXES_withCatalog_replaces_the_breakdown_and_renumber_keeps_it() {
+        DocumentLine line = DocumentLine.forInvoice(1, taxed(5L, "100.00", "19", tax("Iva", "19")), qty("1"),
+                null, null);
+
+        DocumentLine refreshed = line.withCatalog(taxed(5L, "100.00", "25", tax("Iva", "19"), tax("Ica", "6")));
+
+        assertThat(refreshed.taxes()).extracting(TaxComponent::name).containsExactly("Iva", "Ica");
+        assertThat(refreshed.renumber(4).taxes()).isEqualTo(refreshed.taxes());
+        assertThat(line.taxes()).extracting(TaxComponent::name).containsExactly("Iva");
+    }
+
+    @Test
+    void TAXES_return_line_inherits_the_effective_breakdown_of_the_original() {
+        DocumentLine source = DocumentLine.forInvoice(1, taxed(5L, "100.00", "25", tax("Iva", "19"),
+                tax("Ica", "6")), qty("2"), null, null);
+
+        DocumentLine returned = DocumentLine.forReturn(1, source, qty("1"));
+
+        assertThat(returned.taxes()).isEqualTo(source.taxes());
+        assertThat(returned.taxRate()).isEqualTo(rate("25"));
+        assertThat(returned.taxOverridden()).isFalse();
+    }
+
+    @Test
+    void TAXES_return_of_an_overridden_line_has_a_single_value() {
+        DocumentLine source = DocumentLine.forInvoice(1, taxed(5L, "100.00", "25", tax("Iva", "19"),
+                tax("Ica", "6")), qty("2"), null, rate("10"));
+
+        DocumentLine returned = DocumentLine.forReturn(1, source, qty("1"));
+
+        assertThat(returned.taxes()).isEmpty();
+        assertThat(returned.taxRate()).isEqualTo(rate("10"));
+    }
+
+    @Test
+    void TAXES_old_restore_without_breakdown_is_an_empty_list() {
+        DocumentLine restored = DocumentLine.restore(1, null, 5L, "P5", "Producto 5", 1L, "Unidad", qty("1"),
+                money("100.00"), rate("26"), null, null);
+
+        assertThat(restored.taxes()).isEmpty();
+        assertThat(restored.taxRate()).isEqualTo(rate("26"));
+    }
+
+    @Test
+    void TAXES_component_rejects_blank_name_and_normalizes_scale() {
+        assertThatThrownBy(() -> TaxComponent.of(" ", BigDecimal.ONE)).isInstanceOf(IllegalArgumentException.class);
+        assertThat(TaxComponent.of(" Iva ", new BigDecimal("19")).name()).isEqualTo("Iva");
+        assertThat(TaxComponent.of("Iva", new BigDecimal("19")).rate().scale()).isEqualTo(2);
     }
 }

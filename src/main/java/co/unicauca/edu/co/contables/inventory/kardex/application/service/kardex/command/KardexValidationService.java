@@ -47,8 +47,10 @@ public class KardexValidationService {
             
             if (exists) {
                 String movementDescription = movementType.getDescription();
-                String errorMessage = messageService.getMessage(MessageKeys.ERROR_DUPLICATE_RECORD, 
-                    "factCode=" + factCode + ", productId=" + productId + ", type=" + movementDescription);
+                // (Object): con un unico String Java elige la sobrecarga getMessage(key, defaultMessage)
+                // y el mensaje sale con "{0}" sin reemplazar
+                String errorMessage = messageService.getMessage(MessageKeys.ERROR_DUPLICATE_RECORD,
+                    (Object) ("factCode=" + factCode + ", productId=" + productId + ", type=" + movementDescription));
                 throw new BusinessRuleException(400, errorMessage);
             }
         }
@@ -62,8 +64,8 @@ public class KardexValidationService {
 
         Product product = productMapper.toDomain(productEntity);
         if (!product.isActive()) {
-            String errorMessage = messageService.getMessage(MessageKeys.ERROR_OPERATION_NOT_ALLOWED, 
-                "Product is not active: " + productId);
+            String errorMessage = messageService.getMessage(MessageKeys.ERROR_OPERATION_NOT_ALLOWED,
+                (Object) ("Product is not active: " + productId));
             throw new BusinessRuleException(400, errorMessage);
         }
 
@@ -86,7 +88,7 @@ public class KardexValidationService {
      */
     public void validatePreviousKardexExists(Kardex lastRegisteredKardex, String operation) {
         if (lastRegisteredKardex == null) {
-            String errorMessage = messageService.getMessage(MessageKeys.ERROR_MISSING_RECORD, operation);
+            String errorMessage = messageService.getMessage(MessageKeys.ERROR_MISSING_RECORD, (Object) operation);
             throw new BusinessRuleException(404, errorMessage);
         }
     }

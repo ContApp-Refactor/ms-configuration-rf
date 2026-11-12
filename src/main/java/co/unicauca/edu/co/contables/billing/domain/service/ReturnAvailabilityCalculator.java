@@ -52,7 +52,7 @@ public final class ReturnAvailabilityCalculator {
             anyReturned |= returned.signum() > 0;
             anyAvailable |= available.signum() > 0;
             lines.add(new ReturnLineAvailability(line.lineNo(), line.productId(), line.productName(), sold,
-                    returned, available, line.unitPrice(), line.taxRate()));
+                    returned, available, line.unitPrice(), line.taxRate(), line.taxes()));
         }
         boolean returnable = invoice.status() == DocumentStatus.EMITIDA && anyAvailable;
         return new ReturnAvailability(invoice.id(), lines, status(anyReturned, anyAvailable), returnable);

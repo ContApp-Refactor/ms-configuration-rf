@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.Map;
 import org.mockito.ArgumentCaptor;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentKind;
+import co.unicauca.edu.co.contables.billing.domain.model.Money;
 import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IProductServicePort;
 import co.unicauca.edu.co.contables.inventory.products.application.ports.input.IUnitOfMeasureServicePort;
 import co.unicauca.edu.co.contables.inventory.products.domain.exception.product.ProductNotFoundException;
@@ -53,12 +55,19 @@ class BillingProductAdapterTest {
     @Mock
     private BillingVatRateResolver vatRateResolver;
 
+    @Mock
+    private BillingLastPurchasePriceLookup lastPurchasePrices;
+
     private BillingProductAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        lenient().when(vatRateResolver.resolve(any(), any())).thenReturn(new BigDecimal("19"));
-        adapter = new BillingProductAdapter(productService, unitOfMeasureService, vatRateResolver);
+        lenient().when(vatRateResolver.resolveBreakdown(any(), any())).thenReturn(rate("19"));
+        adapter = new BillingProductAdapter(productService, unitOfMeasureService, vatRateResolver, lastPurchasePrices);
+    }
+
+    private static BillingVatRateResolver.Resolution rate(String value, TaxComponent... taxes) {
+        return new BillingVatRateResolver.Resolution(new BigDecimal(value), List.of(taxes));
     }
 
     private static Product.ProductBuilder baseProduct() {
@@ -117,8 +126,73 @@ class BillingProductAdapterTest {
     }
 
     @Test
+    void PRODUCT_sale_never_queries_the_last_purchase_price() {
+        when(productService.findById(PRODUCT_ID, ENTERPRISE)).thenReturn(baseProduct().categoryId(10L).build());
+        when(unitOfMeasureService.findByIdAndEnterpriseId(UOM_ID, ENTERPRISE))
+                .thenReturn(UnitOfMeasure.builder().id(UOM_ID).name("Unidad").build());
+        when(vatRateResolver.resolveAllBreakdowns(eq(ENTERPRISE), any()))
+                .thenReturn(new HashMap<>(Map.of(10L, rate("19"))));
+
+        ProductSnapshot single = adapter.findProduct(ENTERPRISE, PRODUCT_ID, DocumentKind.SALE).orElseThrow();
+        Map<Long, ProductSnapshot> batch = adapter.findProducts(ENTERPRISE, List.of(PRODUCT_ID), DocumentKind.SALE);
+
+        assertThat(single.catalogUnitPrice().value()).isEqualByComparingTo("1234.50");
+        assertThat(batch.get(PRODUCT_ID).catalogUnitPrice().value()).isEqualByComparingTo("1234.50");
+        verifyNoInteractions(lastPurchasePrices);
+    }
+
+    @Test
+    void PRODUCT_purchase_uses_the_last_purchase_price_instead_of_cost() {
+        when(productService.findById(PRODUCT_ID, ENTERPRISE)).thenReturn(baseProduct().build());
+        when(unitOfMeasureService.findByIdAndEnterpriseId(UOM_ID, ENTERPRISE))
+                .thenReturn(UnitOfMeasure.builder().id(UOM_ID).name("Unidad").build());
+        when(lastPurchasePrices.findAll(ENTERPRISE, List.of(PRODUCT_ID)))
+                .thenReturn(Map.of(PRODUCT_ID, Money.of(new BigDecimal("987.65"))));
+
+        ProductSnapshot snapshot = adapter.findProduct(ENTERPRISE, PRODUCT_ID, DocumentKind.PURCHASE).orElseThrow();
+
+        assertThat(snapshot.catalogUnitPrice().value()).isEqualByComparingTo("987.65");
+        assertThat(snapshot.catalogUnitPrice().value().scale()).isEqualTo(2);
+        assertThat(snapshot.code()).isEqualTo("PRO-1-5");
+    }
+
+    @Test
+    void PRODUCT_purchase_without_last_price_falls_back_to_cost() {
+        when(productService.findById(PRODUCT_ID, ENTERPRISE)).thenReturn(baseProduct().build());
+        when(unitOfMeasureService.findByIdAndEnterpriseId(UOM_ID, ENTERPRISE))
+                .thenReturn(UnitOfMeasure.builder().id(UOM_ID).name("Unidad").build());
+        when(lastPurchasePrices.findAll(ENTERPRISE, List.of(PRODUCT_ID))).thenReturn(Map.of());
+
+        ProductSnapshot snapshot = adapter.findProduct(ENTERPRISE, PRODUCT_ID, DocumentKind.PURCHASE).orElseThrow();
+
+        assertThat(snapshot.catalogUnitPrice().value()).isEqualByComparingTo("1234.50");
+    }
+
+    @Test
+    void PRODUCT_purchase_batch_mixes_last_price_and_cost_fallback_with_one_lookup() {
+        when(vatRateResolver.resolveAllBreakdowns(eq(ENTERPRISE), any())).thenReturn(new HashMap<>(Map.of(10L, rate("19"))));
+        when(productService.findById(1L, ENTERPRISE)).thenReturn(baseProduct().id(1L).categoryId(10L).build());
+        when(productService.findById(2L, ENTERPRISE)).thenReturn(baseProduct().id(2L).categoryId(10L).cost(50.0).build());
+        when(productService.findById(3L, ENTERPRISE)).thenThrow(new ProductNotFoundException(3L));
+        when(unitOfMeasureService.findByIdAndEnterpriseId(UOM_ID, ENTERPRISE))
+                .thenReturn(UnitOfMeasure.builder().id(UOM_ID).name("Unidad").build());
+        when(lastPurchasePrices.findAll(eq(ENTERPRISE), any()))
+                .thenReturn(Map.of(1L, Money.of(new BigDecimal("77.10"))));
+
+        Map<Long, ProductSnapshot> result = adapter.findProducts(ENTERPRISE, List.of(1L, 2L, 3L),
+                DocumentKind.PURCHASE);
+
+        assertThat(result).containsOnlyKeys(1L, 2L);
+        assertThat(result.get(1L).catalogUnitPrice().value()).isEqualByComparingTo("77.10");
+        assertThat(result.get(2L).catalogUnitPrice().value()).isEqualByComparingTo("50.00");
+        ArgumentCaptor<Collection<Long>> ids = ArgumentCaptor.forClass(Collection.class);
+        verify(lastPurchasePrices, times(1)).findAll(eq(ENTERPRISE), ids.capture());
+        assertThat(ids.getValue()).containsExactly(1L, 2L);
+    }
+
+    @Test
     void PRODUCT_tax_rate_follows_the_vat_resolved_for_the_product_category() {
-        when(vatRateResolver.resolve(ENTERPRISE, 10L)).thenReturn(new BigDecimal("5"));
+        when(vatRateResolver.resolveBreakdown(ENTERPRISE, 10L)).thenReturn(rate("5"));
         when(productService.findById(PRODUCT_ID, ENTERPRISE)).thenReturn(baseProduct().categoryId(10L).build());
         when(unitOfMeasureService.findByIdAndEnterpriseId(UOM_ID, ENTERPRISE))
                 .thenReturn(UnitOfMeasure.builder().id(UOM_ID).name("Unidad").build());
@@ -126,6 +200,30 @@ class BillingProductAdapterTest {
         ProductSnapshot snapshot = adapter.findProduct(ENTERPRISE, PRODUCT_ID, DocumentKind.SALE).orElseThrow();
 
         assertThat(snapshot.catalogTaxRate().value()).isEqualByComparingTo("5.00");
+    }
+
+    @Test
+    void PRODUCT_snapshot_carries_the_tax_breakdown_of_the_category() {
+        when(vatRateResolver.resolveBreakdown(ENTERPRISE, 10L)).thenReturn(rate("25",
+                TaxComponent.of("Iva", new BigDecimal("19")), TaxComponent.of("Ica", new BigDecimal("6"))));
+        when(productService.findById(PRODUCT_ID, ENTERPRISE)).thenReturn(baseProduct().categoryId(10L).build());
+        when(unitOfMeasureService.findByIdAndEnterpriseId(UOM_ID, ENTERPRISE))
+                .thenReturn(UnitOfMeasure.builder().id(UOM_ID).name("Unidad").build());
+
+        ProductSnapshot snapshot = adapter.findProduct(ENTERPRISE, PRODUCT_ID, DocumentKind.SALE).orElseThrow();
+
+        assertThat(snapshot.catalogTaxRate().value()).isEqualByComparingTo("25.00");
+        assertThat(snapshot.catalogTaxes()).extracting(TaxComponent::name).containsExactly("Iva", "Ica");
+    }
+
+    @Test
+    void PRODUCT_default_vat_snapshot_has_no_breakdown() {
+        when(productService.findById(PRODUCT_ID, ENTERPRISE)).thenReturn(baseProduct().build());
+        when(unitOfMeasureService.findByIdAndEnterpriseId(UOM_ID, ENTERPRISE))
+                .thenReturn(UnitOfMeasure.builder().id(UOM_ID).name("Unidad").build());
+
+        assertThat(adapter.findProduct(ENTERPRISE, PRODUCT_ID, DocumentKind.SALE).orElseThrow().catalogTaxes())
+                .isEmpty();
     }
 
     @Test
@@ -172,8 +270,8 @@ class BillingProductAdapterTest {
 
     @Test
     void PRODUCT_batch_resolves_vat_once_for_the_distinct_categories() {
-        when(vatRateResolver.resolveAll(eq(ENTERPRISE), any())).thenReturn(
-                new HashMap<>(Map.of(10L, new BigDecimal("5"), 11L, new BigDecimal("16"))));
+        when(vatRateResolver.resolveAllBreakdowns(eq(ENTERPRISE), any())).thenReturn(
+                new HashMap<>(Map.of(10L, rate("5"), 11L, rate("16"))));
         when(productService.findById(1L, ENTERPRISE)).thenReturn(baseProduct().id(1L).categoryId(10L).build());
         when(productService.findById(2L, ENTERPRISE)).thenReturn(baseProduct().id(2L).categoryId(11L).build());
         when(productService.findById(3L, ENTERPRISE)).thenThrow(new ProductNotFoundException(3L));
@@ -189,7 +287,7 @@ class BillingProductAdapterTest {
         assertThat(result.get(2L).catalogTaxRate().value()).isEqualByComparingTo("16.00");
         assertThat(result.get(4L).catalogTaxRate().value()).isEqualByComparingTo("5.00");
         ArgumentCaptor<Collection<Long>> categories = ArgumentCaptor.forClass(Collection.class);
-        verify(vatRateResolver, times(1)).resolveAll(eq(ENTERPRISE), categories.capture());
+        verify(vatRateResolver, times(1)).resolveAllBreakdowns(eq(ENTERPRISE), categories.capture());
         assertThat(categories.getValue()).containsExactlyInAnyOrder(10L, 11L);
         verify(productService, times(1)).findById(1L, ENTERPRISE);
     }
@@ -199,7 +297,7 @@ class BillingProductAdapterTest {
         ICategoryServicePort categoryService = mock(ICategoryServicePort.class);
         ITaxSearchInputPort taxSearch = mock(ITaxSearchInputPort.class);
         BillingVatRateResolver real = new BillingVatRateResolver(categoryService, taxSearch, new BillingProperties());
-        BillingProductAdapter realAdapter = new BillingProductAdapter(productService, unitOfMeasureService, real);
+        BillingProductAdapter realAdapter = new BillingProductAdapter(productService, unitOfMeasureService, real, lastPurchasePrices);
         when(categoryService.findById(ENTERPRISE, 10L))
                 .thenReturn(Category.builder().id(10L).taxes(List.of(7L)).build());
         when(taxSearch.getActiveTaxes(ENTERPRISE)).thenReturn(List.of(Tax.builder().id(7L).idEnterprise(ENTERPRISE)
@@ -215,6 +313,8 @@ class BillingProductAdapterTest {
 
         assertThat(result).hasSize(5);
         assertThat(result.values()).allSatisfy(s -> assertThat(s.catalogTaxRate().value()).isEqualByComparingTo("5.00"));
+        assertThat(result.values()).allSatisfy(s -> assertThat(s.catalogTaxes())
+                .containsExactly(TaxComponent.of("IVA5", new BigDecimal("5"))));
         verify(taxSearch, times(1)).getActiveTaxes(ENTERPRISE);
         verify(categoryService, times(1)).findById(ENTERPRISE, 10L);
     }

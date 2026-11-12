@@ -41,7 +41,10 @@ public class KardexReturnService {
         List<Kardex> originalKardexList = kardexQueryRepositoryPort.findByFactCodeAndProductIdAndType(factCode, productId, originalMovementType);
         if (originalKardexList.isEmpty()) {
             formatterResultOutputPort.returnEntityDoesNotExistErrorResponse(404, 
-                messageService.getMessage(MessageKeys.ERROR_NOT_FOUND, "factCode=" + factCode + ", productId=" + productId + ", type=" + originalMovementType));
+                // (Object): con un unico String Java elige la sobrecarga getMessage(key, defaultMessage)
+                // y el mensaje sale con "{0}" sin reemplazar
+                messageService.getMessage(MessageKeys.ERROR_NOT_FOUND,
+                    (Object) ("factCode=" + factCode + ", productId=" + productId + ", type=" + originalMovementType)));
         }
 
         // The first record must be the original operation
@@ -60,7 +63,7 @@ public class KardexReturnService {
             return unitPrice;
         }
         formatterResultOutputPort.returnBusinessRuleErrorResponse(400, 
-            messageService.getMessage(MessageKeys.ERROR_QUANTITY_EXCEEDED, "Quantity"));
+            messageService.getMessage(MessageKeys.ERROR_QUANTITY_EXCEEDED, (Object) "Quantity"));
         return BigDecimal.ZERO;
     }
 

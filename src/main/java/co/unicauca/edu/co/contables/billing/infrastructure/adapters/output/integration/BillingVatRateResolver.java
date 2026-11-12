@@ -2,6 +2,7 @@ package co.unicauca.edu.co.contables.billing.infrastructure.adapters.output.inte
 
 import co.unicauca.edu.co.contables.accounting.catalogue.taxes.application.input.ITaxSearchInputPort;
 import co.unicauca.edu.co.contables.accounting.catalogue.taxes.domain.models.Tax;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.billing.infrastructure.config.BillingProperties;
 import co.unicauca.edu.co.contables.inventory.products.application.ports.input.ICategoryServicePort;
 import co.unicauca.edu.co.contables.inventory.products.domain.model.Category;
@@ -24,6 +25,11 @@ import org.springframework.stereotype.Component;
  * todos los impuestos activos de la categoria (p. ej. 6 + 8 + 12 = 26). Sin categoria, sin impuestos
  * activos, con total invalido (fuera de 0..100) o ante cualquier fallo de la consulta se usa
  * {@code billing.default-vat-rate}: el catalogo nunca bloquea la facturacion.
+ *
+ * <p>Ademas de la suma devuelve el DESGLOSE ({@link Resolution#taxes()}): un {@link TaxComponent}
+ * por impuesto sumado, con el codigo del maestro como nombre ("Iva", "Ica") y su tarifa, en el orden
+ * del maestro de impuestos activos. Es solo presentacion: el calculo sigue usando la suma. Cuando se
+ * usa el valor por defecto el desglose queda vacio (la linea muestra un unico valor editable).
  *
  * <p>Los impuestos activos se consultan una sola vez por invocacion de {@link #resolveAll} (H7) y
  * nunca se cachean entre invocaciones.
@@ -55,9 +61,24 @@ public class BillingVatRateResolver {
         this.properties = properties;
     }
 
+    /**
+     * Resultado para una categoria: {@code rate} es la suma (0..100) que usa el calculo y
+     * {@code taxes} el desglose que la explica; vacio cuando {@code rate} es el valor por defecto.
+     */
+    public record Resolution(BigDecimal rate, List<TaxComponent> taxes) {
+        public Resolution {
+            taxes = TaxComponent.copyOf(taxes);
+        }
+    }
+
     /** Porcentaje de IVA (0..100, escala 2) para la categoria; nunca nulo. */
     public BigDecimal resolve(String enterpriseId, Long categoryId) {
-        return resolveAll(enterpriseId, Collections.singletonList(categoryId)).get(categoryId);
+        return resolveBreakdown(enterpriseId, categoryId).rate();
+    }
+
+    /** Suma y desglose de la categoria; nunca nulo. */
+    public Resolution resolveBreakdown(String enterpriseId, Long categoryId) {
+        return resolveAllBreakdowns(enterpriseId, Collections.singletonList(categoryId)).get(categoryId);
     }
 
     /**
@@ -68,22 +89,29 @@ public class BillingVatRateResolver {
      */
     public Map<Long, BigDecimal> resolveAll(String enterpriseId, Collection<Long> categoryIds) {
         Map<Long, BigDecimal> rates = new LinkedHashMap<>();
-        Operation operation = new Operation(enterpriseId);
-        for (Long categoryId : categoryIds) {
-            if (!rates.containsKey(categoryId)) {
-                rates.put(categoryId, resolveOne(operation, categoryId));
-            }
-        }
+        resolveAllBreakdowns(enterpriseId, categoryIds).forEach((id, resolution) -> rates.put(id, resolution.rate()));
         return rates;
     }
 
-    private BigDecimal resolveOne(Operation operation, Long categoryId) {
+    /** Como {@link #resolveAll} pero con el desglose de cada categoria (mismas consultas, H7). */
+    public Map<Long, Resolution> resolveAllBreakdowns(String enterpriseId, Collection<Long> categoryIds) {
+        Map<Long, Resolution> resolutions = new LinkedHashMap<>();
+        Operation operation = new Operation(enterpriseId);
+        for (Long categoryId : categoryIds) {
+            if (!resolutions.containsKey(categoryId)) {
+                resolutions.put(categoryId, resolveOne(operation, categoryId));
+            }
+        }
+        return resolutions;
+    }
+
+    private Resolution resolveOne(Operation operation, Long categoryId) {
         if (categoryId == null) {
             return fallback();
         }
         try {
-            BigDecimal rate = fromCategory(operation, categoryId);
-            return rate == null ? fallback() : rate;
+            Resolution resolution = fromCategory(operation, categoryId);
+            return resolution == null ? fallback() : resolution;
         } catch (RuntimeException ex) {
             log.warn("No se pudo resolver el IVA de la categoria {} (empresa {}); se usa el valor por defecto: {}",
                     categoryId, operation.enterpriseId, ex.toString());
@@ -91,7 +119,7 @@ public class BillingVatRateResolver {
         }
     }
 
-    private BigDecimal fromCategory(Operation operation, Long categoryId) {
+    private Resolution fromCategory(Operation operation, Long categoryId) {
         Category category = categoryService.findById(operation.enterpriseId, categoryId);
         if (category == null || category.getTaxes() == null || category.getTaxes().isEmpty()) {
             return null;
@@ -110,7 +138,23 @@ public class BillingVatRateResolver {
         }
         BigDecimal rate = candidates.stream().map(BillingVatRateResolver::rateOf)
                 .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
-        return rate.signum() < 0 || rate.compareTo(HUNDRED) > 0 ? null : rate;
+        if (rate.signum() < 0 || rate.compareTo(HUNDRED) > 0) {
+            return null;
+        }
+        return new Resolution(rate, candidates.stream()
+                .map(t -> TaxComponent.of(nameOf(t), rateOf(t)))
+                .toList());
+    }
+
+    /** Nombre tal como esta en el maestro: el codigo ("Iva"); sin codigo, la descripcion. */
+    private static String nameOf(Tax tax) {
+        if (tax.getCode() != null && !tax.getCode().isBlank()) {
+            return tax.getCode();
+        }
+        if (tax.getDescription() != null && !tax.getDescription().isBlank()) {
+            return tax.getDescription();
+        }
+        return "Impuesto";
     }
 
     private static BigDecimal rateOf(Tax tax) {
@@ -136,7 +180,7 @@ public class BillingVatRateResolver {
         }
     }
 
-    private BigDecimal fallback() {
-        return properties.getDefaultVatRate();
+    private Resolution fallback() {
+        return new Resolution(properties.getDefaultVatRate(), List.of());
     }
 }

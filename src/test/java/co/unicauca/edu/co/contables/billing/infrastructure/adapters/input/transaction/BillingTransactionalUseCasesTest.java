@@ -104,7 +104,8 @@ class BillingTransactionalUseCasesTest {
     @BeforeEach
     void setUp() {
         commands = new BillingTransactionalCommandUseCases(repository, thirdParties, products, enterprises, sequence,
-                outbox, context, clock, ids, stock, accounting);
+                outbox, context, clock, ids, stock, accounting,
+                new co.unicauca.edu.co.contables.billing.support.FakePaymentCatalogPort());
         queries = new BillingTransactionalQueryUseCases(repository, thirdParties, products, enterprises);
     }
 

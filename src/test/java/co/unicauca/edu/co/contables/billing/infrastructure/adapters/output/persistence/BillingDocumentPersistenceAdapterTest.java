@@ -42,15 +42,19 @@ import co.unicauca.edu.co.contables.billing.domain.exception.BillingErrorCode;
 import co.unicauca.edu.co.contables.billing.domain.exception.BillingException;
 import co.unicauca.edu.co.contables.billing.domain.model.BillingDocument;
 import co.unicauca.edu.co.contables.billing.domain.model.BillingDocumentState;
+import co.unicauca.edu.co.contables.billing.domain.model.CounterpartyRole;
+import co.unicauca.edu.co.contables.billing.domain.model.CounterpartySnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentLine;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentNumber;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentStatus;
 import co.unicauca.edu.co.contables.billing.domain.model.DocumentType;
 import co.unicauca.edu.co.contables.billing.domain.model.OriginalDocumentRef;
+import co.unicauca.edu.co.contables.billing.domain.model.ProductSnapshot;
 import co.unicauca.edu.co.contables.billing.domain.model.Quantity;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnLineAvailability;
 import co.unicauca.edu.co.contables.billing.domain.model.ReturnStatus;
+import co.unicauca.edu.co.contables.billing.domain.model.TaxComponent;
 import co.unicauca.edu.co.contables.commons.multitenancy.utils.TenantContext;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -267,6 +271,31 @@ class BillingDocumentPersistenceAdapterTest {
         assertThat(status).isEqualTo("BORRADOR");
         assertThat(tenant).isEqualTo(TENANT_A);
         assertThat(lineTenant).isEqualTo(TENANT_A);
+    }
+
+    // ---------- desglose de impuestos (columna tax_breakdown) ----------
+
+    @Test
+    void TAXES_breakdown_round_trips_through_the_database_and_old_rows_without_it_still_load() {
+        ProductSnapshot taxed = new ProductSnapshot(1L, "P1", "Producto 1", 1L, "Unidad", money("100.00"),
+                rate("26"), true, List.of(TaxComponent.of("Ica", new BigDecimal("6")),
+                        TaxComponent.of("SalD", new BigDecimal("8")), TaxComponent.of("Iva", new BigDecimal("12"))));
+        BillingDocument doc = draftSale();
+        doc.replaceInvoiceDraft(customer(), TODAY, null, List.of(
+                DocumentLine.forInvoice(1, taxed, Quantity.of(new BigDecimal("1")), null, null),
+                lineOf(2, product(2L), "1")), NOW, USER);
+        BillingDocument saved = adapter.save(doc);
+        flushAndClear();
+
+        BillingDocument found = adapter.findById(ENTERPRISE_ID, saved.id()).orElseThrow();
+
+        assertThat(found.state()).isEqualTo(saved.state());
+        assertThat(found.lines().get(0).taxes()).extracting(TaxComponent::name).containsExactly("Ica", "SalD", "Iva");
+        assertThat(found.lines().get(0).taxAmount().value()).isEqualByComparingTo("26.00");
+        assertThat(found.lines().get(1).taxes()).isEmpty();
+        String stored = jdbc.queryForObject(
+                "select tax_breakdown from billing_document_lines where line_no = 2", String.class);
+        assertThat(stored).as("linea sin impuestos de categoria: columna nula, como las viejas").isNull();
     }
 
     // ---------- version ----------
@@ -1110,5 +1139,114 @@ class BillingDocumentPersistenceAdapterTest {
 
         assertThat(result).extracting(item -> item.summary().id()).containsExactly(uuid(2), uuid(71), uuid(70));
         assertThat(result).extracting(ReturnSummary::ordinal).containsExactly(1, 2, null);
+    }
+
+    // ---------- unicidad del N.º de factura del proveedor ----------
+
+    private static CounterpartySnapshot supplierWithId(long thirdId) {
+        return new CounterpartySnapshot(thirdId, CounterpartyRole.SUPPLIER, "Proveedor " + thirdId, "NIT",
+                "800" + thirdId, "1", "Calle 1", "p@example.com", "3000000000", true);
+    }
+
+    private static BillingDocument purchaseDraftOf(UUID id, long supplierId, String supplierNumber) {
+        BillingDocument doc = BillingDocument.newInvoiceDraft(id, ENTERPRISE_ID, DocumentType.PURCHASE_INVOICE,
+                TODAY, NOW, USER);
+        doc.replaceInvoiceDraft(supplierWithId(supplierId), TODAY, supplierNumber,
+                List.of(lineOf(1, product(1L), "2")),
+                co.unicauca.edu.co.contables.billing.support.BillingTestData.methodTerms(1L), NOW, USER);
+        return doc;
+    }
+
+    private static BillingDocument emittedPurchaseOf(UUID id, long supplierId, String supplierNumber, long consecutive) {
+        BillingDocument doc = purchaseDraftOf(id, supplierId, supplierNumber);
+        doc.emit(DocumentNumber.of(DocumentType.PURCHASE_INVOICE, consecutive),
+                co.unicauca.edu.co.contables.billing.support.BillingTestData.issuer(), null, NOW, USER);
+        return doc;
+    }
+
+    private Optional<BillingDocumentSummary> findDuplicate(long supplierId, String number, UUID excludeId) {
+        return adapter.findPurchaseInvoiceBySupplierNumber(ENTERPRISE_ID, supplierId, number, excludeId);
+    }
+
+    @Test
+    void SUP_1_finds_a_draft_and_an_emitted_purchase_of_the_same_supplier_and_number() {
+        adapter.save(purchaseDraftOf(uuid(41), 20L, "1234"));
+        adapter.save(emittedPurchaseOf(uuid(42), 20L, "5678", 1L));
+        flushAndClear();
+
+        assertThat(findDuplicate(20L, "1234", null)).map(BillingDocumentSummary::id).contains(uuid(41));
+        assertThat(findDuplicate(20L, "5678", null)).map(BillingDocumentSummary::id).contains(uuid(42));
+    }
+
+    @Test
+    void SUP_2_ignores_case_and_surrounding_spaces_in_both_the_stored_and_the_searched_number() {
+        adapter.save(purchaseDraftOf(uuid(41), 20L, "FE-1"));
+        // numero legado con espacios y otra capitalizacion, insertado sin pasar por el dominio
+        adapter.save(purchaseDraftOf(uuid(43), 20L, "ab-9"));
+        flushAndClear();
+        jdbc.update("update billing_documents set supplier_invoice_number = ' AB-9 ' where id = ?", uuid(43));
+
+        assertThat(findDuplicate(20L, "fe-1", null)).isPresent();
+        assertThat(findDuplicate(20L, "  Fe-1 ", null)).isPresent();
+        assertThat(findDuplicate(20L, "ab-9", null)).isPresent();
+        assertThat(findDuplicate(20L, "FE-2", null)).isEmpty();
+    }
+
+    @Test
+    void SUP_3_the_same_number_under_another_supplier_is_not_a_duplicate() {
+        adapter.save(purchaseDraftOf(uuid(41), 20L, "1234"));
+        flushAndClear();
+
+        assertThat(findDuplicate(21L, "1234", null)).isEmpty();
+    }
+
+    @Test
+    void SUP_4_excludes_the_document_itself() {
+        adapter.save(purchaseDraftOf(uuid(41), 20L, "1234"));
+        flushAndClear();
+
+        assertThat(findDuplicate(20L, "1234", uuid(41))).isEmpty();
+        assertThat(findDuplicate(20L, "1234", uuid(99))).isPresent();
+    }
+
+    @Test
+    void SUP_5_annulled_purchases_do_not_count_so_the_number_can_be_reused() {
+        BillingDocument emitted = emittedPurchaseOf(uuid(41), 20L, "1234", 1L);
+        emitted.annul("error de digitacion", false, LATER, USER);
+        adapter.save(emitted);
+        flushAndClear();
+
+        assertThat(findDuplicate(20L, "1234", null)).isEmpty();
+    }
+
+    @Test
+    void SUP_6_purchase_returns_that_copy_the_number_do_not_count() {
+        BillingDocument original = emittedPurchaseOf(uuid(41), 20L, "1234", 1L);
+        adapter.save(original);
+        BillingDocument ret = returnDraftOf(original, uuid(44), "defecto", returnLineOf(original, 1, "1"));
+        adapter.save(ret);
+        flushAndClear();
+
+        assertThat(ret.supplierInvoiceNumber()).isEqualTo("1234");
+        // solo aparece la factura original, nunca la devolucion
+        assertThat(findDuplicate(20L, "1234", uuid(41))).isEmpty();
+        assertThat(findDuplicate(20L, "1234", null)).map(BillingDocumentSummary::id).contains(uuid(41));
+    }
+
+    @Test
+    void SUP_7_other_enterprises_do_not_count() {
+        adapter.save(relocated(purchaseDraftOf(uuid(41), 20L, "1234"), uuid(45), OTHER_ENTERPRISE_ID));
+        flushAndClear();
+
+        assertThat(findDuplicate(20L, "1234", null)).isEmpty();
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void SUP_8_another_tenant_does_not_see_the_purchase() {
+        asTenant(TENANT_A, () -> adapter.save(purchaseDraftOf(uuid(41), 20L, "1234")));
+
+        assertThat(asTenant(TENANT_A, () -> findDuplicate(20L, "1234", null))).isPresent();
+        assertThat(asTenant(TENANT_B, () -> findDuplicate(20L, "1234", null))).isEmpty();
     }
 }

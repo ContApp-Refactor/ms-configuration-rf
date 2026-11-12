@@ -141,7 +141,8 @@ class BillingIdempotencyIntegrationTest {
                 UUID::randomUUID);
         returnDrafts = new BillingReturnDraftService(adapter, loader, executionContext, clock, UUID::randomUUID);
         emission = new BillingEmissionService(adapter, loader, resolver, sequence, outbox, executionContext, clock,
-                UUID::randomUUID, stock, accounting);
+                UUID::randomUUID, stock, accounting,
+                new co.unicauca.edu.co.contables.billing.support.FakePaymentCatalogPort());
         annulment = new BillingAnnulmentService(adapter, loader, outbox, executionContext, clock, UUID::randomUUID,
                 stock, accounting);
     }

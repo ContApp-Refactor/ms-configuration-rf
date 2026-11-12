@@ -117,7 +117,9 @@ public class KardexReturnServiceUnitTest {
         List<Kardex> emptyList = Collections.emptyList();
         when(kardexQueryRepositoryPort.findByFactCodeAndProductIdAndType(factCode, productId, MovementType.PURCHASE))
             .thenReturn(emptyList);
-        when(messageService.getMessage(anyString(), anyString())).thenReturn("Not found error");
+        // Convertido: el detalle viaja como ARGUMENTO del mensaje (sobrecarga varargs), no como
+        // "defaultMessage"; antes el "{0}" del mensaje real quedaba sin reemplazar
+        when(messageService.getMessage(anyString(), any(Object[].class))).thenReturn("Not found error");
         
         // Act & Assert
         try {
@@ -129,7 +131,7 @@ public class KardexReturnServiceUnitTest {
         
         // Verify that the error response was called
         verify(formatterResultOutputPort).returnEntityDoesNotExistErrorResponse(eq(404), anyString());
-        verify(messageService).getMessage(anyString(), anyString());
+        verify(messageService).getMessage(anyString(), (Object) argThat(arg -> String.valueOf(arg).contains("factCode=")));
     }
     
     @Test
@@ -144,7 +146,7 @@ public class KardexReturnServiceUnitTest {
             .thenReturn(originalKardexList);
         when(kardexQueryRepositoryPort.findByFactCodeAndProductIdAndType(factCode, productId, MovementType.PURCHASERETURN))
             .thenReturn(returnKardexList);
-        when(messageService.getMessage(anyString(), anyString())).thenReturn("Quantity exceeded error");
+        when(messageService.getMessage(anyString(), any(Object[].class))).thenReturn("Quantity exceeded error");
         
         // Act
         BigDecimal result = kardexReturnService.getUnitPriceIfReturnAllowed(factCode, excessiveQuantity, productId, MovementType.PURCHASE);
@@ -152,7 +154,7 @@ public class KardexReturnServiceUnitTest {
         // Assert
         assertEquals(BigDecimal.ZERO, result);
         verify(formatterResultOutputPort).returnBusinessRuleErrorResponse(eq(400), anyString());
-        verify(messageService).getMessage(anyString(), eq("Quantity"));
+        verify(messageService).getMessage(anyString(), (Object) eq("Quantity"));
     }
     
     @Test

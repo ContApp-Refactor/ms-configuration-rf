@@ -1,7 +1,9 @@
 package co.unicauca.edu.co.contables.inventory.peps.application.ports.input;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,5 +42,16 @@ public interface IKardexQueryPort {
      * @return List of latest kardex records for each product
      */
     List<KardexMigration> findLastKardexForAllProducts(String enterpriseId);
+
+    /**
+     * @brief Gets the unit price of the most recent commercial entry of a product
+     *
+     * Considers only PURCHASE and ADJUSTMENTENTRY movements (latest by date, ties broken by
+     * highest id). Sales, exits, returns, non-commercial entries and opening balances are ignored.
+     * Read-only.
+     * @param productId Product identifier
+     * @return Unit price of the latest purchase/adjustment entry, or empty if none exists
+     */
+    Optional<BigDecimal> findLastEntryUnitPrice(Long productId);
 
 }
