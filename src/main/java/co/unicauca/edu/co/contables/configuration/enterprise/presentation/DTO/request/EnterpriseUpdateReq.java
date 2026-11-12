@@ -6,9 +6,11 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @brief DTO de solicitud para actualizar una empresa existente.
@@ -42,10 +44,23 @@ public class EnterpriseUpdateReq {
 
     private String logo;
 
+    /**
+     * Accion explicita para quitar el logo. Solo aplica si true y no se envia un logo nuevo;
+     * ausente/false conserva el comportamiento anterior (logo null = no tocar).
+     */
+    private Boolean removeLogo;
+
     private Long mainActivity;
     private Long secondaryActivity;
 
     private List<Long> taxLiabilities;
+
+    /**
+     * Ids de las materias de la empresa. Ids inexistentes o de otro tenant se ignoran.
+     * En actualizacion: null = no modificar, lista vacia = quitar todas las materias.
+     */
+    @Size(max = 500, message = "Demasiadas materias")
+    private List<@NotNull(message = "El id de materia no puede ser nulo") UUID> subjects;
 
     @Builder.Default
     private StateEnum state = StateEnum.ACTIVE;

@@ -37,6 +37,8 @@ import co.unicauca.edu.co.contables.configuration.enterprise.presentation.except
  */
 class SubjectControllerAdviceTest {
 
+    private static final java.util.UUID ID = java.util.UUID.randomUUID();
+
     @Test
     void elAdviceDeEnterpriseSeOrdenaAntesDelGlobal() {
         List<Object> advices = new java.util.ArrayList<>(List.of(
@@ -53,12 +55,14 @@ class SubjectControllerAdviceTest {
     void getAllDevuelve200ConElContratoDelFrontend() throws Exception {
         ISubjectService service = mock(ISubjectService.class);
         when(service.getAll()).thenReturn(List.of(Subject.builder()
+                .id(ID)
                 .code("MAT01")
                 .name("CONTABILIDAD I")
                 .build()));
 
-        mockMvc(service).perform(get("/api/subjects"))
+        mockMvc(service).perform(get("/api/enterprises/subjects"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(ID.toString()))
                 .andExpect(jsonPath("$[0].code").value("MAT01"))
                 .andExpect(jsonPath("$[0].name").value("CONTABILIDAD I"));
     }
@@ -68,7 +72,7 @@ class SubjectControllerAdviceTest {
         ISubjectService service = mock(ISubjectService.class);
         when(service.getAll()).thenReturn(List.of());
 
-        mockMvc(service).perform(get("/api/subjects/"))
+        mockMvc(service).perform(get("/api/enterprises/subjects/"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
     }
@@ -78,7 +82,7 @@ class SubjectControllerAdviceTest {
         ISubjectService service = mock(ISubjectService.class);
         when(service.getByCode("NOEXISTE")).thenThrow(new SubjectNotFoundException("NOEXISTE"));
 
-        mockMvc(service).perform(get("/api/subjects/NOEXISTE"))
+        mockMvc(service).perform(get("/api/enterprises/subjects/NOEXISTE"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -88,7 +92,7 @@ class SubjectControllerAdviceTest {
         ISubjectService service = mock(ISubjectService.class);
         when(service.create(any())).thenThrow(new SubjectCodeAlreadyExistsException("MAT01"));
 
-        mockMvc(service).perform(post("/api/subjects")
+        mockMvc(service).perform(post("/api/enterprises/subjects")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"MAT01\",\"name\":\"CONTABILIDAD I\"}"))
                 .andExpect(status().isConflict())

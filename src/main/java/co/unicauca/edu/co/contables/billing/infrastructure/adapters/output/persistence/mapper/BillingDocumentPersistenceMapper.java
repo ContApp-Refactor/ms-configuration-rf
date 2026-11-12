@@ -103,6 +103,7 @@ public class BillingDocumentPersistenceMapper {
         entity.setCounterpartyAddress(counterparty == null ? null : counterparty.address());
         entity.setCounterpartyEmail(counterparty == null ? null : counterparty.email());
         entity.setCounterpartyPhone(counterparty == null ? null : counterparty.phone());
+        entity.setCounterpartyCity(counterparty == null ? null : counterparty.city());
 
         entity.setSupplierInvoiceNumber(document.supplierInvoiceNumber());
 
@@ -110,6 +111,13 @@ public class BillingDocumentPersistenceMapper {
         entity.setIssuerName(issuer == null ? null : issuer.name());
         entity.setIssuerNit(issuer == null ? null : issuer.nit());
         entity.setIssuerDv(issuer == null ? null : issuer.dv());
+        entity.setIssuerAddress(issuer == null ? null : issuer.address());
+        entity.setIssuerCity(issuer == null ? null : issuer.city());
+        entity.setIssuerDepartment(issuer == null ? null : issuer.department());
+        entity.setIssuerPhone(issuer == null ? null : issuer.phone());
+        entity.setIssuerEmail(issuer == null ? null : issuer.email());
+        entity.setIssuerEconomicActivity(issuer == null ? null : issuer.economicActivity());
+        entity.setIssuerLogo(issuer == null ? null : issuer.logo());
 
         PaymentTerms payment = document.payment();
         entity.setPaymentMethodId(payment == null ? null : payment.paymentMethodId());
@@ -333,7 +341,8 @@ public class BillingDocumentPersistenceMapper {
                 entity.getCounterpartyAddress(),
                 entity.getCounterpartyEmail(),
                 entity.getCounterpartyPhone(),
-                true);
+                true,
+                entity.getCounterpartyCity());
     }
 
     /** Sin metodo de pago (columna nula: compras, devoluciones, ventas historicas) no hay pago. */
@@ -349,7 +358,9 @@ public class BillingDocumentPersistenceMapper {
             return null;
         }
         return new IssuerSnapshot(entity.getEnterpriseId(), entity.getIssuerName(), entity.getIssuerNit(),
-                entity.getIssuerDv(), true);
+                entity.getIssuerDv(), true, entity.getIssuerAddress(), entity.getIssuerCity(),
+                entity.getIssuerDepartment(), entity.getIssuerPhone(), entity.getIssuerEmail(),
+                entity.getIssuerEconomicActivity(), entity.getIssuerLogo());
     }
 
     private static OriginalDocumentRef original(BillingDocumentEntity entity) {

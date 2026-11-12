@@ -8,8 +8,11 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * @brief Repositorio JPA para operaciones de persistencia de productos
@@ -69,5 +72,42 @@ public interface IProductRepository extends JpaRepository<ProductEntity, Long> {
     long countByEnterpriseIdWithFilters(String enterpriseId, String search);
     
     long countByEnterpriseId(String enterpriseId);
-    
+
+    /**
+     * @brief Página de productos de la empresa (copia de seguridad: lectura por lotes)
+     * @param enterpriseId ID de la empresa
+     * @param pageable página (ordenada por id para recorrer sin repetir)
+     * @return porción de productos
+     */
+    Slice<ProductEntity> findByEnterpriseId(String enterpriseId, Pageable pageable);
+
+    /**
+     * @brief Ids de productos cuya categoría no existe en la empresa (copia de seguridad)
+     */
+    @Query("SELECT p.id FROM InventoryProductEntity p WHERE p.enterpriseId = :enterpriseId "
+            + "AND p.categoryId IS NOT NULL AND p.categoryId NOT IN "
+            + "(SELECT c.id FROM CategoryEntity c WHERE c.enterpriseId = :enterpriseId)")
+    List<Long> findIdsWithMissingCategory(@Param("enterpriseId") String enterpriseId, Pageable pageable);
+
+    /**
+     * @brief Ids de productos cuya unidad de medida no existe en la empresa (copia de seguridad)
+     */
+    @Query("SELECT p.id FROM InventoryProductEntity p WHERE p.enterpriseId = :enterpriseId "
+            + "AND p.unitOfMeasureId IS NOT NULL AND p.unitOfMeasureId NOT IN "
+            + "(SELECT u.id FROM UnitOfMeasureEntity u WHERE u.enterpriseId = :enterpriseId)")
+    List<Long> findIdsWithMissingUnitOfMeasure(@Param("enterpriseId") String enterpriseId, Pageable pageable);
+
+    /**
+     * @brief Ids de productos cuyo tipo no existe en la empresa (copia de seguridad)
+     */
+    @Query("SELECT p.id FROM InventoryProductEntity p WHERE p.enterpriseId = :enterpriseId "
+            + "AND p.productTypeId IS NOT NULL AND p.productTypeId NOT IN "
+            + "(SELECT t.id FROM ProductTypeEntity t WHERE t.enterpriseId = :enterpriseId)")
+    List<Long> findIdsWithMissingProductType(@Param("enterpriseId") String enterpriseId, Pageable pageable);
+
+    /** Restore en el lugar: borra (bulk) los productos de la empresa. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM InventoryProductEntity p WHERE p.enterpriseId = :enterpriseId")
+    int deleteAllByEnterpriseIdBulk(@Param("enterpriseId") String enterpriseId);
+
 }

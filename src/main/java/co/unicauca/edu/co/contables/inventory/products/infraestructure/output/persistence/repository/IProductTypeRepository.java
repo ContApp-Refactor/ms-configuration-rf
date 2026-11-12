@@ -3,7 +3,9 @@ package co.unicauca.edu.co.contables.inventory.products.infraestructure.output.p
 import co.unicauca.edu.co.contables.inventory.products.infraestructure.output.persistence.entity.ProductTypeEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -21,7 +23,10 @@ public interface IProductTypeRepository extends JpaRepository<ProductTypeEntity,
     Optional<ProductTypeEntity> findByIdAndEnterpriseId(Long id, String enterpriseId);
 
     boolean existsByNameAndEnterpriseId(String name, String enterpriseId);
-    
+
+    /** Página de tipos de producto de la empresa (copia de seguridad: lectura por lotes). */
+    Slice<ProductTypeEntity> findByEnterpriseId(String enterpriseId, Pageable pageable);
+
     boolean existsByNameAndEnterpriseIdAndIdNot(String name, String enterpriseId, Long id);
 
     @Query("SELECT p FROM ProductTypeEntity p WHERE p.enterpriseId = :enterpriseId")
@@ -70,4 +75,9 @@ public interface IProductTypeRepository extends JpaRepository<ProductTypeEntity,
      */
     @Query("SELECT COUNT(p) FROM ProductTypeEntity p WHERE p.enterpriseId = :enterpriseId AND p.state = true")
     long countActivatedByEnterpriseId(@Param("enterpriseId") String enterpriseId);
+
+    /** Restore en el lugar: borra (bulk) los tipos de producto de la empresa. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM ProductTypeEntity p WHERE p.enterpriseId = :enterpriseId")
+    int deleteAllByEnterpriseIdBulk(@Param("enterpriseId") String enterpriseId);
 }

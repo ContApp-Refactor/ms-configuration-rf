@@ -3,6 +3,8 @@ package co.unicauca.edu.co.contables.inventory.stock.infrastructure.adapters.out
 import java.util.Collection;
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -34,6 +36,19 @@ public interface StockRepository extends JpaRepository <StockEntity, Long> {
 
     // Count products by enterprise ID
     long countByEnterpriseId(String enterpriseId);
+
+    // Página de stock de la empresa (copia de seguridad: lectura por lotes)
+    Slice<StockEntity> findByEnterpriseId(String enterpriseId, Pageable pageable);
+
+    // Stock cuyo producto no existe en la empresa (copia de seguridad: huérfanos)
+    @Query("SELECT s.productId FROM StockEntity s WHERE s.enterpriseId = :enterpriseId AND s.productId NOT IN "
+            + "(SELECT p.id FROM InventoryProductEntity p WHERE p.enterpriseId = :enterpriseId)")
+    List<Long> findProductIdsWithoutProduct(@Param("enterpriseId") String enterpriseId, Pageable pageable);
+
+    // Restore en el lugar: borra (bulk) la réplica de stock de la empresa
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM StockEntity s WHERE s.enterpriseId = :enterpriseId")
+    int deleteAllByEnterpriseIdBulk(@Param("enterpriseId") String enterpriseId);
 
     // Delete methods
     @Modifying

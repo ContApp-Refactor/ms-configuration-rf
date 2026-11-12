@@ -142,7 +142,11 @@ public class BillingRestMapper {
                 toIssuer(doc.issuer()),
                 toPayment(doc.payment()),
                 toWithholdings(doc),
-                doc.verificationCode());
+                doc.verificationCode(),
+                client == null ? null : client.address(),
+                client == null ? null : client.city(),
+                client == null ? null : client.phone(),
+                client == null ? null : client.email());
     }
 
     private static List<BillingWithholdingResponse> toWithholdings(BillingDocument doc) {
@@ -171,7 +175,8 @@ public class BillingRestMapper {
         return issuer == null
                 ? null
                 : new BillingIssuerResponse(issuer.enterpriseId(), issuer.name(), issuer.nit(), issuer.dv(),
-                        issuer.active());
+                        issuer.active(), issuer.address(), issuer.city(), issuer.department(), issuer.phone(),
+                        issuer.email(), issuer.economicActivity(), issuer.logo());
     }
 
     public BillingDocumentSummaryResponse toSummaryResponse(BillingDocumentSummary summary) {

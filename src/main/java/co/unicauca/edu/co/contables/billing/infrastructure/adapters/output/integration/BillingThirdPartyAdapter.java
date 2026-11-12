@@ -45,7 +45,18 @@ public class BillingThirdPartyAdapter implements ThirdPartyPort {
                 third.getAddress(),
                 third.getEmail(),
                 third.getPhoneNumber(),
-                third.isActive()));
+                third.isActive(),
+                cityName(third)));
+    }
+
+    /** Nombre de la ciudad recortado al ancho de la columna; sin ciudad queda nulo. */
+    private static String cityName(Third third) {
+        String name = third.getCity() == null ? null : third.getCity().getCityName();
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        String trimmed = name.trim();
+        return trimmed.length() > 150 ? trimmed.substring(0, 150) : trimmed;
     }
 
     /** Razon social si existe; si no, nombres y apellidos concatenados y recortados. */

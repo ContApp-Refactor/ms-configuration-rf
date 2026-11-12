@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.configuration.enterprise.presentation.DTO.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
@@ -30,5 +31,13 @@ public class CopyProcessRes {
     private LocalDateTime finalizadoEn;
     private String backupRef;
     private Integer faseActual;
+    /** Aditivo: módulo en curso (p. ej. "taxes"). */
+    private String moduloActual;
+    /** Aditivo: módulos terminados en la etapa actual, en orden. */
+    private List<String> modulosCompletados;
+    /** Aditivo: total de módulos de la etapa actual. */
+    private Integer modulosTotales;
+    /** Aditivo: avance estimado 0-100. */
+    private Integer progreso;
     private String errorResumen;
 }

@@ -1,5 +1,7 @@
 package co.unicauca.edu.co.contables.inventory.peps.infrastructure.adapters.output.jpa.repository;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -61,6 +63,21 @@ public interface IProductRepository extends JpaRepository<ProductEntity, Long> {
      */
     @Modifying
     int deleteByEnterpriseId(String enterpriseId);
+
+    // Restore en el lugar: borra (bulk) las réplicas peps_product de la empresa
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM PepsProductEntity p WHERE p.enterpriseId = :enterpriseId")
+    int deleteAllByEnterpriseIdBulk(@Param("enterpriseId") String enterpriseId);
+
+    // Copia de seguridad: conteo y lectura por lotes de las réplicas de la empresa
+    long countByEnterpriseId(String enterpriseId);
+
+    Slice<ProductEntity> findByEnterpriseId(String enterpriseId, Pageable pageable);
+
+    // Copia de seguridad: réplicas cuyo producto no existe en la empresa
+    @Query("SELECT p.productId FROM PepsProductEntity p WHERE p.enterpriseId = :enterpriseId "
+            + "AND p.productId NOT IN (SELECT i.id FROM InventoryProductEntity i WHERE i.enterpriseId = :enterpriseId)")
+    List<Long> findProductIdsWithoutProduct(@Param("enterpriseId") String enterpriseId, Pageable pageable);
 
 
     /**

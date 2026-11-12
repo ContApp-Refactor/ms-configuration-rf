@@ -6,21 +6,37 @@ import java.util.UUID;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
+import co.unicauca.edu.co.contables.commons.backup.RestoreActor;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.enums.CopyProcessTipoEnum;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.CopyProcess;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.coordination.BackupModuleInfo;
 
 /**
- * @brief Puerto de salida para los procesos de copia (BACKUP/DUPLICATE/
- * RESTORE) orientados al frontend (Hito 6).
+ * @brief Puerto de los procesos de copia (BACKUP/DUPLICATE/RESTORE)
+ * orientados al frontend (Hito 6).
  *
- * A diferencia de {@code IEnterpriseBackupService}/
- * {@code IEnterpriseRestoreService}/{@code IEnterpriseDuplicateService}
- * (que hacen el trabajo real de export/import), este servicio es la capa de
- * orquestación: crea un registro {@link CopyProcess}, delega en esos
- * servicios y lo deja en estado terminal (COMPLETADO/ERROR), todo de forma
- * síncrona (sin hilos en segundo plano).
+ * Crea un registro {@link CopyProcess}, delega el trabajo en el coordinador
+ * de la copia completa y lo deja en estado terminal (COMPLETADO/ERROR), de
+ * forma síncrona. Las validaciones del ZIP (estructura, checksums, versión,
+ * módulos, NIT repetido) se hacen ANTES de crear el registro y salen como
+ * error HTTP (4xx); lo que falla dentro de la transacción del restore deja el
+ * proceso en ERROR con {@code errorResumen} legible.
  */
 public interface ICopyProcessService {
+
+    /**
+     * Opciones de un restore pedido por el front.
+     *
+     * @param empresaDestino  id (UUID) de la empresa a sobrescribir si {@code inplace};
+     *                        si no, el nombre de la empresa nueva (un UUID se ignora como nombre)
+     * @param nombreDestino   nombre de la empresa nueva (gana sobre {@code empresaDestino})
+     * @param nitDestino      NIT de la empresa nueva (D3)
+     * @param actor           tenant y usuario capturados en el hilo de la petición
+     * @param iniciadoPor     nombre visible de quien inicia el proceso
+     */
+    record RestoreRequest(String empresaDestino, boolean inplace, String nombreDestino, String nitDestino,
+            boolean skipUnknownModules, RestoreActor actor, String iniciadoPor) {
+    }
 
     /** Lista todos los procesos, más reciente primero. */
     List<CopyProcess> findAll();
@@ -29,27 +45,32 @@ public interface ICopyProcessService {
     CopyProcess findById(UUID idProceso);
 
     /**
-     * Crea y ejecuta de forma síncrona un proceso BACKUP o DUPLICATE.
+     * Crea y ejecuta un proceso BACKUP o DUPLICATE (un solo proceso con estado
+     * y progreso por módulo; DUPLICATE no deja ZIP).
      *
-     * @param nombreDestino nombre de la empresa destino; solo aplica (y es
-     * requerido) para DUPLICATE, se ignora para BACKUP.
+     * @param nombreDestino nombre de la empresa destino; requerido para DUPLICATE
      */
-    CopyProcess create(CopyProcessTipoEnum tipo, UUID empresaOrigen, String nombreDestino, String iniciadoPor);
+    CopyProcess create(CopyProcessTipoEnum tipo, UUID empresaOrigen, String nombreDestino, RestoreActor actor,
+            String iniciadoPor);
 
     /** Carga el ZIP de backup asociado a un proceso, para descarga. */
     Resource loadBackupFile(UUID idProceso);
 
     /**
-     * Elimina el registro del proceso (y, si tiene, su backup asociado).
-     * Lanza {@code CopyProcessNotTerminalException} si el proceso no está en
-     * un estado terminal.
+     * Elimina el registro del proceso (y su backup si ningún otro proceso lo
+     * usa). Lanza {@code CopyProcessNotTerminalException} si no está en estado terminal.
      */
     void delete(UUID idProceso);
 
-    /** Crea y ejecuta de forma síncrona un proceso RESTORE desde un backupRef existente. */
-    CopyProcess restoreFromBackupRef(String backupRef, String empresaDestino, boolean inplace, String iniciadoPor);
+    /**
+     * RESTORE desde un {@code backupRef} existente: solo se acepta si pertenece
+     * a un proceso del tenant actual (si no, 404).
+     */
+    CopyProcess restoreFromBackupRef(String backupRef, RestoreRequest request);
 
-    /** Crea y ejecuta de forma síncrona un proceso RESTORE desde un archivo subido. */
-    CopyProcess restoreFromUpload(MultipartFile file, String empresaDestino, boolean inplace, String nombreDestino,
-            String iniciadoPor);
+    /** RESTORE desde un ZIP subido: se guarda bajo el tenant actual y queda como {@code backupRef} del proceso. */
+    CopyProcess restoreFromUpload(MultipartFile file, RestoreRequest request);
+
+    /** Módulos que esta versión exporta/restaura. */
+    List<BackupModuleInfo> supportedModules();
 }

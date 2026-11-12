@@ -25,6 +25,16 @@ public interface DocumentTypeRepository extends JpaRepository<DocumentTypeEntity
     List<DocumentTypeEntity> findAllByModuleAndIdEnterprise(String module, String idEnterprise);
 
     boolean existsByDocumentClassId(Long documentClassId);
+
+    /**
+     * Copia de seguridad: ids de tipos de la empresa cuya clase de documento no
+     * es de la misma empresa (left join: el filtro de tenant también cuenta).
+     */
+    @org.springframework.data.jpa.repository.Query("SELECT t.id FROM DocumentTypeEntity t "
+            + "LEFT JOIN t.documentClass c WHERE t.idEnterprise = :idEnterprise "
+            + "AND (c IS NULL OR c.idEnterprise <> :idEnterprise)")
+    List<Long> findIdsWithForeignDocumentClass(
+            @org.springframework.data.repository.query.Param("idEnterprise") String idEnterprise);
    
     long countByIdEnterprise(String idEnterprise);
 

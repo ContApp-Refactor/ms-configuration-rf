@@ -19,6 +19,7 @@ import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.T
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.TaxPayerTypeDataMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.mapper.EnterpriseTypeDataMapper;
 import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.EnterpriseRepository;
+import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.SubjectRepository;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.enums.InventoryConfigurationTypeEnum;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Enterprise;
 
@@ -48,7 +49,8 @@ class EnterpriseServiceImplTest {
                 mock(TaxPayerTypeDataMapper.class),
                 mock(EnterpriseTypeDataMapper.class),
                 mock(ILocationService.class),
-                mock(IPersonTypeService.class));
+                mock(IPersonTypeService.class),
+                mock(SubjectRepository.class));
         when(repository.save(any(EnterpriseEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }

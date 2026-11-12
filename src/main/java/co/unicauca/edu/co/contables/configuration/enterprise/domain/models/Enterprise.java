@@ -30,11 +30,15 @@ public class Enterprise {
     private String branch;
     private String email;
     private String logo;
+    /** Solo para actualizacion: true = quitar el logo (si no viene uno nuevo). No se persiste. */
+    private Boolean removeLogo;
     private Long mainActivity;
     private Long secondaryActivity;
     private StateEnum state;
     private InventoryConfigurationTypeEnum inventoryConfigurationType;
     private List<TaxLiability> taxLiabilities;
+    /** Materias de la empresa; null = sin informacion (no tocar al actualizar). */
+    private List<Subject> subjects;
     private TaxPayerType taxPayerType;
     private EnterpriseType enterpriseType;
     private PersonType personType;

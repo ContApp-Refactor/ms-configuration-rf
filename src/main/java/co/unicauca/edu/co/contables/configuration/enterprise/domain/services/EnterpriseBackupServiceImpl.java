@@ -1,61 +1,50 @@
 package co.unicauca.edu.co.contables.configuration.enterprise.domain.services;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
+import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.EnterpriseEntity;
-import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.SubjectEntity;
-import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.entity.TaxLiabilityEntity;
-import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.EnterpriseRepository;
-import co.unicauca.edu.co.contables.configuration.enterprise.dataAccess.repository.SubjectRepository;
+import co.unicauca.edu.co.contables.commons.backup.BackupKeys;
+import co.unicauca.edu.co.contables.commons.backup.zip.ManifestV2;
+import co.unicauca.edu.co.contables.commons.backup.zip.NdjsonSupport;
+import co.unicauca.edu.co.contables.commons.backup.zip.ZipBackupFormat;
+import co.unicauca.edu.co.contables.commons.backup.zip.ZipBackupReader;
+import co.unicauca.edu.co.contables.commons.multitenancy.utils.TenantContext;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.dto.BackupReferenceDto;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest;
-import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest.EnterpriseSnapshot;
-import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest.LocationSnapshot;
-import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest.PersonTypeSnapshot;
-import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.BackupManifest.SubjectSnapshot;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.backup.EnterpriseSnapshotSupport;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.coordination.BackupProgressListener;
+import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.coordination.IEnterpriseBackupCoordinator;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.BackupNotFoundException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.BackupTooLargeException;
-import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.EnterpriseNotFoundException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.InvalidBackupFileException;
 import lombok.RequiredArgsConstructor;
 
 /**
- * @brief Implementación de la copia de seguridad (export) de una empresa.
- *
- * El backup es un ZIP con una sola entrada, {@code enterprise.json}, con el
- * contenido de {@link BackupManifest}. Las materias (subjects) se exportan
- * tal cual las ve el tenant actual (son datos del tenant, no de una empresa
- * puntual: ver {@link BackupManifest}).
+ * @brief Archivos de backup de empresas: el contenido (ZIP v2, todos los
+ * módulos) lo arma {@link IEnterpriseBackupCoordinator}; aquí se decide la
+ * ruta por tenant, se guardan los uploads con {@code transferTo} (sin
+ * {@code getBytes()}) y se resuelven ids sin path traversal.
  */
 @Service
 @RequiredArgsConstructor
 public class EnterpriseBackupServiceImpl implements IEnterpriseBackupService {
 
-    private static final String MANIFEST_ENTRY = "enterprise.json";
+    /** Ids generados por este servicio (UUID); cualquier otra cosa es "no existe". */
+    private static final Pattern SAFE_ID = Pattern.compile("^[A-Za-z0-9_-]{1,100}$");
+    private static final String NO_TENANT_DIR = "_sin-tenant";
 
-    private final EnterpriseRepository enterpriseRepository;
-    private final SubjectRepository subjectRepository;
-    private final ObjectMapper objectMapper;
+    private final IEnterpriseBackupCoordinator coordinator;
+    private final ZipBackupFormat format;
 
     @Value("${app.backup.dir:uploads/enterprises/backups}")
     private String backupDir;
@@ -64,174 +53,126 @@ public class EnterpriseBackupServiceImpl implements IEnterpriseBackupService {
     private long maxSizeBytes;
 
     @Override
-    @Transactional(readOnly = true)
-    public BackupReferenceDto backup(UUID enterpriseId) {
-        EnterpriseEntity entity = enterpriseRepository.findById(enterpriseId)
-                .orElseThrow(() -> new EnterpriseNotFoundException(enterpriseId));
-
-        BackupManifest manifest = toManifest(entity);
-        byte[] zipBytes = zip(manifest);
-
-        if (zipBytes.length > maxSizeBytes) {
-            throw new BackupTooLargeException(zipBytes.length, maxSizeBytes);
-        }
-
+    public BackupReferenceDto backup(UUID enterpriseId, String username, BackupProgressListener listener) {
         String backupId = UUID.randomUUID().toString();
-        try {
-            Path dir = Paths.get(backupDir);
-            Files.createDirectories(dir);
-            Path target = dir.resolve(backupId + ".zip");
-            Files.write(target, zipBytes);
-        } catch (IOException e) {
-            throw new RuntimeException("Error al guardar el backup", e);
-        }
-
+        Path target = tenantDir().resolve(backupId + ".zip");
+        ManifestV2 manifest = coordinator.exportTo(enterpriseId, target, username, listener);
         return BackupReferenceDto.builder()
                 .backupId(backupId)
                 .sourceEnterpriseId(enterpriseId)
                 .fileName(backupId + ".zip")
-                .sizeBytes(zipBytes.length)
-                .createdAt(manifest.getExportedAt())
+                .sizeBytes(sizeOf(target))
+                .createdAt(manifest.exportedAt())
                 .build();
     }
 
     @Override
-    public Resource loadBackupFile(String backupId) {
-        Path target = resolveBackupPath(backupId);
+    public BackupReferenceDto storeUpload(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new InvalidBackupFileException("El archivo de backup subido está vacío");
+        }
+        if (file.getSize() > maxSizeBytes) {
+            throw new BackupTooLargeException(file.getSize(), maxSizeBytes);
+        }
+        String backupId = UUID.randomUUID().toString();
+        Path target = tenantDir().resolve(backupId + ".zip");
         try {
-            Resource resource = new UrlResource(target.toUri());
-            if (resource.exists() && resource.isReadable()) {
-                return resource;
-            }
-            throw new BackupNotFoundException(backupId);
-        } catch (MalformedURLException e) {
+            Files.createDirectories(target.getParent());
+            file.transferTo(target);
+        } catch (IOException e) {
+            deleteQuietly(target);
+            throw new InvalidBackupFileException("No se pudo guardar el archivo de backup subido", e);
+        }
+        return BackupReferenceDto.builder()
+                .backupId(backupId)
+                .fileName(backupId + ".zip")
+                .sizeBytes(sizeOf(target))
+                .build();
+    }
+
+    @Override
+    public Path resolveBackupFile(String backupId) {
+        if (backupId == null || !SAFE_ID.matcher(backupId).matches()) {
             throw new BackupNotFoundException(backupId);
         }
+        for (Path candidate : new Path[] { safeResolve(tenantDir(), backupId), safeResolve(rootDir(), backupId) }) {
+            if (candidate != null && Files.isRegularFile(candidate)) {
+                return candidate;
+            }
+        }
+        throw new BackupNotFoundException(backupId);
+    }
+
+    @Override
+    public Resource loadBackupFile(String backupId) {
+        Path file = resolveBackupFile(backupId);
+        Resource resource = new FileSystemResource(file);
+        if (!resource.isReadable()) {
+            throw new BackupNotFoundException(backupId);
+        }
+        return resource;
     }
 
     @Override
     public BackupManifest readManifest(String backupId) {
-        Path target = resolveBackupPath(backupId);
-        if (!Files.exists(target)) {
-            throw new BackupNotFoundException(backupId);
-        }
-        try {
-            return readManifest(Files.readAllBytes(target));
-        } catch (IOException e) {
-            throw new InvalidBackupFileException("No se pudo leer el backup '" + backupId + "'", e);
-        }
+        return readManifest(resolveBackupFile(backupId));
     }
 
     @Override
-    public BackupManifest readManifest(byte[] zipBytes) {
-        try (ZipInputStream zipIn = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
-            ZipEntry entry;
-            while ((entry = zipIn.getNextEntry()) != null) {
-                if (MANIFEST_ENTRY.equals(entry.getName())) {
-                    return objectMapper.readValue(zipIn.readAllBytes(), BackupManifest.class);
-                }
+    public BackupManifest readManifest(Path zip) {
+        try (ZipBackupReader reader = format.open(zip)) {
+            if (!reader.hasModule(BackupKeys.MODULE_ENTERPRISE)) {
+                throw new InvalidBackupFileException("El archivo de backup no contiene los datos de la empresa");
             }
-        } catch (IOException e) {
-            throw new InvalidBackupFileException("El archivo de backup está corrupto o no es un ZIP válido", e);
+            return EnterpriseSnapshotSupport.readPayload(reader.module(BackupKeys.MODULE_ENTERPRISE));
         }
-        throw new InvalidBackupFileException(
-                "El archivo de backup no contiene '" + MANIFEST_ENTRY + "'");
     }
 
     @Override
     public void deleteBackup(String backupId) {
-        Path target = resolveBackupPath(backupId);
+        Path file;
         try {
-            Files.deleteIfExists(target);
+            file = resolveBackupFile(backupId);
+        } catch (BackupNotFoundException e) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(file);
         } catch (IOException e) {
             throw new RuntimeException("Error al eliminar el backup '" + backupId + "'", e);
         }
     }
 
-    /**
-     * Resuelve {@code backupId} contra {@code app.backup.dir} y verifica que
-     * el resultado normalizado siga dentro de ese directorio: evita path
-     * traversal (p. ej. {@code backupId = "../../etc/passwd"}).
-     */
-    private Path resolveBackupPath(String backupId) {
-        if (backupId == null || backupId.isBlank()) {
-            throw new BackupNotFoundException(backupId);
-        }
-        Path dir = Paths.get(backupDir).toAbsolutePath().normalize();
+    private Path rootDir() {
+        return Paths.get(backupDir).toAbsolutePath().normalize();
+    }
+
+    /** {@code app.backup.dir/<sha256(tenant)>}: el tenant no aparece en claro en el disco. */
+    private Path tenantDir() {
+        String tenant = TenantContext.getTenantId();
+        String name = tenant == null || tenant.isBlank() ? NO_TENANT_DIR : NdjsonSupport.sha256Hex(tenant);
+        return rootDir().resolve(name);
+    }
+
+    /** Resuelve {@code <dir>/<id>.zip} y verifica que siga dentro de {@code dir} (anti path traversal). */
+    private static Path safeResolve(Path dir, String backupId) {
         Path target = dir.resolve(backupId + ".zip").normalize();
-        if (!target.startsWith(dir)) {
-            throw new BackupNotFoundException(backupId);
-        }
-        return target;
+        return target.startsWith(dir) ? target : null;
     }
 
-    private byte[] zip(BackupManifest manifest) {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ZipOutputStream zipOut = new ZipOutputStream(baos)) {
-            byte[] json = objectMapper.writeValueAsBytes(manifest);
-            zipOut.putNextEntry(new ZipEntry(MANIFEST_ENTRY));
-            zipOut.write(json);
-            zipOut.closeEntry();
-            zipOut.finish();
-            return baos.toByteArray();
+    private static long sizeOf(Path file) {
+        try {
+            return Files.size(file);
         } catch (IOException e) {
-            throw new RuntimeException("Error al empaquetar el backup", e);
+            return 0L;
         }
     }
 
-    private BackupManifest toManifest(EnterpriseEntity entity) {
-        List<Long> taxLiabilityIds = entity.getTaxLiabilities() == null ? List.of()
-                : entity.getTaxLiabilities().stream().map(TaxLiabilityEntity::getId).toList();
-
-        PersonTypeSnapshot personTypeSnapshot = entity.getPersonType() == null ? null
-                : PersonTypeSnapshot.builder()
-                        .type(entity.getPersonType().getType())
-                        .name(entity.getPersonType().getName())
-                        .surname(entity.getPersonType().getSurname())
-                        .bussinessName(entity.getPersonType().getBussinessName())
-                        .build();
-
-        LocationSnapshot locationSnapshot = entity.getLocation() == null ? null
-                : LocationSnapshot.builder()
-                        .address(entity.getLocation().getAddress())
-                        .cityId(entity.getLocation().getCity() == null ? null
-                                : entity.getLocation().getCity().getId())
-                        .departmentId(entity.getLocation().getDepartment() == null ? null
-                                : entity.getLocation().getDepartment().getId())
-                        .countryId(entity.getLocation().getCountry() == null ? null
-                                : entity.getLocation().getCountry().getId())
-                        .build();
-
-        EnterpriseSnapshot enterpriseSnapshot = EnterpriseSnapshot.builder()
-                .idUser(entity.getIdUser())
-                .name(entity.getName())
-                .nit(entity.getNit())
-                .DV(entity.getDV())
-                .phone(entity.getPhone())
-                .branch(entity.getBranch())
-                .email(entity.getEmail())
-                .logo(entity.getLogo())
-                .mainActivity(entity.getMainActivity())
-                .secondaryActivity(entity.getSecondaryActivity())
-                .state(entity.getState())
-                .inventoryConfigurationType(entity.getInventoryConfigurationType())
-                .taxLiabilityIds(taxLiabilityIds)
-                .taxPayerTypeId(entity.getTaxPayerType() == null ? null : entity.getTaxPayerType().getId())
-                .enterpriseTypeId(entity.getEnterpriseType() == null ? null : entity.getEnterpriseType().getId())
-                .personType(personTypeSnapshot)
-                .location(locationSnapshot)
-                .build();
-
-        List<SubjectSnapshot> subjects = subjectRepository.findAll().stream()
-                .map((SubjectEntity s) -> SubjectSnapshot.builder().code(s.getCode()).name(s.getName()).build())
-                .toList();
-
-        return BackupManifest.builder()
-                .version(1)
-                .exportedAt(LocalDateTime.now())
-                .sourceEnterpriseId(entity.getId())
-                .enterprise(enterpriseSnapshot)
-                .subjects(subjects)
-                .build();
+    private static void deleteQuietly(Path file) {
+        try {
+            Files.deleteIfExists(file);
+        } catch (IOException ignored) {
+            // mejor esfuerzo
+        }
     }
 }
