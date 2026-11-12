@@ -11,9 +11,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -64,6 +67,14 @@ import lombok.RequiredArgsConstructor;
  * congelados al emitir y se copian tal cual; solo se remapean los ids de catálogo.</li>
  * <li><b>Retenciones</b>: cada elemento del JSON {@code withholdings} guarda {@code taxId}; se remapea con
  * {@code TAX}.</li>
+ * <li><b>Referencias sueltas</b>: billing no tiene FKs de BD hacia otros módulos, así que una copia puede traer ids
+ * que ya no existen (la empresa fue recreada con ids nuevos). Cada referencia a otro módulo se resuelve en 3
+ * pasos: (1) {@link IdMap}; (2) si no está, re-vinculación por CLAVE NATURAL contra los datos ya restaurados de
+ * la empresa destino (tercero por número de documento, producto por código o nombre, unidad y medio de pago por
+ * nombre, impuesto por código/descripción y tarifa); (3) si tampoco, se TOLERA: {@code null} en las columnas
+ * opcionales (la factura conserva sus snapshots), id viejo en {@code product_id} (NOT NULL; un id borrado nunca se
+ * reutiliza) y {@code taxId} nulo en la retención. Solo la referencia interna ({@code original_document_id}) sigue
+ * siendo estricta.</li>
  * </ul>
  *
  * NO se incluyen {@code billing_outbox_events} (cola de publicación a Rabbit: copiarla reenviaría eventos de
@@ -89,6 +100,7 @@ public class BillingBackupParticipant implements BackupParticipant {
     private static final String DOCUMENT = "BillingDocumentEntity";
     private static final String SEQUENCE = "BillingDocumentSequenceEntity";
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final Logger log = LoggerFactory.getLogger(BillingBackupParticipant.class);
 
     private final BillingDocumentJpaRepository documentRepository;
     private final BillingDocumentSequenceJpaRepository sequenceRepository;
@@ -259,6 +271,7 @@ public class BillingBackupParticipant implements BackupParticipant {
         String ent = ctx.targetEnterpriseIdAsString();
         Map<String, Long> maxNumber = new HashMap<>();
         Set<String> usedCodes = new HashSet<>();
+        Refs refs = new Refs(idMap, ent);
 
         // Primero las facturas y luego las devoluciones, que apuntan a una factura ya restaurada.
         for (String entry : List.of(ENTRY_INVOICES, ENTRY_RETURNS)) {
@@ -268,7 +281,7 @@ public class BillingBackupParticipant implements BackupParticipant {
             reader.forEachBatch(entry, DocumentRow.class, BATCH, rows -> {
                 List<BillingDocumentEntity> entities = new ArrayList<>(rows.size());
                 for (DocumentRow r : rows) {
-                    entities.add(toEntity(r, ent, idMap, maxNumber, usedCodes));
+                    entities.add(toEntity(r, ent, idMap, refs, maxNumber, usedCodes));
                 }
                 documentRepository.saveAll(entities);
                 flushAndClear();
@@ -276,10 +289,11 @@ public class BillingBackupParticipant implements BackupParticipant {
         }
 
         restoreSequences(reader, ent, maxNumber);
+        refs.logSummary();
     }
 
-    private BillingDocumentEntity toEntity(DocumentRow r, String ent, IdMap idMap, Map<String, Long> maxNumber,
-            Set<String> usedCodes) {
+    private BillingDocumentEntity toEntity(DocumentRow r, String ent, IdMap idMap, Refs refs,
+            Map<String, Long> maxNumber, Set<String> usedCodes) {
         BillingDocumentEntity e = new BillingDocumentEntity();
         UUID newId = UUID.randomUUID();
         e.setId(newId);
@@ -294,7 +308,7 @@ public class BillingBackupParticipant implements BackupParticipant {
             maxNumber.merge(r.documentType(), r.numberValue(), Math::max);
         }
         e.setIssueDate(r.issueDate());
-        e.setCounterpartyId(r.counterpartyId() == null ? null : idMap.requireLong(BackupKeys.THIRD, r.counterpartyId()));
+        e.setCounterpartyId(refs.third(r.counterpartyId(), r.counterpartyIdNumber(), r.counterpartyIdType()));
         e.setCounterpartyRole(r.counterpartyRole());
         e.setCounterpartyName(r.counterpartyName());
         e.setCounterpartyIdType(r.counterpartyIdType());
@@ -315,8 +329,7 @@ public class BillingBackupParticipant implements BackupParticipant {
         e.setIssuerEmail(r.issuerEmail());
         e.setIssuerEconomicActivity(r.issuerEconomicActivity());
         e.setIssuerLogo(r.issuerLogo());
-        e.setPaymentMethodId(r.paymentMethodId() == null ? null
-                : idMap.requireLong(BackupKeys.PAYMENT_METHOD, r.paymentMethodId()));
+        e.setPaymentMethodId(refs.paymentMethod(r.paymentMethodId(), r.paymentMethodName()));
         e.setPaymentMethodName(r.paymentMethodName());
         e.setOriginalDocumentId(r.originalDocumentId() == null ? null
                 : idMap.requireUuid(BackupKeys.BILLING_DOCUMENT, r.originalDocumentId()));
@@ -329,7 +342,7 @@ public class BillingBackupParticipant implements BackupParticipant {
         e.setTaxTotal(r.taxTotal());
         e.setTotal(r.total());
         e.setWithholdingTotal(r.withholdingTotal());
-        e.setWithholdings(remapWithholdings(r.withholdings(), idMap));
+        e.setWithholdings(remapWithholdings(r.withholdings(), refs));
         e.setVerificationCode(freeVerificationCode(r.verificationCode(), usedCodes));
         e.setCreatedAt(r.createdAt());
         e.setCreatedBy(r.createdBy());
@@ -346,11 +359,10 @@ public class BillingBackupParticipant implements BackupParticipant {
                 le.setDocument(e);
                 le.setLineNo(l.lineNo());
                 le.setSourceLineNo(l.sourceLineNo());
-                le.setProductId(idMap.requireLong(BackupKeys.PRODUCT, l.productId()));
+                le.setProductId(refs.product(l.productId(), l.productCode(), l.productName()));
                 le.setProductCode(l.productCode());
                 le.setProductName(l.productName());
-                le.setUnitOfMeasureId(l.unitOfMeasureId() == null ? null
-                        : idMap.requireLong(BackupKeys.UOM, l.unitOfMeasureId()));
+                le.setUnitOfMeasureId(refs.unitOfMeasure(l.unitOfMeasureId(), l.unitOfMeasureName()));
                 le.setUnitOfMeasureName(l.unitOfMeasureName());
                 le.setQuantity(l.quantity());
                 le.setCatalogUnitPrice(l.catalogUnitPrice());
@@ -369,8 +381,11 @@ public class BillingBackupParticipant implements BackupParticipant {
         return e;
     }
 
-    /** Remapea {@code taxId} de cada retención (namespace {@code TAX}); el resto del JSON queda intacto. */
-    private static String remapWithholdings(String json, IdMap idMap) {
+    /**
+     * Resuelve {@code taxId} de cada retención (namespace {@code TAX}, luego clave natural, luego {@code null});
+     * el resto del JSON (nombre y tarifa congelados) queda intacto.
+     */
+    private static String remapWithholdings(String json, Refs refs) {
         if (json == null || json.isBlank()) {
             return json;
         }
@@ -381,12 +396,169 @@ public class BillingBackupParticipant implements BackupParticipant {
             }
             for (JsonNode item : root) {
                 if (item instanceof ObjectNode obj && obj.hasNonNull("taxId")) {
-                    obj.put("taxId", idMap.requireLong(BackupKeys.TAX, obj.get("taxId").asLong()));
+                    Long taxId = refs.tax(obj.get("taxId").asLong(), text(obj, "taxName"), decimal(obj, "ratePct"));
+                    if (taxId == null) {
+                        obj.putNull("taxId");
+                    } else {
+                        obj.put("taxId", taxId.longValue());
+                    }
                 }
             }
             return JSON.writeValueAsString(root);
         } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
             throw new IllegalStateException("JSON de retenciones inválido en la copia de seguridad", ex);
+        }
+    }
+
+    private static String text(JsonNode obj, String field) {
+        return obj.hasNonNull(field) ? obj.get(field).asText() : null;
+    }
+
+    private static BigDecimal decimal(JsonNode obj, String field) {
+        return obj.hasNonNull(field) && obj.get(field).isNumber() ? obj.get(field).decimalValue() : null;
+    }
+
+    /**
+     * Resolución de referencias a otros módulos durante UN restore: IdMap, clave natural contra la empresa destino
+     * (un solo query por clave distinta, con caché) o tolerancia. Cuenta, por tipo, cuántas referencias se
+     * re-vincularon por clave natural y cuántas quedaron sueltas, para un único {@code log.warn} al final.
+     */
+    private final class Refs {
+        private final IdMap idMap;
+        private final String ent;
+        private final String tenant = TenantContext.getTenantId();
+        private final Map<String, Optional<Long>> cache = new HashMap<>();
+        private final Map<String, long[]> stats = new LinkedHashMap<>();
+
+        Refs(IdMap idMap, String ent) {
+            this.idMap = idMap;
+            this.ent = ent;
+        }
+
+        Long third(Long oldId, String idNumber, String idType) {
+            return resolve("tercero", BackupKeys.THIRD, oldId, "T|" + idNumber + "|" + idType,
+                    () -> thirdByNaturalKey(idNumber, idType));
+        }
+
+        Long paymentMethod(Long oldId, String name) {
+            return resolve("medio de pago", BackupKeys.PAYMENT_METHOD, oldId, "M|" + name,
+                    () -> firstId("SELECT id FROM payment_methods WHERE id_enterprise = :e AND tenant_id = :t "
+                            + "AND LOWER(TRIM(name)) = LOWER(TRIM(:n)) ORDER BY id", name));
+        }
+
+        /** {@code product_id} es NOT NULL: sin coincidencia se conserva el id viejo. */
+        long product(long oldId, String code, String name) {
+            Long id = resolve("producto", BackupKeys.PRODUCT, oldId, "P|" + code + "|" + name, () -> {
+                Optional<Long> byCode = firstId("SELECT id FROM product WHERE enterprise_id = :e AND tenant_id = :t "
+                        + "AND LOWER(TRIM(code)) = LOWER(TRIM(:n)) ORDER BY id", code);
+                return byCode.isPresent() ? byCode : firstId("SELECT id FROM product WHERE enterprise_id = :e "
+                        + "AND tenant_id = :t AND LOWER(TRIM(name)) = LOWER(TRIM(:n)) ORDER BY id", name);
+            });
+            return id == null ? oldId : id;
+        }
+
+        Long unitOfMeasure(Long oldId, String name) {
+            // unit_of_measure no tiene columna tenant_id: solo se acota por empresa.
+            return resolve("unidad de medida", BackupKeys.UOM, oldId, "U|" + name,
+                    () -> firstId("SELECT id FROM unit_of_measure WHERE enterprise_id = :e "
+                            + "AND LOWER(TRIM(name)) = LOWER(TRIM(:n)) ORDER BY id", name));
+        }
+
+        Long tax(long oldId, String name, BigDecimal ratePct) {
+            return resolve("impuesto", BackupKeys.TAX, oldId, "X|" + name + "|" + ratePct,
+                    () -> taxByNaturalKey(name, ratePct));
+        }
+
+        private Long resolve(String kind, String namespace, Long oldId, String key,
+                java.util.function.Supplier<Optional<Long>> natural) {
+            if (oldId == null) {
+                return null;
+            }
+            Optional<Object> mapped = idMap.find(namespace, oldId);
+            if (mapped.isPresent()) {
+                return ((Number) mapped.get()).longValue();
+            }
+            Optional<Long> found = cache.computeIfAbsent(kind + "|" + key, k -> natural.get());
+            stats.computeIfAbsent(kind, k -> new long[2])[found.isPresent() ? 0 : 1]++;
+            return found.orElse(null);
+        }
+
+        private Optional<Long> firstId(String sql, String name) {
+            if (name == null || name.isBlank()) {
+                return Optional.empty();
+            }
+            var q = entityManager.createNativeQuery(sql).setParameter("e", ent).setParameter("n", name);
+            if (sql.contains(":t")) {
+                q.setParameter("t", tenant);
+            }
+            @SuppressWarnings("unchecked")
+            List<Number> ids = q.setMaxResults(1).getResultList();
+            return ids.isEmpty() ? Optional.empty() : Optional.of(ids.get(0).longValue());
+        }
+
+        /** Número de documento del snapshot; el tipo de identificación solo desambigua si hay varias coincidencias. */
+        @SuppressWarnings("unchecked")
+        private Optional<Long> thirdByNaturalKey(String idNumber, String idType) {
+            if (idNumber == null || idNumber.isBlank()) {
+                return Optional.empty();
+            }
+            long number;
+            try {
+                number = Long.parseLong(idNumber.trim());
+            } catch (NumberFormatException ex) {
+                return Optional.empty();
+            }
+            List<Object[]> rows = entityManager.createNativeQuery(
+                    "SELECT t.th_id, ti.ti_code, ti.ti_name FROM thirds t LEFT JOIN type_id ti ON ti.ti_id = t.type_id_fk "
+                            + "WHERE t.ent_id = :e AND t.tenant_id = :t AND t.th_id_number = :n ORDER BY t.th_id")
+                    .setParameter("e", ent).setParameter("t", tenant).setParameter("n", number).getResultList();
+            if (rows.isEmpty()) {
+                return Optional.empty();
+            }
+            if (rows.size() > 1 && idType != null && !idType.isBlank()) {
+                for (Object[] row : rows) {
+                    if (idType.equalsIgnoreCase((String) row[1]) || idType.equalsIgnoreCase((String) row[2])) {
+                        return Optional.of(((Number) row[0]).longValue());
+                    }
+                }
+            }
+            return Optional.of(((Number) rows.get(0)[0]).longValue());
+        }
+
+        /** Código o descripción = nombre congelado; si hay varios, prefiere la misma tarifa y luego el menor id. */
+        @SuppressWarnings("unchecked")
+        private Optional<Long> taxByNaturalKey(String name, BigDecimal ratePct) {
+            if (name == null || name.isBlank()) {
+                return Optional.empty();
+            }
+            List<Object[]> rows = entityManager.createNativeQuery(
+                    "SELECT id, interest FROM tax WHERE id_enterprise = :e AND tenant_id = :t "
+                            + "AND (LOWER(TRIM(code)) = LOWER(TRIM(:n)) OR LOWER(TRIM(description)) = LOWER(TRIM(:n))) "
+                            + "ORDER BY id")
+                    .setParameter("e", ent).setParameter("t", tenant).setParameter("n", name).getResultList();
+            if (rows.isEmpty()) {
+                return Optional.empty();
+            }
+            if (ratePct != null) {
+                for (Object[] row : rows) {
+                    if (row[1] != null
+                            && ratePct.compareTo(BigDecimal.valueOf(((Number) row[1]).doubleValue())) == 0) {
+                        return Optional.of(((Number) row[0]).longValue());
+                    }
+                }
+            }
+            return Optional.of(((Number) rows.get(0)[0]).longValue());
+        }
+
+        void logSummary() {
+            if (stats.isEmpty()) {
+                return;
+            }
+            StringBuilder sb = new StringBuilder();
+            stats.forEach((kind, c) -> sb.append(sb.length() == 0 ? "" : "; ").append(kind).append(": ")
+                    .append(c[0]).append(" re-vinculadas por clave natural, ").append(c[1]).append(" sueltas"));
+            log.warn("billing: la copia traía referencias a otros módulos que no están en la copia (datos de origen "
+                    + "con ids viejos); se resolvieron por clave natural o quedaron sueltas con su snapshot: {}", sb);
         }
     }
 
@@ -514,8 +686,8 @@ public class BillingBackupParticipant implements BackupParticipant {
 
         String l = "billing_document_lines x JOIN billing_documents h ON h.id = x.document_id";
         String lW = "h.enterprise_id = :e AND h.tenant_id = :t";
-        add(problems, orphans(l, lW, "x.product_id", "product", "id", "enterprise_id", ent),
-                "líneas de facturación referencian un producto que no es de la empresa destino");
+        // product_id (NOT NULL) no se valida: sin coincidencia por clave natural el restore conserva a propósito el id
+        // viejo (un producto borrado nunca reutiliza su id) y la línea queda con su snapshot de código/nombre.
         // unit_of_measure no tiene columna tenant_id (su entidad no usa @TenantId): solo se acota por empresa.
         add(problems, orphans(l, lW, "x.unit_of_measure_id", "unit_of_measure", "id", "enterprise_id", ent, false),
                 "líneas de facturación referencian una unidad de medida que no es de la empresa destino");
