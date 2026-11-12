@@ -75,7 +75,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class BillingBackupParticipant implements BackupParticipant {
 
-    public static final int SCHEMA_VERSION = 1;
+    /**
+     * v2: se agregan los datos del emisor y la ciudad de la contraparte congelados al emitir
+     * ({@code counterparty_city}, {@code issuer_address/city/department/phone/email/economic_activity/logo}).
+     * Un ZIP v1 sigue restaurando: los campos ausentes quedan nulos (igual que en documentos anteriores).
+     */
+    public static final int SCHEMA_VERSION = 2;
     public static final String ENTRY_INVOICES = "billing/invoices.ndjson";
     public static final String ENTRY_RETURNS = "billing/returns.ndjson";
     public static final String ENTRY_SEQUENCES = "billing/sequences.ndjson";
@@ -102,8 +107,10 @@ public class BillingBackupParticipant implements BackupParticipant {
             String numberDisplay, LocalDate issueDate, Long counterpartyId, String counterpartyRole,
             String counterpartyName, String counterpartyIdType, String counterpartyIdNumber,
             String counterpartyVerification, String counterpartyAddress, String counterpartyEmail,
-            String counterpartyPhone, String supplierInvoiceNumber, String issuerName, String issuerNit,
-            String issuerDv, Long paymentMethodId, String paymentMethodName, UUID originalDocumentId,
+            String counterpartyPhone, String counterpartyCity, String supplierInvoiceNumber, String issuerName,
+            String issuerNit, String issuerDv, String issuerAddress, String issuerCity, String issuerDepartment,
+            String issuerPhone, String issuerEmail, String issuerEconomicActivity, String issuerLogo,
+            Long paymentMethodId, String paymentMethodName, UUID originalDocumentId,
             String originalDocumentType, String originalNumberDisplay, LocalDate originalIssueDate,
             String returnReason, String currency, BigDecimal subtotal, BigDecimal taxTotal, BigDecimal total,
             BigDecimal withholdingTotal, String withholdings, String verificationCode, Instant createdAt,
@@ -232,8 +239,10 @@ public class BillingBackupParticipant implements BackupParticipant {
                 d.getNumberValue(), d.getNumberDisplay(), d.getIssueDate(), d.getCounterpartyId(),
                 d.getCounterpartyRole(), d.getCounterpartyName(), d.getCounterpartyIdType(),
                 d.getCounterpartyIdNumber(), d.getCounterpartyVerification(), d.getCounterpartyAddress(),
-                d.getCounterpartyEmail(), d.getCounterpartyPhone(), d.getSupplierInvoiceNumber(),
-                d.getIssuerName(), d.getIssuerNit(), d.getIssuerDv(), d.getPaymentMethodId(),
+                d.getCounterpartyEmail(), d.getCounterpartyPhone(), d.getCounterpartyCity(),
+                d.getSupplierInvoiceNumber(), d.getIssuerName(), d.getIssuerNit(), d.getIssuerDv(),
+                d.getIssuerAddress(), d.getIssuerCity(), d.getIssuerDepartment(), d.getIssuerPhone(),
+                d.getIssuerEmail(), d.getIssuerEconomicActivity(), d.getIssuerLogo(), d.getPaymentMethodId(),
                 d.getPaymentMethodName(), d.getOriginalDocumentId(), d.getOriginalDocumentType(),
                 d.getOriginalNumberDisplay(), d.getOriginalIssueDate(), d.getReturnReason(), d.getCurrency(),
                 d.getSubtotal(), d.getTaxTotal(), d.getTotal(), d.getWithholdingTotal(), d.getWithholdings(),
@@ -294,10 +303,18 @@ public class BillingBackupParticipant implements BackupParticipant {
         e.setCounterpartyAddress(r.counterpartyAddress());
         e.setCounterpartyEmail(r.counterpartyEmail());
         e.setCounterpartyPhone(r.counterpartyPhone());
+        e.setCounterpartyCity(r.counterpartyCity());
         e.setSupplierInvoiceNumber(r.supplierInvoiceNumber());
         e.setIssuerName(r.issuerName());
         e.setIssuerNit(r.issuerNit());
         e.setIssuerDv(r.issuerDv());
+        e.setIssuerAddress(r.issuerAddress());
+        e.setIssuerCity(r.issuerCity());
+        e.setIssuerDepartment(r.issuerDepartment());
+        e.setIssuerPhone(r.issuerPhone());
+        e.setIssuerEmail(r.issuerEmail());
+        e.setIssuerEconomicActivity(r.issuerEconomicActivity());
+        e.setIssuerLogo(r.issuerLogo());
         e.setPaymentMethodId(r.paymentMethodId() == null ? null
                 : idMap.requireLong(BackupKeys.PAYMENT_METHOD, r.paymentMethodId()));
         e.setPaymentMethodName(r.paymentMethodName());
