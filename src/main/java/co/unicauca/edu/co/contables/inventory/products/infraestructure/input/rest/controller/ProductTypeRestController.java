@@ -40,7 +40,6 @@ public class ProductTypeRestController {
     private final IProductTypeServicePort productTypeService;
     private final IProductTypeRestMapper productTypeMapper;
 
-    @PreAuthorize("hasAuthority('PT#C')")
     @PostMapping
     public ResponseEntity<ProductTypeResponse> createProductType(@Valid @RequestBody ProductTypeRequest productTypeRequest) {
         ProductType productType = productTypeMapper.toProductType(productTypeRequest);

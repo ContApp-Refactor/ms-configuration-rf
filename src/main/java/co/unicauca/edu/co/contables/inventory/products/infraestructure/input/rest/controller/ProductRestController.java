@@ -83,7 +83,6 @@ public class ProductRestController {
                 return new ResponseEntity<>(responsePage, HttpStatus.OK);
         }
 
-        @PreAuthorize("hasAuthority('P#C')")
         @PostMapping("/create")
         public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductCreateRequest productCreateRequest) {
                 return ResponseEntity.status(HttpStatus.CREATED)

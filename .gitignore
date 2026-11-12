@@ -34,3 +34,14 @@ build/
 
 # Agent instructions
 AGENTS.md
+
+# Environment variables
+.env.merged
+
+node_modules/
+
+package-lock.json
+package.json
+
+docs/RABBITMQ_MATRIX.md
+docs/RABBITMQ_MIGRATION_PLAN.md
