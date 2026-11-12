@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,8 @@ import lombok.Setter;
 @Entity(name = "WeightedAverageProductEntity")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
-@Table(name = "kardex_products")
+@Table(name = "kardex_products", uniqueConstraints = @UniqueConstraint(
+        name = "uq_kardex_products_enterprise_reference", columnNames = {"enterprise_id", "reference"}))
 public class ProductEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,7 +31,7 @@ public class ProductEntity {
     @Column(nullable = false, unique = true)
     private Long productId;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String reference;
 
     @Column(nullable = false)
