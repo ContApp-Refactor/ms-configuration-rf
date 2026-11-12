@@ -13,9 +13,16 @@ public record CounterpartySnapshot(
         String address,
         String email,
         String phone,
-        boolean active) {
+        boolean active,
+        String city) {
 
     public CounterpartySnapshot {
         Objects.requireNonNull(role, "role");
+    }
+
+    /** Sin ciudad (usos anteriores y documentos historicos). */
+    public CounterpartySnapshot(long thirdId, CounterpartyRole role, String name, String idType, String idNumber,
+            String verificationNumber, String address, String email, String phone, boolean active) {
+        this(thirdId, role, name, idType, idNumber, verificationNumber, address, email, phone, active, null);
     }
 }
