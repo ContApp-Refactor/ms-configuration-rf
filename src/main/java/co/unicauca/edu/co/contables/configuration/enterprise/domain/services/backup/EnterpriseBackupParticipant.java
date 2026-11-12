@@ -29,7 +29,6 @@ import co.unicauca.edu.co.contables.configuration.enterprise.domain.models.Enter
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.IEnterpriseService;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.ILogoStorageService;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.IPersonTypeService;
-import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.EnterpriseNitAlreadyExistsException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.EnterpriseNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -126,8 +125,9 @@ public class EnterpriseBackupParticipant implements BackupParticipant {
 
     @Override
     public void preflight(BackupReader reader, RestoreContext ctx) {
-        EnterpriseSnapshot snapshot = EnterpriseSnapshotSupport.readPayload(reader).getEnterprise();
-        checkNit(effectiveNit(snapshot, ctx), ctx);
+        // El NIT no es único por regla de negocio (el alta normal tampoco lo valida):
+        // solo se verifica que el payload de la empresa sea legible.
+        EnterpriseSnapshotSupport.readPayload(reader).getEnterprise();
     }
 
     @Override
@@ -140,8 +140,6 @@ public class EnterpriseBackupParticipant implements BackupParticipant {
         EnterpriseSnapshot snapshot = payload.getEnterprise();
         String name = ctx.targetName() != null ? ctx.targetName() : snapshot.getName();
         String nit = effectiveNit(snapshot, ctx);
-        // Defensa en profundidad: el preflight ya lo validó fuera de la transacción.
-        checkNit(nit, ctx);
 
         Enterprise toCreate = support.toDomainEnterprise(snapshot, ctx.userId(), name, nit);
         toCreate.setLogo(restoreLogo(reader, snapshot));
@@ -169,7 +167,6 @@ public class EnterpriseBackupParticipant implements BackupParticipant {
 
         String name = ctx.targetName() != null ? ctx.targetName() : snapshot.getName();
         String nit = effectiveNit(snapshot, ctx);
-        checkNit(nit, ctx);
 
         // idUser no cambia: la empresa sigue siendo de su dueño actual.
         Enterprise changes = support.toDomainEnterprise(snapshot, current.getIdUser(), name, nit);
@@ -216,25 +213,6 @@ public class EnterpriseBackupParticipant implements BackupParticipant {
 
     private static String effectiveNit(EnterpriseSnapshot snapshot, RestoreContext ctx) {
         return ctx.targetNit() != null ? ctx.targetNit() : snapshot.getNit();
-    }
-
-    /**
-     * D3: en NEW_ENTERPRISE un NIT ya existente en el tenant (consulta filtrada por @TenantId) es 409.
-     * IN_PLACE: es 409 solo si lo usa OTRA empresa del tenant (la propia puede conservar su NIT).
-     */
-    private void checkNit(String nit, RestoreContext ctx) {
-        if (nit == null || nit.isBlank()) {
-            return;
-        }
-        boolean taken = switch (ctx.mode()) {
-            case NEW_ENTERPRISE -> enterpriseRepository.existsByNit(nit);
-            case IN_PLACE -> ctx.targetEnterpriseId() != null
-                    && enterpriseRepository.existsByNitAndIdNot(nit, ctx.targetEnterpriseId());
-            default -> false;
-        };
-        if (taken) {
-            throw new EnterpriseNitAlreadyExistsException(nit);
-        }
     }
 
     /**

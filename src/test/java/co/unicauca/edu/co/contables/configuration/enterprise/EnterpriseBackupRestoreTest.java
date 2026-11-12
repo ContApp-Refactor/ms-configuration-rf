@@ -66,7 +66,6 @@ import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.bac
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.coordination.BackupProgressListener;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.coordination.EnterpriseBackupCoordinatorImpl;
 import co.unicauca.edu.co.contables.configuration.enterprise.domain.services.coordination.RestoreOptions;
-import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.EnterpriseNitAlreadyExistsException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.InvalidRestoreRequestException;
 import co.unicauca.edu.co.contables.configuration.enterprise.presentation.exception.RestoreFailedException;
 import jakarta.persistence.EntityManager;
@@ -338,16 +337,18 @@ class EnterpriseBackupRestoreTest {
     }
 
     @Test
-    void restoreNuevoConNitRepetidoDa409AntesDeAbrirLaTransaccion() throws Exception {
+    void restoreNuevoConNitRepetidoYaNoDa409YCreaLaEmpresa() throws Exception {
+        // El NIT no es único por regla de negocio: ya no se valida al importar.
         when(repo.existsByNit("900")).thenReturn(true);
-        Path file = zipFile("{\"version\":1,\"enterprise\":{\"name\":\"X\",\"nit\":\"900\"}}");
+        when(enterpriseService.create(any(Enterprise.class)))
+                .thenReturn(Enterprise.builder().id(UUID.randomUUID()).build());
 
-        assertThatThrownBy(() -> restoreService().restore(file, RestoreOptions.newEnterprise(null, null, false),
-                USER_B))
-                .isInstanceOf(EnterpriseNitAlreadyExistsException.class)
-                .hasMessageContaining("900");
-        verify(enterpriseService, never()).create(any());
-        verify(tm, never()).getTransaction(any());
+        restoreService().restore(zipFile("{\"version\":1,\"enterprise\":{\"name\":\"X\",\"nit\":\"900\"}}"),
+                RestoreOptions.newEnterprise(null, null, false), USER_B);
+
+        ArgumentCaptor<Enterprise> cap = ArgumentCaptor.forClass(Enterprise.class);
+        verify(enterpriseService).create(cap.capture());
+        assertThat(cap.getValue().getNit()).isEqualTo("900");
     }
 
     @Test
