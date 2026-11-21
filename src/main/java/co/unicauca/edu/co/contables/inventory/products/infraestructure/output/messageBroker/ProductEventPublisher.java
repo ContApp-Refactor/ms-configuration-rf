@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.inventory.products.infraestructure.output.messageBroker;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import co.unicauca.edu.co.contables.inventory.products.application.dto.ProductSyncDto;
@@ -20,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
  * entre sistemas, incluyendo autenticación JWT en headers.
  */
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class ProductEventPublisher implements IProductEventPort{

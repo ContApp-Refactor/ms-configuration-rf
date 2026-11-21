@@ -3,6 +3,7 @@ package co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.ou
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,8 @@ import lombok.extern.slf4j.Slf4j;
  * and returns, with robust error handling and validation.
  */
 @Component("kardexFactureListener")@RequiredArgsConstructor
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @Slf4j
 public class FactureListener extends AbstractMessageListener<EventDto<KardexRabbitDto, EventFactureType>> {
     private final IKardexCommandPort kardexCommandPort;

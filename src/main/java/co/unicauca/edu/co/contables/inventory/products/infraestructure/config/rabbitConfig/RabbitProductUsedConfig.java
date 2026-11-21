@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.inventory.products.infraestructure.config.rabbitConfig;
 
 import org.springframework.amqp.core.FanoutExchange;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -11,6 +12,8 @@ import org.springframework.amqp.core.BindingBuilder;
 
 
 @Configuration
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class RabbitProductUsedConfig {
     public static final String PRODUCT_USED_EXCHANGE = "product.used.exchange";
     public static final String PRODUCT_USED_QUEUE = "product.used.queue";

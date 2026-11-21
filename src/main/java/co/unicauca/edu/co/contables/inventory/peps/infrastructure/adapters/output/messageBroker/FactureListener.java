@@ -3,6 +3,7 @@ package co.unicauca.edu.co.contables.inventory.peps.infrastructure.adapters.outp
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 import co.unicauca.edu.co.contables.inventory.peps.application.ports.input.IKardexCommandPort;
@@ -28,6 +29,8 @@ import jakarta.annotation.PostConstruct;
  * and triggers corresponding commands in the Kardex domain.
  */
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class FactureListener extends AbstractMessageListener<EventDto<KardexRabbitDto,EventFactureType>,EventFactureType> {

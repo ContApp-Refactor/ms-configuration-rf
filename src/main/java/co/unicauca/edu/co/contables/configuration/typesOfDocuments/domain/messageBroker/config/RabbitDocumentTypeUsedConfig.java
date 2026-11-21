@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.messageBroker.config;
 
 import org.springframework.amqp.core.FanoutExchange;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -15,7 +16,9 @@ import org.springframework.amqp.core.BindingBuilder;
 /** @brief Configuración de RabbitMQ para mensajes de tipos de documentos usados */
 @Configuration
 @Slf4j
+@Deprecated
 @Profile("!test")
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class RabbitDocumentTypeUsedConfig {
 
     public static final String DOCUMENT_TYPE_USED_EXCHANGE = "documenttype.used.exchange";

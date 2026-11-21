@@ -2,6 +2,7 @@ package co.unicauca.edu.co.contables.accounting.debt_payments.infraestructure.co
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -13,7 +14,9 @@ import org.springframework.context.annotation.Profile;
 
 @Configuration
 @Slf4j
+@Deprecated
 @Profile("!test")
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class RabbitNotificationsConfig {
     public static final String NOTIFICATIONS_EXCHANGE = "notifications.exchange";
     public static final String NOTIFICATIONS_QUEUE = "notifications.queue";

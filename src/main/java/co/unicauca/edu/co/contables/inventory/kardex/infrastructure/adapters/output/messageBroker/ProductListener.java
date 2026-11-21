@@ -3,6 +3,7 @@ package co.unicauca.edu.co.contables.inventory.kardex.infrastructure.adapters.ou
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +30,10 @@ import lombok.extern.slf4j.Slf4j;
  * Handles product lifecycle events (create, update, delete) from message broker
  * with error handling and recovery mechanisms for reliable data synchronization.
  */
-@Component("kardexProductListener")@RequiredArgsConstructor
+@Component("kardexProductListener")
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
 @Slf4j
 public class ProductListener extends AbstractMessageListener<EventDto<ProductAsyncDto, EventProductType>> {
     private final IProductCommandRepositoryPort productCommandPort;

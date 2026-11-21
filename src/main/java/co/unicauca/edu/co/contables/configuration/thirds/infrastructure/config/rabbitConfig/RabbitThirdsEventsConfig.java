@@ -3,12 +3,15 @@ package co.unicauca.edu.co.contables.configuration.thirds.infrastructure.config.
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
+@Deprecated
 @Profile("!test")
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class RabbitThirdsEventsConfig {
     public static final String THIRD_UPDATED_EXCHANGE = "third.updated.exchange";
     public static final String THIRD_UPDATED_QUEUE = "third.updated.queue";

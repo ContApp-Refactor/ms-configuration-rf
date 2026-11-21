@@ -17,6 +17,7 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 import java.util.Objects;
@@ -29,6 +30,8 @@ import java.util.Objects;
 
 @Slf4j
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class NotificationEventListener extends AbstractMessageListener<EventDto<InvoiceDueReminderEventDto>> {
 

@@ -10,9 +10,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class TreasuryOutboxMessenger {
     private final RabbitTemplate rabbitTemplate;

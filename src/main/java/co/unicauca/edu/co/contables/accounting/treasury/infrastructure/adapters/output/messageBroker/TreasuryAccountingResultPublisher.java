@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import co.unicauca.edu.co.contables.accounting.treasury.application.output.ITreasuryAccountingResultPublisher;
@@ -22,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
  * {@code AccountingResultEnvelope}.</p>
  */
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class TreasuryAccountingResultPublisher implements ITreasuryAccountingResultPublisher {

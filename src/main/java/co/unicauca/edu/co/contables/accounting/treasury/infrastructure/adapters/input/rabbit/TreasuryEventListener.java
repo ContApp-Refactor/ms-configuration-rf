@@ -11,9 +11,12 @@ import co.unicauca.edu.co.contables.accounting.treasury.infrastructure.adapters.
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class TreasuryEventListener {
     private final IInvoiceSynchronizationUseCase invoiceSynchronization;

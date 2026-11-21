@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.commons.audit.publisher;
 
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 
 //Publisher
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class AuditEventPublisher {

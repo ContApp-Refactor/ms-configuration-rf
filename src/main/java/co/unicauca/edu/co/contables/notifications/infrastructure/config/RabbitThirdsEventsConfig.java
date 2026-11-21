@@ -1,5 +1,7 @@
 package co.unicauca.edu.co.contables.notifications.infrastructure.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 /**
  * @brief Constantes de la cola de actualización de terceros que consume este módulo.
  *
@@ -9,6 +11,8 @@ package co.unicauca.edu.co.contables.notifications.infrastructure.config;
  * nombres de bean de esa configuración, así que esta clase se conserva solo
  * como portador de las constantes que usan los listeners.
  */
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public final class RabbitThirdsEventsConfig {
     public static final String THIRD_UPDATED_EXCHANGE = "third.updated.exchange";
     public static final String THIRD_UPDATED_QUEUE = "third.updated.queue";

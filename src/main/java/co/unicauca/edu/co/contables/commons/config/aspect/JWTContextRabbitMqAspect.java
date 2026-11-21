@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import co.unicauca.edu.co.contables.commons.multitenancy.utils.TenantContext;
@@ -22,6 +23,8 @@ import com.rabbitmq.client.LongString;
  */
 @Aspect
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class JWTContextRabbitMqAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(JWTContextRabbitMqAspect.class);

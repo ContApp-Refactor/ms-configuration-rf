@@ -15,15 +15,26 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 @Service
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class PurchaseInvoiceOutboxService {
     private final PurchaseInvoiceOutboxRepository repository;
     private final ObjectMapper mapper;
     private final PayableAccountCodeResolver payableAccountCodeResolver;
     private final PurchaseInvoiceEventPublisher publisher;
+
+    protected PurchaseInvoiceOutboxService(ObjectMapper mapper,
+            PayableAccountCodeResolver payableAccountCodeResolver) {
+        this.repository = null;
+        this.mapper = mapper;
+        this.payableAccountCodeResolver = payableAccountCodeResolver;
+        this.publisher = null;
+    }
 
     public void enqueue(SkeletonFacture facture, String eventType) {
         try {
@@ -70,6 +81,26 @@ public class PurchaseInvoiceOutboxService {
         } catch (Exception ex) {
             throw new IllegalStateException("No fue posible publicar el evento de compra", ex);
         }
+    }
+
+    protected PurchaseInvoiceEventDto buildEvent(SkeletonFacture facture) {
+        String payableCode = payableAccountCodeResolver.resolveOrFail(
+                facture.getAccountingAccount(), facture.getEntId());
+        return PurchaseInvoiceEventDto.builder()
+                .invoiceId(facture.getId())
+                .reference(String.valueOf(facture.getFactCode()))
+                .enterpriseId(facture.getEntId())
+                .supplierId(facture.getThId())
+                .originalAmount(new BigDecimal(facture.getTotalValue()))
+                .paidAmount(new BigDecimal(facture.getTotalPay()))
+                .pendingAmount(new BigDecimal(facture.getPendingValue()))
+                .issueDate(resolveIssueDate(facture))
+                .dueDate(facture.getExpirationDate())
+                .payableAccountId(facture.getAccountingAccount())
+                .payableAccountCode(payableCode)
+                .active(facture.getPurchaseStatus() != PurchaseInvoiceStatus.VOIDED)
+                .tenantId(TenantContext.getTenantId())
+                .build();
     }
 
     private LocalDate resolveIssueDate(SkeletonFacture facture) {

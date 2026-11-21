@@ -5,6 +5,7 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -14,7 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Configuration
 @Slf4j
+@Deprecated
 @Profile("!test")
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class RabbitPEPSConfig {
     public static final String PEPS_EXCHANGE = "peps.exchange";
     public static final String PEPS_QUEUE = "peps.queue";

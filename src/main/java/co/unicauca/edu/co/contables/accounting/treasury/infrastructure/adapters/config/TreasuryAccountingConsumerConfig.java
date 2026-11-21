@@ -6,6 +6,7 @@ import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,6 +23,8 @@ import org.springframework.context.annotation.Configuration;
  * {@link TreasuryRabbitConfig#RESULT_QUEUE} ya existia y estaba ligada.</p>
  */
 @Configuration
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class TreasuryAccountingConsumerConfig {
 
     /** Cola que consume los eventos de contabilizacion publicados por tesoreria. */

@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.accounting.facture.infraestructure.adapters.config.rabbitConfig;
 
 import org.springframework.amqp.core.FanoutExchange;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -21,7 +22,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Configuration
 @Slf4j
+@Deprecated
 @Profile("!test")
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class RabbitReceiptConfig {
     public static final String PURCHASE_INVOICE_EXCHANGE = "purchase.invoice.exchange";
 

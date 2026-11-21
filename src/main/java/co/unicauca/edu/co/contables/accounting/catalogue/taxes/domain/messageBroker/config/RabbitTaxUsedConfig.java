@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.accounting.catalogue.taxes.domain.messageBroker.config;
 
 import org.springframework.amqp.core.FanoutExchange;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -14,7 +15,9 @@ import org.springframework.amqp.core.BindingBuilder;
 
 @Configuration
 @Slf4j
+@Deprecated
 @Profile("!test")
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class RabbitTaxUsedConfig {
 
     public static final String TAX_USED_EXCHANGE = "tax.used.exchange";

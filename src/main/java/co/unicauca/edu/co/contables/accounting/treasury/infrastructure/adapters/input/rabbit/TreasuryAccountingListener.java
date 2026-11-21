@@ -2,6 +2,7 @@ package co.unicauca.edu.co.contables.accounting.treasury.infrastructure.adapters
 
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,6 +25,8 @@ import lombok.extern.slf4j.Slf4j;
  * insercion del asiento se caeria por {@code tenant_id} nulo.</p>
  */
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class TreasuryAccountingListener {

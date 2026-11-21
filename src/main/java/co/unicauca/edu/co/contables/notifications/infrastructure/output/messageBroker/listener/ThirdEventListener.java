@@ -3,6 +3,7 @@ package co.unicauca.edu.co.contables.notifications.infrastructure.output.message
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +29,8 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class ThirdEventListener extends AbstractMessageListener<EventDtoThird<ThirdUpdatedEventDto, String>> {

@@ -1,0 +1,125 @@
+package co.unicauca.edu.co.contables.audit.infrastructure.adapters.input.messageBroker;
+
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+import co.unicauca.edu.co.contables.accounting.facture.application.service.skeleton.audit.builder.DocumentEventDto;
+import co.unicauca.edu.co.contables.audit.application.dto.request.LogDocumentEventRequest;
+import co.unicauca.edu.co.contables.audit.application.port.input.commands.LogAuditDocumentEventCommand;
+import co.unicauca.edu.co.contables.audit.application.port.output.IMessageErrorHandlingPort;
+import co.unicauca.edu.co.contables.audit.infrastructure.adapters.input.messageBroker.base.AbstractSpringEventListener;
+import co.unicauca.edu.co.contables.audit.infrastructure.adapters.input.messageBroker.mapper.DocumentEventMapper;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+@Component
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "false", matchIfMissing = true)
+public class SpringEventsAuditDocumentListener extends AbstractSpringEventListener<DocumentEventDto> {
+
+    private final LogAuditDocumentEventCommand logDocumentEventPort;
+    private final DocumentEventMapper documentEventMapper;
+
+    public SpringEventsAuditDocumentListener(
+            LogAuditDocumentEventCommand logDocumentEventPort,
+            DocumentEventMapper documentEventMapper,
+            IMessageErrorHandlingPort messageErrorHandlingPort,
+            ObjectMapper objectMapper) {
+        super(messageErrorHandlingPort, objectMapper);
+        this.logDocumentEventPort = logDocumentEventPort;
+        this.documentEventMapper = documentEventMapper;
+    }
+
+    @EventListener
+    public void onDocumentEvent(DocumentEventDto eventDto) {
+        handleEvent(eventDto);
+    }
+
+    @Override
+    protected void processEvent(DocumentEventDto event) {
+        LogDocumentEventRequest request = documentEventMapper.toRequest(toAuditEvent(event));
+        logDocumentEventPort.execute(request);
+    }
+
+    @Override
+    protected Optional<String> validateEvent(DocumentEventDto event) {
+        if (event == null)
+            return Optional.of("event is null");
+        if (event.getEnterpriseId() == null || event.getEnterpriseId().isBlank())
+            return Optional.of("enterpriseId missing");
+        if (event.getDocumentId() == null || event.getDocumentId().isBlank())
+            return Optional.of("documentId missing");
+        if (event.getDocumentCode() == null || event.getDocumentCode().isBlank())
+            return Optional.of("documentCode missing");
+        if (event.getDocumentType() == null || event.getDocumentType().isBlank())
+            return Optional.of("documentType missing");
+        if (event.getDocumentDate() == null)
+            return Optional.of("documentDate missing");
+        if (event.getUserId() == null || event.getUserId().isBlank())
+            return Optional.of("userId missing");
+        if (event.getUserName() == null || event.getUserName().isBlank())
+            return Optional.of("userName missing");
+        if (event.getUserRoles() == null || event.getUserRoles().isEmpty())
+            return Optional.of("userRoles missing");
+        if (event.getOperationType() == null)
+            return Optional.of("operationType missing");
+        if (event.getModuleName() == null || event.getModuleName().isBlank())
+            return Optional.of("moduleName missing");
+        if (event.getOperationAt() == null)
+            return Optional.of("operationAt missing");
+        if (event.getDocumentData() == null || event.getDocumentData().isEmpty())
+            return Optional.of("documentData missing");
+        if (!isValidDocumentDataSize(event.getDocumentData()))
+            return Optional.of("documentData exceeds max size");
+        return Optional.empty();
+    }
+
+    private boolean isValidDocumentDataSize(Map<String, Object> dataObject) {
+        return isValidJsonSize(dataObject, 1_000_000);
+    }
+
+    @Override
+    protected String getEntityType() {
+        return "Document_event";
+    }
+
+    @Override
+    protected String extractEventType(DocumentEventDto event) {
+
+        return event != null && event.getOperationType() != null ? event.getOperationType() : "UNKNOWN";
+    }
+
+    @Override
+    protected String convertEventToJson(DocumentEventDto event) {
+        try {
+            return objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            return "{\"error\": \"Failed to convert\"}";
+        }
+    }
+
+    private co.unicauca.edu.co.contables.audit.infrastructure.adapters.input.messageBroker.dto.DocumentEventDto toAuditEvent(
+            DocumentEventDto event) {
+        return co.unicauca.edu.co.contables.audit.infrastructure.adapters.input.messageBroker.dto.DocumentEventDto
+                .builder()
+                .enterpriseId(event.getEnterpriseId())
+                .documentId(event.getDocumentId())
+                .documentCode(event.getDocumentCode())
+                .documentType(event.getDocumentType())
+                .documentDate(event.getDocumentDate())
+                .userId(event.getUserId())
+                .userName(event.getUserName())
+                .userRoles(event.getUserRoles())
+                .operationType(event.getOperationType())
+                .thirdPartyId(event.getThirdPartyId())
+                .thirdPartyName(event.getThirdPartyName())
+                .moduleName(event.getModuleName())
+                .operationAt(event.getOperationAt())
+                .documentData(event.getDocumentData())
+                .build();
+    }
+}

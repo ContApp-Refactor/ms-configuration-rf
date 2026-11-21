@@ -2,6 +2,7 @@ package co.unicauca.edu.co.contables.audit.infrastructure.config.rabbitConfig;
 
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -10,7 +11,9 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 
 @Configuration
+@Deprecated
 @Profile("!test")
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class RabbitOperationConfig {
     public static final String OPERATION_AUDIT_QUEUE = "audit.operation.queue";
     public static final String OPERATION_EVENT_ROUTING_KEY = "operation.event";

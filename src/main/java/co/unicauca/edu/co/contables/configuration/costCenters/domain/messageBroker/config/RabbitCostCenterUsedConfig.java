@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.configuration.costCenters.domain.messageBroker.config;
 
 import org.springframework.amqp.core.FanoutExchange;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -20,7 +21,9 @@ import org.springframework.amqp.core.BindingBuilder;
  */
 @Configuration
 @Slf4j
+@Deprecated
 @Profile("!test")
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class RabbitCostCenterUsedConfig {
     public static final String COST_CENTER_USED_EXCHANGE = "costcenter.used.exchange";
     public static final String COST_CENTER_USED_QUEUE = "costcenter.used.queue";

@@ -5,6 +5,7 @@ import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -27,14 +28,16 @@ public class RabbitInvoiceConfig {
 
     //Jackson2JsonMessageConverter provided by RabbitCommonConfig.
 
-    // STATEMENT EXCHANGES
-    // Primary and message exchange dead for third invoices
     @Bean
+    @Deprecated
+    @ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
     FanoutExchange invoiceExchange() {
         return new FanoutExchange(INVOICE_EXCHANGE, true, false);
     }
 
     @Bean
+    @Deprecated
+    @ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
     FanoutExchange invoicePaymentsDlx() {
         return new FanoutExchange(INVOICE_PAYMENTS_DLX, true, false);
     }
@@ -42,6 +45,8 @@ public class RabbitInvoiceConfig {
     // STATEMENT OF QUEUES AND BINDINGS
     // Invoice Queues and Bindings
     @Bean
+    @Deprecated
+    @ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
     Queue invoicePaymentsQueue() {
         return QueueBuilder.durable(INVOICE_PAYMENTS_QUEUE)
                 .withArgument("x-dead-letter-exchange", INVOICE_PAYMENTS_DLX)
@@ -49,11 +54,15 @@ public class RabbitInvoiceConfig {
     }
 
     @Bean
+    @Deprecated
+    @ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
     Queue invoicePaymentsDlq() {
         return QueueBuilder.durable(INVOICE_PAYMENTS_DLQ).build();
     }
 
     @Bean
+    @Deprecated
+    @ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
     Queue invoicePaymentsRetryQueue() {
         return QueueBuilder.durable(INVOICE_PAYMENTS_RETRY_QUEUE)
                 .withArgument("x-message-ttl", 60000) // 1 minuto de espera para reintento
@@ -62,16 +71,22 @@ public class RabbitInvoiceConfig {
     }
 
     @Bean
+    @Deprecated
+    @ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
     Binding invoicePaymentsBinding() {
         return BindingBuilder.bind(invoicePaymentsQueue()).to(invoiceExchange());
     }
 
     @Bean
+    @Deprecated
+    @ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
     Binding invoicePaymentsDlqBinding() {
         return BindingBuilder.bind(invoicePaymentsDlq()).to(invoicePaymentsDlx());
     }
 
     @Bean
+    @Deprecated
+    @ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
     Binding invoicePaymentsRetryBinding() {
         return BindingBuilder.bind(invoicePaymentsRetryQueue()).to(invoicePaymentsDlx());
     }

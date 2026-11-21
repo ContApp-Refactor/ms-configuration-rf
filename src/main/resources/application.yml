@@ -71,6 +71,9 @@ keycloak:
   admin-server-url: ${KEYCLOAK_ADMIN_SERVER_URL:http://contables.unicauca.edu.co/auth}
 
 app:
+  messaging:
+    rabbit:
+      enabled: ${MESSAGING_RABBIT_ENABLED:false}
   recovery:
     base-url: ${RECOVERY_FRONTEND_URL:http://localhost:5173/reset-password}  # URL del frontend que recibe ?token=
     ttl-seconds: ${RECOVERY_TTL_SECONDS:3600}                                # 1 hora

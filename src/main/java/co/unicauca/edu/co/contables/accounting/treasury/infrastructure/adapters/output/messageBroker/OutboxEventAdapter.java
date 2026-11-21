@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -24,6 +25,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * asincrona por {@code accounting.result.exchange} y lo aplica {@code TreasuryEventListener}.
  */
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @Slf4j
 @RequiredArgsConstructor
 public class OutboxEventAdapter implements ITreasuryEventPublisher {

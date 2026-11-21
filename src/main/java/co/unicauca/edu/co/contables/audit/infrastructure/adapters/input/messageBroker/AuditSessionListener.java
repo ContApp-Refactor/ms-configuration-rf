@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import co.unicauca.edu.co.contables.audit.application.dto.request.LogSessionRequest;
@@ -20,6 +21,8 @@ import com.rabbitmq.client.Channel;
 import org.springframework.messaging.handler.annotation.Header;
 
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 public class AuditSessionListener extends AbstractMessageListener<SessionEventDto> {
 
     private final LogAuditSessionCommand logAuditSessionPort;

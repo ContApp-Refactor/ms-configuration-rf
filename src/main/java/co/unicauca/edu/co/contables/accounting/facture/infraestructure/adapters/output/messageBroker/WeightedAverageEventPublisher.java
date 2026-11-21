@@ -3,6 +3,7 @@ package co.unicauca.edu.co.contables.accounting.facture.infraestructure.adapters
 import java.util.Map;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import co.unicauca.edu.co.contables.accounting.facture.application.ports.input.IWeightedAverageEventPort;
@@ -17,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class WeightedAverageEventPublisher implements IWeightedAverageEventPort {

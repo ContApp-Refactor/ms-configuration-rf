@@ -1,5 +1,6 @@
 package co.unicauca.edu.co.contables.keycloak.audit;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
  * </p>
  */
 @Component
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class KeycloakSessionEventListener {

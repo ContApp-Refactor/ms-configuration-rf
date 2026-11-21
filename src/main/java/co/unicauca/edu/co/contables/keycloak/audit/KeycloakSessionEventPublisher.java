@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.keycloak.audit;
 
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import co.unicauca.edu.co.contables.audit.infrastructure.config.rabbitConfig.RabbitSessionConfig;
@@ -22,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
  * </p>
  */
 @Service
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @Slf4j
 @RequiredArgsConstructor
 public class KeycloakSessionEventPublisher {

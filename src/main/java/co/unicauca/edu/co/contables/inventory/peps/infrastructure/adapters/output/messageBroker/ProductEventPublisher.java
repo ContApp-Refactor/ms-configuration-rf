@@ -1,6 +1,7 @@
 package co.unicauca.edu.co.contables.inventory.peps.infrastructure.adapters.output.messageBroker;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import co.unicauca.edu.co.contables.inventory.peps.domain.port.output.external.IProductEventPort;
 import co.unicauca.edu.co.contables.inventory.products.infraestructure.config.rabbitConfig.RabbitProductUsedConfig;
@@ -20,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
  * Implements the output port to publish events when a product is used/consumed.
  */
 @Component("pepsProductEventPublisher")
+@Deprecated
+@ConditionalOnProperty(prefix = "app.messaging.rabbit", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class ProductEventPublisher implements IProductEventPort{
