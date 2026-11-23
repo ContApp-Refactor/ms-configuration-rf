@@ -1,0 +1,388 @@
+package co.unicauca.edu.co.contables.financial.application.useCase.financialStatement;
+
+import co.unicauca.edu.co.contables.financial.application.ports.in.financialStatement.IFinancialStatementCommandPort;
+import co.unicauca.edu.co.contables.financial.application.ports.out.IFinancialStatementPersistencePort;
+import co.unicauca.edu.co.contables.financial.domain.models.core.FinancialStatementAnnotation;
+import co.unicauca.edu.co.contables.financial.domain.models.core.FinancialStatementCriteria;
+import co.unicauca.edu.co.contables.financial.domain.models.core.FinancialStatementDataPayload;
+import co.unicauca.edu.co.contables.financial.domain.models.core.FinancialStatementGenerationResult;
+import co.unicauca.edu.co.contables.financial.domain.models.core.FinancialStatementHistoryItem;
+import co.unicauca.edu.co.contables.financial.domain.models.core.FinancialStatementLog;
+import co.unicauca.edu.co.contables.financial.domain.models.core.FinancialStatementReport;
+import co.unicauca.edu.co.contables.financial.domain.models.core.FinancialStatementRequest;
+import co.unicauca.edu.co.contables.financial.domain.models.core.FinancialStatementTemplate;
+import co.unicauca.edu.co.contables.financial.domain.models.core.PageResult;
+import co.unicauca.edu.co.contables.financial.domain.models.enums.EDeliveryWay;
+import co.unicauca.edu.co.contables.financial.infrastructure.out.persistence.entity.FinancialStatementEntity;
+import co.unicauca.edu.co.contables.financial.infrastructure.out.persistence.entity.FinancialStatementHistoryEntity;
+import co.unicauca.edu.co.contables.financial.infrastructure.out.persistence.entity.FinancialStatementLogEntity;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Component
+@Slf4j
+@RequiredArgsConstructor
+public class FinancialStatementCommandUC implements IFinancialStatementCommandPort {
+
+    private final IFinancialStatementPersistencePort financialStatementPersistencePort;
+    private final FinancialStatementSnapshotMapper financialStatementSnapshotMapper;
+    private final FinancialStatementRequestSupport financialStatementRequestSupport;
+    private final FinancialStatementTemplateManager financialStatementTemplateManager;
+    private final FinancialStatementAnnotationManager financialStatementAnnotationManager;
+    private final FinancialStatementDataGenerator financialStatementDataGenerator;
+    private final FinancialStatementReportMetadataMapper financialStatementReportMetadataMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public FinancialStatementGenerationResult previewFinancialStatement(FinancialStatementRequest request) {
+        FinancialStatementRequest normalizedRequest = financialStatementRequestSupport.normalizeRequest(request);
+        financialStatementRequestSupport.validateRequest(normalizedRequest);
+        return generateFinancialStatement(normalizedRequest, false);
+    }
+
+    @Override
+    @Transactional
+    public FinancialStatementGenerationResult registerFinancialStatement(FinancialStatementRequest request) {
+        FinancialStatementRequest normalizedRequest = financialStatementRequestSupport.normalizeRequest(request);
+        financialStatementRequestSupport.validateRequest(normalizedRequest);
+        return generateFinancialStatement(normalizedRequest, true);
+    }
+
+    @Override
+    public Optional<FinancialStatementReport> getFinancialStatementReport(UUID reportId) {
+        return financialStatementPersistencePort.findFinancialStatementByReportId(reportId)
+                .map(this::toDomain);
+    }
+
+    @Override
+    public Optional<FinancialStatementGenerationResult> getFinancialStatementSnapshot(UUID reportId) {
+        return financialStatementPersistencePort.findFinancialStatementByReportId(reportId)
+                .map(financialStatementSnapshotMapper::toGenerationResult)
+                .map(result -> enrichWithAnnotations(result, reportId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResult<FinancialStatementHistoryItem> getHistoryByEnterprise(String enterpriseId, int page, int size, String sort) {
+        if (!StringUtils.hasText(enterpriseId)) {
+            throw new IllegalArgumentException("El enterpriseId es obligatorio.");
+        }
+
+        Pageable pageable = buildHistoryPageable(page, size, sort);
+        Page<FinancialStatementHistoryEntity> historyPage = financialStatementPersistencePort
+                .findHistoryByEnterprise(enterpriseId, pageable);
+
+        return PageResult.<FinancialStatementHistoryItem>builder()
+                .content(historyPage.getContent().stream().map(this::toHistoryItem).toList())
+                .page(historyPage.getNumber())
+                .size(historyPage.getSize())
+                .totalElements(historyPage.getTotalElements())
+                .totalPages(historyPage.getTotalPages())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FinancialStatementLog> getLogsByReportId(UUID reportId) {
+        if (reportId == null) {
+            throw new IllegalArgumentException("El reportId es obligatorio.");
+        }
+
+        return financialStatementPersistencePort.findLogsByReportId(reportId).stream()
+                .map(this::toLog)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public FinancialStatementTemplate saveTemplate(FinancialStatementTemplate template) {
+        return financialStatementTemplateManager.saveTemplate(template);
+    }
+
+    @Override
+    @Transactional
+    public FinancialStatementTemplate saveDefaultTemplate(FinancialStatementTemplate template) {
+        return financialStatementTemplateManager.saveDefaultTemplate(template);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FinancialStatementTemplate> getTemplatesByEnterprise(String enterpriseId) {
+        return financialStatementTemplateManager.getTemplatesByEnterprise(enterpriseId);
+    }
+
+    @Override
+    public Optional<FinancialStatementTemplate> getDefaultTemplateByEnterprise(String enterpriseId) {
+        return financialStatementTemplateManager.getDefaultTemplateByEnterprise(enterpriseId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteTemplate(String enterpriseId, Long templateId) {
+        financialStatementTemplateManager.deleteTemplate(enterpriseId, templateId);
+    }
+
+    @Override
+    @Transactional
+    public int deleteTemplates(String enterpriseId, List<Long> templateIds) {
+        return financialStatementTemplateManager.deleteTemplates(enterpriseId, templateIds);
+    }
+
+    @Override
+    @Transactional
+    public int deleteAllTemplates(String enterpriseId) {
+        return financialStatementTemplateManager.deleteAllTemplates(enterpriseId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FinancialStatementAnnotation> getAnnotations(UUID reportId) {
+        return financialStatementAnnotationManager.getAnnotations(reportId);
+    }
+
+    @Override
+    @Transactional
+    public FinancialStatementAnnotation createAnnotation(UUID reportId, String text) {
+        return financialStatementAnnotationManager.createAnnotation(reportId, text);
+    }
+
+    @Override
+    @Transactional
+    public FinancialStatementAnnotation updateAnnotation(UUID reportId, Long annotationId, String text) {
+        return financialStatementAnnotationManager.updateAnnotation(reportId, annotationId, text);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAnnotation(UUID reportId, Long annotationId) {
+        financialStatementAnnotationManager.deleteAnnotation(reportId, annotationId);
+    }
+
+    @Override
+    @Transactional
+    public void registerDeliveryEvent(UUID reportId, String deliveryWay, String message, String eventType) {
+        FinancialStatementEntity statement = resolveFinancialStatement(reportId);
+        OffsetDateTime eventAt = OffsetDateTime.now();
+        String resolvedDeliveryWay = EDeliveryWay.DOWNLOAD.name();
+        String resolvedEventType = StringUtils.hasText(eventType)
+                ? eventType.trim().toUpperCase()
+                : "DELIVERED";
+        String resolvedState = "DOWNLOADED";
+        String resolvedMessage = StringUtils.hasText(message)
+                ? message
+                : "Reporte descargado correctamente.";
+
+        appendHistory(statement, resolvedState, resolvedDeliveryWay, eventAt);
+        appendLog(
+                statement,
+                resolvedEventType,
+                resolvedMessage,
+                "download",
+                "INFO",
+                eventAt
+        );
+    }
+
+    @Override
+    @Transactional
+    public void registerLogEvent(UUID reportId, String eventType, String message, String icon, String color) {
+        FinancialStatementEntity statement = resolveFinancialStatement(reportId);
+        appendLog(statement, eventType, message, icon, color, OffsetDateTime.now());
+    }
+
+    private FinancialStatementGenerationResult generateFinancialStatement(
+            FinancialStatementRequest request,
+            boolean persist
+    ) {
+        OffsetDateTime createdAt = OffsetDateTime.now();
+        FinancialStatementCriteria persistedCriteria = financialStatementRequestSupport.normalizePersistedCriteria(
+                request.getType(),
+                request.getCriteria()
+        );
+        UUID reportId = persist ? UUID.randomUUID() : null;
+
+        FinancialStatementReport report = FinancialStatementReport.builder()
+                .reportId(reportId)
+                .type(request.getType())
+                .entId(request.getEntId())
+                .criteria(persistedCriteria)
+                .createdAt(createdAt)
+                .downloadUrl(persist ? financialStatementReportMetadataMapper.buildDownloadUrl(reportId) : null)
+                .build();
+
+        FinancialStatementDataPayload payload;
+        try {
+            payload = financialStatementDataGenerator.generate(request);
+        } catch (IllegalArgumentException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            log.error(
+                    "Error generating financial statement. entId={}, type={}, persist={}",
+                    request.getEntId(),
+                    request.getType(),
+                    persist,
+                    exception
+            );
+            throw new FinancialStatementGenerationException("Error al generar el reporte. Intente mas tarde.", exception);
+        }
+
+        if (persist) {
+            FinancialStatementEntity savedStatement = financialStatementPersistencePort.saveFinancialStatement(
+                    toEntity(report, financialStatementSnapshotMapper.toJson(report, payload))
+            );
+            appendHistory(savedStatement, "GENERATED", EDeliveryWay.SYSTEM.name(), createdAt);
+            appendLog(savedStatement, "GENERATED", "Reporte generado correctamente.", "description", "SUCCESS", createdAt);
+        }
+
+        return FinancialStatementGenerationResult.builder()
+                .financialStatement(report)
+                .financialStatementData(payload.getRows())
+                .annotations(List.of())
+                .totalAssets(payload.getTotalAssets())
+                .totalLiabilities(payload.getTotalLiabilities())
+                .totalEquity(payload.getTotalEquity())
+                .build();
+    }
+
+    private FinancialStatementEntity toEntity(FinancialStatementReport report, String snapshotJson) {
+        return FinancialStatementEntity.builder()
+                .reportId(report.getReportId())
+                .type(report.getType())
+                .entId(report.getEntId())
+                .createdAt(report.getCreatedAt())
+                .reportSnapshot(snapshotJson)
+                .build();
+    }
+
+    private FinancialStatementReport toDomain(FinancialStatementEntity entity) {
+        return FinancialStatementReport.builder()
+                .reportId(entity.getReportId())
+                .type(entity.getType())
+                .entId(entity.getEntId())
+                .criteria(extractCriteria(entity))
+                .createdAt(entity.getCreatedAt())
+                .downloadUrl(financialStatementReportMetadataMapper.buildDownloadUrl(entity.getReportId()))
+                .build();
+    }
+
+    private Pageable buildHistoryPageable(int page, int size, String sort) {
+        int resolvedPage = Math.max(page, 0);
+        int resolvedSize = size > 0 ? Math.min(size, 100) : 10;
+
+        String sortProperty = "createdAt";
+        Sort.Direction direction = Sort.Direction.DESC;
+
+        if (StringUtils.hasText(sort)) {
+            String[] parts = sort.split(",");
+            if (parts.length > 0 && StringUtils.hasText(parts[0])) {
+                sortProperty = parts[0].trim();
+            }
+            if (parts.length > 1 && "asc".equalsIgnoreCase(parts[1].trim())) {
+                direction = Sort.Direction.ASC;
+            }
+        }
+
+        return PageRequest.of(resolvedPage, resolvedSize, Sort.by(direction, sortProperty));
+    }
+
+    private FinancialStatementHistoryItem toHistoryItem(FinancialStatementHistoryEntity entity) {
+        FinancialStatementEntity statement = entity.getFinancialStatement();
+
+        return FinancialStatementHistoryItem.builder()
+                .reportId(statement.getReportId())
+                .type(statement.getType())
+                .entId(statement.getEntId())
+                .criteria(extractCriteria(statement))
+                .reportCreatedAt(statement.getCreatedAt())
+                .state(entity.getState())
+                .deliveryWay(entity.getDeliveryWay())
+                .eventAt(entity.getCreatedAt())
+                .downloadUrl(financialStatementReportMetadataMapper.buildDownloadUrl(statement.getReportId()))
+                .build();
+    }
+
+    private FinancialStatementLog toLog(FinancialStatementLogEntity entity) {
+        return FinancialStatementLog.builder()
+                .eventType(entity.getEventType())
+                .message(entity.getMessage())
+                .icon(entity.getIcon())
+                .color(entity.getColor())
+                .createdAt(entity.getCreatedAt())
+                .build();
+    }
+
+    private FinancialStatementCriteria extractCriteria(FinancialStatementEntity entity) {
+        var snapshot = financialStatementSnapshotMapper.fromJson(entity.getReportSnapshot());
+        return snapshot != null ? snapshot.getCriteria() : null;
+    }
+
+    private FinancialStatementGenerationResult enrichWithAnnotations(
+            FinancialStatementGenerationResult result,
+            UUID reportId
+    ) {
+        if (result == null || reportId == null) {
+            return result;
+        }
+
+        result.setAnnotations(financialStatementAnnotationManager.getAnnotations(reportId));
+        return result;
+    }
+
+    private FinancialStatementEntity resolveFinancialStatement(UUID reportId) {
+        if (reportId == null) {
+            throw new IllegalArgumentException("El reportId es obligatorio.");
+        }
+
+        return financialStatementPersistencePort.findFinancialStatementByReportId(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontro el reporte del estado financiero."));
+    }
+
+    private void appendHistory(
+            FinancialStatementEntity statement,
+            String state,
+            String deliveryWay,
+            OffsetDateTime createdAt
+    ) {
+        financialStatementPersistencePort.saveHistory(
+                FinancialStatementHistoryEntity.builder()
+                        .financialStatement(statement)
+                        .state(state)
+                        .deliveryWay(deliveryWay)
+                        .createdAt(createdAt)
+                        .build()
+        );
+    }
+
+    private void appendLog(
+            FinancialStatementEntity statement,
+            String eventType,
+            String message,
+            String icon,
+            String color,
+            OffsetDateTime createdAt
+    ) {
+        financialStatementPersistencePort.saveLog(
+                FinancialStatementLogEntity.builder()
+                        .financialStatement(statement)
+                        .eventType(StringUtils.hasText(eventType) ? eventType.trim().toUpperCase() : "INFO")
+                        .message(message)
+                        .icon(icon)
+                        .color(color)
+                        .createdAt(createdAt)
+                        .build()
+        );
+    }
+
+}

@@ -1,10 +1,10 @@
 package co.unicauca.edu.co.contables.configuration.unit.costCenters.domain.services;
 
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterHasChildrenException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterInUseException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCenterInvalidCodePrefixException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCentersAlreadyExistsException;
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.costCenters.CostCentersNotFoundException;
+import co.unicauca.edu.co.contables.commons.exceptions.costCenters.CostCenterHasChildrenException;
+import co.unicauca.edu.co.contables.commons.exceptions.costCenters.CostCenterInUseException;
+import co.unicauca.edu.co.contables.commons.exceptions.costCenters.CostCenterInvalidCodePrefixException;
+import co.unicauca.edu.co.contables.commons.exceptions.costCenters.CostCentersAlreadyExistsException;
+import co.unicauca.edu.co.contables.commons.exceptions.costCenters.CostCentersNotFoundException;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.entity.CostCenterEntity;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.mapper.CostCenterDataMapper;
 import co.unicauca.edu.co.contables.configuration.costCenters.dataAccess.repository.CostCenterRepository;

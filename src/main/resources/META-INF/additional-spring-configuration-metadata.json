@@ -1,12 +1,29 @@
-{"properties": [
-  {
-    "name": "jwt.auth.converter.principle-attribute",
-    "type": "java.lang.String",
-    "description": "A description for 'jwt.auth.converter.principle-attribute'"
-  },
-  {
-    "name": "jwt.auth.converter.resource-id",
-    "type": "java.lang.String",
-    "description": "A description for 'jwt.auth.converter.resource-id'"
-  }
-]}
+{
+  "properties": [
+    {
+      "name": "jwt.auth.converter.principle-attribute",
+      "type": "java.lang.String",
+      "description": "A description for 'jwt.auth.converter.principle-attribute'"
+    },
+    {
+      "name": "jwt.auth.converter.resource-id",
+      "type": "java.lang.String",
+      "description": "A description for 'jwt.auth.converter.resource-id'"
+    },
+    {
+      "name": "baseUrl",
+      "type": "java.lang.String",
+      "description": "A description for 'baseUrl'"
+    },
+    {
+      "name": "notification-settings.mail.from",
+      "type": "java.lang.String",
+      "description": "A description for 'notification-settings.mail.from'"
+    },
+    {
+      "name": "notification-settings.mail.invoice-reminder-subject",
+      "type": "java.lang.String",
+      "description": "A description for 'notification-settings.mail.invoice-reminder-subject'"
+    }
+  ]
+}

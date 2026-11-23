@@ -1,0 +1,111 @@
+package co.unicauca.edu.co.contables.financial.infrastructure.out.exception;
+
+import co.unicauca.edu.co.contables.financial.application.useCase.financialStatement.FinancialStatementGenerationException;
+import co.unicauca.edu.co.contables.financial.application.useCase.financialStatement.FinancialStatementSignatureException;
+import co.unicauca.edu.co.contables.financial.infrastructure.in.rest.dto.ResponseDTO;
+import co.unicauca.edu.co.contables.financial.infrastructure.out.clients.accountingInfo.AccountInfoClientException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@RestControllerAdvice(basePackages = "co.unicauca.edu.co.contables.financial")
+@Slf4j
+public class FinancialGlobalExceptionHandler {
+
+    @ExceptionHandler(FinancialStatementGenerationException.class)
+    public ResponseEntity<ResponseDTO<Void>> handleGenerationException(FinancialStatementGenerationException ex) {
+        log.error("Financial statement generation failed.", ex);
+        return ResponseDTO.<Void>builder()
+                .statusCode(HttpStatus.BAD_GATEWAY.value())
+                .code(HttpStatus.BAD_GATEWAY.value())
+                .message("Error al generar el reporte. Intente mas tarde.")
+                .build()
+                .of();
+    }
+
+    @ExceptionHandler(FinancialStatementSignatureException.class)
+    public ResponseEntity<ResponseDTO<Void>> handleSignatureException(FinancialStatementSignatureException ex) {
+        log.error("Financial statement signature processing failed.", ex);
+        return ResponseDTO.<Void>builder()
+                .statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .message(ex.getMessage())
+                .build()
+                .of();
+    }
+
+    @ExceptionHandler(AccountInfoClientException.class)
+    public ResponseEntity<ResponseDTO<Void>> handleAccountingIntegration(AccountInfoClientException ex) {
+        HttpStatus status = ex.getStatus() != null ? ex.getStatus() : HttpStatus.BAD_GATEWAY;
+        log.error("Accounting integration error.", ex);
+
+        return ResponseDTO.<Void>builder()
+                .statusCode(status.value())
+                .code(status.value())
+                .message("Error al generar el reporte. Intente mas tarde.")
+                .build()
+                .of();
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ResponseDTO<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseDTO.<Void>builder()
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .code(HttpStatus.BAD_REQUEST.value())
+                .message(ex.getMessage())
+                .build()
+                .of();
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ResponseDTO<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage())
+                .orElse("Error de validacion.");
+
+        return ResponseDTO.<Void>builder()
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .code(HttpStatus.BAD_REQUEST.value())
+                .message(message)
+                .build()
+                .of();
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ResponseDTO<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        String detailedMessage = ex.getMostSpecificCause() != null
+                ? ex.getMostSpecificCause().getMessage()
+                : ex.getMessage();
+
+        String message = "Carga util invalida. Verifique la estructura JSON y use el formato de fecha yyyy-MM-dd o dd/MM/yyyy.";
+        if (detailedMessage != null && detailedMessage.contains("LocalDate")) {
+            message = "Formato de fecha invalido. Use yyyy-MM-dd o dd/MM/yyyy.";
+        }
+
+        return ResponseDTO.<Void>builder()
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .code(HttpStatus.BAD_REQUEST.value())
+                .message(message)
+                .build()
+                .of();
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ResponseDTO<Void>> handleGeneralException(Exception ex) {
+        log.error("Unexpected financial statement error.", ex);
+        return ResponseDTO.<Void>builder()
+                .statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .message("Ocurrio un error inesperado. Intente nuevamente mas tarde.")
+                .build()
+                .of();
+    }
+}

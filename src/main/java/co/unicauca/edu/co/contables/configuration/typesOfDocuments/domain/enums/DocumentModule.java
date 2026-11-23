@@ -1,7 +1,7 @@
 package co.unicauca.edu.co.contables.configuration.typesOfDocuments.domain.enums;
 
-import co.unicauca.edu.co.contables.configuration.commons.exceptions.documentTypes.InvalidModuleException;
-import co.unicauca.edu.co.contables.configuration.commons.utils.StringStandardizationUtils;
+import co.unicauca.edu.co.contables.commons.exceptions.documentTypes.InvalidModuleException;
+import co.unicauca.edu.co.contables.commons.utils.StringStandardizationUtils;
 import lombok.Getter;
 
 /** @brief Enumeración de módulos permitidos para tipos de documentos */

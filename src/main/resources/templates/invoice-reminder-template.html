@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Recordatorio de Vencimiento</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { border: 1px solid #ddd; padding: 20px; border-radius: 5px; max-width: 600px; margin: auto; }
+        .header { background-color: #f2f2f2; padding: 10px; text-align: center; }
+        .invoice-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .invoice-table th, .invoice-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .footer { margin-top: 20px; font-size: 0.8em; color: #777; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Recordatorio de Vencimiento de Facturas</h2>
+        </div>
+        <p>Hola <strong th:text="${clientName}">Nombre del Cliente</strong>,</p>
+        <p>Este es un recordatorio amistoso sobre las siguientes facturas que están próximas a vencer:</p>
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>Codigo de Factura</th>
+                    <th>Fecha de Vencimiento</th>
+                    <th>Valor Pendiente</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="invoice : ${invoices}">
+                    <td th:text="${invoice.invoiceCode}">10001</td>
+                    <td th:text="${#temporals.format(invoice.expirationDate, 'dd/MM/yyyy')}">31/12/2023</td>
+                    <td th:text="${'$' + #numbers.formatDecimal(invoice.pendingValue, 1, 'POINT', 2, 'COMMA')}">$1,234.56</td>
+                </tr>
+            </tbody>
+        </table>
+        <p>Por favor, realiza el pago a la brevedad posible para evitar inconvenientes.</p>
+        <p>Muchas gracias.</p>
+        <div class="footer">
+            <p>&copy; 2025 Contapp</p>
+        </div>
+    </div>
+</body>
+</html>

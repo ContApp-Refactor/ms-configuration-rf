@@ -11,6 +11,12 @@ public interface ITagRepository extends JpaRepository<TagEntity,Long>{
 
     List<TagEntity> findByEnterpriseId(String enterpriseId);
 
+    /** Copia de seguridad: lectura paginada de los tags de la empresa. */
+    org.springframework.data.domain.Page<TagEntity> findAllByEnterpriseId(
+            String enterpriseId, org.springframework.data.domain.Pageable pageable);
+
+    long countByEnterpriseId(String enterpriseId);
+
     Optional<TagEntity> findByIdAndEnterpriseId(Long id, String enterpriseId);
     
 }
